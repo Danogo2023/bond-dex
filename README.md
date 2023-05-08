@@ -42,4 +42,5 @@ Find more on the [Aiken's user manual](https://aiken-lang.org).
 
 ## Licensing
 
-The primary license for Danogo V1 Core is the Business Source License 1.1 (`BUSL-1.1`), see [`LICENSE`](./LICENSE).
+The primary license for Danogo V1 Core is the 
+Business Source License 1.1 (`BUSL-1.1`), see [`LICENSE`](./LICENSE).
