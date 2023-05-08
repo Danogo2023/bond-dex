@@ -1,4 +1,4 @@
-# Optim Bond Marketplace
+# Danogo Bonds Exchange
 
 ## Prerequisites
 
