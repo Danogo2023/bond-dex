@@ -33,7 +33,7 @@ aiken check
 To run only tests matching the string `foo`, do:
 
 ```sh
-aiken check -m foo
+aiken check -m bond/validation_listing_test
 ```
 
 ## Resources
