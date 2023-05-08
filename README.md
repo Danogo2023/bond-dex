@@ -30,7 +30,7 @@ To run all tests, simply do:
 aiken check
 ```
 
-To run only tests matching the string `foo`, do:
+To run only tests matching the string `bond/validation_listing_test`, do:
 
 ```sh
 aiken check -m bond/validation_listing_test
