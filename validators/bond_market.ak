@@ -1,7 +1,6 @@
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
 use bond/types.{Buy, Config, ListingDatum, TradeAction, Update}
-// use bond/utils.{must_be_signed_by}
 use bond/validation_buy.{buy_listing}
 use bond/validation_listing.{update_listing}
 use common/utils.{get_spending_input} as common_utils
@@ -42,9 +41,6 @@ validator(conf: Config) {
           owner_address,
           smart_contract_address,
         )
-      // Cho phep dia chi thu phi cua san rut assets su dung trong truong hop dac biet
-      // Withdraw ->
-      //   must_be_signed_by(tx.extra_signatories, conf.market.address)?
       _ ->
         False
     }

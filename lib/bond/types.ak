@@ -135,5 +135,4 @@ pub type TradeAction {
   Update
   Buy
   Sell
-  Withdraw
 }
