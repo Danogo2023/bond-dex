@@ -8,8 +8,9 @@ use aiken/transaction/credential.{
 }
 use aiken/transaction/value.{AssetName}
 use bond/types.{
-  BizOutput, BizOutputInfo, BizTxInfo, BondConfig, Config, EpochConfig, Error,
-  EscrowDatum, EscrowInfo, EscrowInfoResult, ListingDatum, OK,
+  BiddingDatum, BizOutput, BizOutputInfo, BizTxInfo, BondConfig, Config,
+  DatumType, DatumTypeBidding, DatumTypeListing, EpochConfig, Error, EscrowDatum,
+  EscrowInfo, EscrowInfoResult, ListingDatum, OK,
 }
 use common/types.{Datums, PublicKeyHash} as common_types
 use common/utils.{get_data}
@@ -181,6 +182,7 @@ fn build_biz_output_info(
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
   conf: Config,
+  datum_type: DatumType,
 ) -> BizOutputInfo {
   let addresses =
     if list.has(self.addresses, output.address) {
@@ -202,15 +204,29 @@ fn build_biz_output_info(
     _ -> {
       let bond_datum_valid =
         !check_datum || when get_data(datums, output.datum) is {
-          Some(datum) -> {
-            expect listing_datum: ListingDatum =
-              datum
-            list.has(extra_signatories, listing_datum.owner_payment_key)? && (math.clamp(
-              listing_datum.requested_yield,
-              conf.bond.basis_points_min,
-              conf.bond.basis_points_max,
-            ) == listing_datum.requested_yield)?
-          }
+          Some(datum) ->
+            when datum_type is {
+              DatumTypeListing -> {
+                expect listing_datum: ListingDatum =
+                  datum
+                list.has(extra_signatories, listing_datum.owner_payment_key)? && (math.clamp(
+                  listing_datum.requested_yield,
+                  conf.bond.basis_points_min,
+                  conf.bond.basis_points_max,
+                ) == listing_datum.requested_yield)?
+              }
+              DatumTypeBidding -> {
+                expect bidding_datum: BiddingDatum =
+                  datum
+                list.has(extra_signatories, bidding_datum.owner_payment_key)? && (math.clamp(
+                  bidding_datum.requested_yield,
+                  conf.bond.basis_points_min,
+                  conf.bond.basis_points_max,
+                ) == bidding_datum.requested_yield)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)? && (bidding_datum.quantity > 0)?
+              }
+              _ ->
+                False
+            }
           None ->
             False
         }
@@ -235,6 +251,7 @@ pub fn build_biz_data(
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
   data: BizOutput,
+  datum_type: DatumType,
 ) -> BizOutput {
   let bond_values =
     value.tokens(output.value, conf.bond.bond_policy_id)
@@ -259,6 +276,7 @@ pub fn build_biz_data(
       extra_signatories,
       datums,
       conf,
+      datum_type,
     )
   BizOutput {
     valid: biz_output_info.bond_datum_valid,
@@ -300,6 +318,7 @@ pub fn get_biz_output(
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
+  datum_type: DatumType,
 ) -> BizOutput {
   when outputs is {
     [] ->
@@ -314,6 +333,7 @@ pub fn get_biz_output(
           extra_signatories,
           datums,
           recursive,
+          datum_type,
         )
       if !biz_data.valid {
         biz_data
@@ -326,6 +346,7 @@ pub fn get_biz_output(
           extra_signatories,
           datums,
           biz_data,
+          datum_type,
         )
       }
     }
@@ -340,6 +361,7 @@ pub fn get_biz_input(
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
+  datum_type: DatumType,
 ) -> BizOutput {
   when outputs is {
     [] ->
@@ -354,6 +376,7 @@ pub fn get_biz_input(
           extra_signatories,
           datums,
           recursive,
+          datum_type,
         )
       if !biz_data.valid {
         biz_data
@@ -366,6 +389,7 @@ pub fn get_biz_input(
           extra_signatories,
           datums,
           biz_data,
+          datum_type,
         )
       }
     }
@@ -381,6 +405,7 @@ pub fn collect_biz_tx_info(
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
   is_buy: Bool,
+  datum_type: DatumType,
 ) -> BizTxInfo {
   let biz_output_info_init =
     BizOutputInfo {
@@ -410,6 +435,7 @@ pub fn collect_biz_tx_info(
       extra_signatories,
       datums,
       biz_output_init,
+      datum_type,
     )
   if
   biz_input_obj.valid? && (
@@ -425,6 +451,7 @@ pub fn collect_biz_tx_info(
         extra_signatories,
         datums,
         biz_output_init,
+        datum_type,
       )
     if
     biz_output_obj.valid? && (dict.size(

@@ -119,6 +119,7 @@ pub type BizTxInfo {
 pub type DatumType {
   DatumTypePayment
   DatumTypeListing
+  DatumTypeBidding
 }
 
 pub type PaymentDatum {
@@ -128,6 +129,15 @@ pub type PaymentDatum {
 pub type ListingDatum {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
+  requested_yield: Int,
+}
+
+pub type BiddingDatum {
+  owner_payment_key: ByteArray,
+  owner_stake_key: Option<ByteArray>,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
   requested_yield: Int,
 }
 

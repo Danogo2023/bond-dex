@@ -6,8 +6,10 @@ use aiken/transaction/credential.{
   Address, ScriptCredential, VerificationKeyCredential,
 }
 use aiken/transaction/value
-use bond/types.{BizOutput,
-  BizTxInfo, Config, Error, EscrowDatum, EscrowInfo, OK}
+use bond/types.{
+  BizOutput, BizTxInfo, Config, DatumTypeListing, Error, EscrowDatum, EscrowInfo,
+  OK,
+}
 use bond/utils.{collect_biz_tx_info, get_escrow_info, get_price_of_bond}
 use common/utils.{get_data} as common_utils
 
@@ -154,7 +156,8 @@ pub fn buy_listing(
           when get_data(tx.datums, ref_input_escrow.output.datum) is {
             Some(d) -> {
               // trace @"found escrow datum"
-              expect escrow_datum: EscrowDatum = d
+              expect escrow_datum: EscrowDatum =
+                d
               // trace @"found escrow datum correct"
               when
                 (
@@ -183,6 +186,7 @@ pub fn buy_listing(
                       [owner_vk],
                       tx.datums,
                       True,
+                      DatumTypeListing,
                     )
                   // trace @"found BizTxInfo"
                   biz_tx_info_valid && dict.has_key(

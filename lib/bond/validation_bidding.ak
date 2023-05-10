@@ -2,11 +2,11 @@ use aiken/list
 use aiken/option
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
-use bond/types.{BizOutput, BizTxInfo, Config, DatumTypeListing}
+use bond/types.{BizOutput, BizTxInfo, Config, DatumTypeBidding}
 use bond/utils.{collect_biz_tx_info, must_be_signed_by}
 use common/types.{PublicKeyHash} as common_types
 
-fn check_update_listing_correct(
+fn check_update_bidding_correct(
   biz_input_obj: BizOutput,
   biz_output_obj: Option<BizOutput>,
 ) -> Bool {
@@ -30,7 +30,7 @@ fn check_update_listing_correct(
   }
 }
 
-fn update_listing_correct(
+fn update_bidding_correct(
   conf: Config,
   tx: Transaction,
   owner: Address,
@@ -47,15 +47,15 @@ fn update_listing_correct(
       extra_signatories,
       tx.datums,
       False,
-      DatumTypeListing,
+      DatumTypeBidding,
     )
-  biz_tx_info_valid && check_update_listing_correct(
+  biz_tx_info_valid && check_update_bidding_correct(
     biz_input_obj,
     biz_output_obj,
   )
 }
 
-pub fn update_listing(
+pub fn update_bidding(
   tx: Transaction,
   conf: Config,
   owner: Address,
@@ -65,7 +65,7 @@ pub fn update_listing(
     list.at(tx.extra_signatories, 0)
       |> option.and_then(fn(a) { Some([a]) })
       |> option.or_else([])
-  must_be_signed_by(extra_signatories, owner)? && update_listing_correct(
+  must_be_signed_by(extra_signatories, owner)? && update_bidding_correct(
     conf,
     tx,
     owner,
