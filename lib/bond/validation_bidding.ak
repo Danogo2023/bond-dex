@@ -6,6 +6,28 @@ use bond/types.{BizTxInfo, Config, DatumTypeBidding}
 use bond/utils.{collect_biz_tx_info, get_price_of_bond, must_be_signed_by}
 use common/types.{PublicKeyHash} as common_types
 
+fn calc_deposit(
+  conf: Config,
+  bidding_quantity: Int,
+  bidding_requested_yield: Int,
+) -> Int {
+  // let principal_lovelace = bidding_quantity * conf.bond.bond_face_value
+  let lender_interest_one_bond_lovelace =
+    conf.bond.bond_face_value + conf.bond.bond_face_value * conf.market.bidding_yield * conf.market.bidding_duration / conf.bond.epoch_config.year_to_epoch / conf.bond.basis_points_ref_unit
+  let price_of_one_bond =
+    get_price_of_bond(
+      lender_interest_one_bond_lovelace,
+      conf.market.bidding_maturity_day,
+      bidding_requested_yield,
+      conf.bond.basis_points_ref_unit,
+    )
+  let received_diff =
+    ( lender_interest_one_bond_lovelace - price_of_one_bond ) * bidding_quantity
+  let market_fee_buyer =
+    received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
+  lender_interest_one_bond_lovelace + market_fee_buyer
+}
+
 fn update_is_correct(
   conf: Config,
   tx: Transaction,
@@ -31,24 +53,13 @@ fn update_is_correct(
     None ->
       // trace @"biz_output_obj is None"
       False
-    Some(biz_output) -> {
+    Some(biz_output) ->
       // trace @"biz_output_obj is Some"
-      // let principal_lovelace = bidding_quantity * conf.bond.bond_face_value
-      let lender_interest_one_bond_lovelace =
-        conf.bond.bond_face_value + conf.bond.bond_face_value * conf.market.bidding_yield * conf.market.bidding_duration / conf.bond.epoch_config.year_to_epoch / conf.bond.basis_points_ref_unit
-      let price_of_one_bond =
-        get_price_of_bond(
-          lender_interest_one_bond_lovelace,
-          conf.market.bidding_maturity_day,
-          bidding_requested_yield,
-          conf.bond.basis_points_ref_unit,
-        )
-      let received_diff =
-        ( lender_interest_one_bond_lovelace - price_of_one_bond ) * bidding_quantity
-      let market_fee_buyer =
-        received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-      biz_output.smart_contract.lovelace >= lender_interest_one_bond_lovelace + market_fee_buyer
-    }
+      biz_output.smart_contract.lovelace >= calc_deposit(
+        conf,
+        bidding_quantity,
+        bidding_requested_yield,
+      )
   }
 }
 
