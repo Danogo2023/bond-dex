@@ -6,7 +6,7 @@ use bond/fixture.{
   get_output_listing, get_owner_address, get_owner_address_hash,
   get_smart_contract_address,
 }
-use bond/validation_listing.{update_listing}
+use bond/validation_listing
 
 test listing_update_failure_miss_signed_by_owner() {
   let listing_datum =
@@ -25,7 +25,7 @@ test listing_update_failure_miss_signed_by_owner() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1],
       [],
@@ -59,7 +59,7 @@ test listing_update_failure_miss_datum_requested_yield_inside_range_0001_9999() 
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum_invalid),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1],
       [],
@@ -98,7 +98,7 @@ test listing_update_failure_must_only_one_bond_name_market_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -149,7 +149,7 @@ test listing_update_failure_must_only_one_bond_name_market_2() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(listing_datum),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -204,7 +204,7 @@ test listing_update_single_success_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 6)),
       InlineDatum(get_listing_datum(get_owner_address(), 500)),
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_2],
       [],
@@ -249,7 +249,7 @@ test listing_update_single_success_2() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_2],
       [],
@@ -311,7 +311,7 @@ test listing_update_multi_success_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(get_listing_datum(get_owner_address(), 2345)),
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -380,7 +380,7 @@ test listing_update_multi_success_2() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(get_listing_datum(get_owner_address(), 5463)),
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -437,7 +437,7 @@ test listing_update_multi_success_3() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 2)),
       InlineDatum(get_listing_datum(get_owner_address(), 2345)),
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -506,7 +506,7 @@ test listing_update_multi_success_4() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(get_listing_datum(get_owner_address(), 5463)),
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -570,7 +570,7 @@ test listing_update_multi_failure_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(get_listing_datum(get_owner_address(), 1345)),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -634,7 +634,7 @@ test listing_update_multi_failure_2() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(get_listing_datum(get_owner_address(), 1345)),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -698,7 +698,7 @@ test listing_update_multi_failure_3() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(get_listing_datum(get_buyer_address(), 1345)),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -767,7 +767,7 @@ test listing_update_multi_failure_4() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(get_listing_datum(get_buyer_address(), 5463)),
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -804,7 +804,7 @@ test listing_update_cancel_listing_success() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 8)),
       NoDatum,
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -848,7 +848,7 @@ test listing_update_multi_cancel_listing_success_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 12)),
       NoDatum,
     )
-  update_listing(
+  validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2, input_sm_3],
       [],
@@ -892,7 +892,7 @@ test listing_update_multi_cancel_listing_failure_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 12)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2, input_sm_3],
       [],
@@ -938,7 +938,7 @@ test listing_update_failure_cancel_listing_miss_qty() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 2)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -977,7 +977,7 @@ test listing_update_failure_cancel_listing_miss_owner() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 8)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -1023,7 +1023,7 @@ test listing_update_failure_miss_output_datum() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -1062,7 +1062,7 @@ test listing_update_failure_miss_output_token_with_amount_not_greater_than_zero(
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 1)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1],
       [],
@@ -1101,7 +1101,7 @@ test listing_update_failure_miss_output_token() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1],
       [],
@@ -1147,7 +1147,7 @@ test listing_update_failure_miss_output_datum_owner() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       NoDatum,
     )
-  !update_listing(
+  !validation_listing.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],

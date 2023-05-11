@@ -13,7 +13,7 @@ use bond/types.{
 use bond/utils.{collect_biz_tx_info, get_escrow_info, get_price_of_bond}
 use common/utils.{get_data} as common_utils
 
-fn check_buy_listing_correct(
+fn buy_is_valid(
   conf: Config,
   biz_input_obj: BizOutput,
   biz_output_obj: BizOutput,
@@ -22,7 +22,7 @@ fn check_buy_listing_correct(
   price_of_one_bond: Int,
   min_ada_to_market: Int,
 ) -> Bool {
-  // trace @"start check_buy_listing_correct"
+  // trace @"start buy_is_valid"
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
     escrow_info.received_at_maturity_one_bond * buyer_qty
@@ -50,7 +50,7 @@ fn check_buy_listing_correct(
   )
 }
 
-fn buy_listing_correct(
+fn buy_correct(
   conf: Config,
   requested_yield: Int,
   biz_input_obj: BizOutput,
@@ -111,7 +111,7 @@ fn buy_listing_correct(
           _ -> {
             let buy_partial_return_sm_matchs =
               min_ada_to_sm <= 0 || (biz_output.smart_contract.lovelace >= min_ada_to_sm)? && biz_output.smart_contract.bond_datum_valid?
-            buy_partial_return_sm_matchs && check_buy_listing_correct(
+            buy_partial_return_sm_matchs && buy_is_valid(
               conf,
               biz_input_obj,
               biz_output,
@@ -130,7 +130,7 @@ fn buy_listing_correct(
   }
 }
 
-pub fn buy_listing(
+pub fn buy(
   tx: Transaction,
   conf: Config,
   _spending_input: Input,
@@ -192,7 +192,7 @@ pub fn buy_listing(
                   biz_tx_info_valid && dict.has_key(
                     biz_input_obj.unique_bonds,
                     escrow_datum.token_name,
-                  )? && buy_listing_correct(
+                  )? && buy_correct(
                     conf,
                     requested_yield,
                     biz_input_obj,

@@ -174,6 +174,36 @@ pub fn accumulation(self: Dict<AssetName, Int>, zero: Int) -> Int {
   dict.fold(self, fn(_, v, c) { v + c }, zero)
 }
 
+fn datum_is_valid(
+  conf: Config,
+  extra_signatories: List<PublicKeyHash>,
+  datum_type: DatumType,
+  datum: Data,
+) -> Bool {
+  when datum_type is {
+    DatumTypeListing -> {
+      expect listing_datum: ListingDatum =
+        datum
+      list.has(extra_signatories, listing_datum.owner_payment_key)? && (math.clamp(
+        listing_datum.requested_yield,
+        conf.bond.basis_points_min,
+        conf.bond.basis_points_max,
+      ) == listing_datum.requested_yield)?
+    }
+    DatumTypeBidding -> {
+      expect bidding_datum: BiddingDatum =
+        datum
+      list.has(extra_signatories, bidding_datum.owner_payment_key)? && (math.clamp(
+        bidding_datum.requested_yield,
+        conf.bond.basis_points_min,
+        conf.bond.basis_points_max,
+      ) == bidding_datum.requested_yield)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)? && (bidding_datum.quantity > 0)?
+    }
+    _ ->
+      False
+  }
+}
+
 fn build_biz_output_info(
   self: BizOutputInfo,
   output: Output,
@@ -205,28 +235,7 @@ fn build_biz_output_info(
       let bond_datum_valid =
         !check_datum || when get_data(datums, output.datum) is {
           Some(datum) ->
-            when datum_type is {
-              DatumTypeListing -> {
-                expect listing_datum: ListingDatum =
-                  datum
-                list.has(extra_signatories, listing_datum.owner_payment_key)? && (math.clamp(
-                  listing_datum.requested_yield,
-                  conf.bond.basis_points_min,
-                  conf.bond.basis_points_max,
-                ) == listing_datum.requested_yield)?
-              }
-              DatumTypeBidding -> {
-                expect bidding_datum: BiddingDatum =
-                  datum
-                list.has(extra_signatories, bidding_datum.owner_payment_key)? && (math.clamp(
-                  bidding_datum.requested_yield,
-                  conf.bond.basis_points_min,
-                  conf.bond.basis_points_max,
-                ) == bidding_datum.requested_yield)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)? && (bidding_datum.quantity > 0)?
-              }
-              _ ->
-                False
-            }
+            datum_is_valid(conf, extra_signatories, datum_type, datum)
           None ->
             False
         }
@@ -243,7 +252,7 @@ fn build_biz_output_info(
   }
 }
 
-pub fn build_biz_data(
+fn build_biz_data(
   conf: Config,
   output: Output,
   owner: Address,
@@ -310,7 +319,7 @@ pub fn build_biz_data(
   }
 }
 
-pub fn get_biz_output(
+fn get_biz_output(
   conf: Config,
   outputs: List<Output>,
   owner: Address,
@@ -353,7 +362,7 @@ pub fn get_biz_output(
   }
 }
 
-pub fn get_biz_input(
+fn get_biz_input(
   conf: Config,
   outputs: List<Input>,
   owner: Address,

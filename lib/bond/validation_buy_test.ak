@@ -13,9 +13,9 @@ use bond/fixture.{
   get_smart_contract_address, scripthash_address,
 }
 use bond/utils.{get_price_of_bond}
-use bond/validation_buy.{buy_listing}
+use bond/validation_listing
 
-test listing_buy_partial_failure_must_only_one_bond_test_1() {
+test listing_buy_partial_failure_must_only_one_bond_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -171,7 +171,7 @@ test listing_buy_partial_failure_must_only_one_bond_test_1() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -188,7 +188,7 @@ test listing_buy_partial_failure_must_only_one_bond_test_1() {
   )
 }
 
-test listing_buy_partial_failure_must_only_one_bond_test_2() {
+test listing_buy_partial_failure_must_only_one_bond_2() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -348,7 +348,7 @@ test listing_buy_partial_failure_must_only_one_bond_test_2() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_sm_bond_spending_2, input_buyer_1],
       [reference_input_1],
@@ -365,7 +365,7 @@ test listing_buy_partial_failure_must_only_one_bond_test_2() {
   )
 }
 
-test listing_buy_partial_failure_change_bond_name_test_1() {
+test listing_buy_partial_failure_change_bond_name_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -525,7 +525,7 @@ test listing_buy_partial_failure_change_bond_name_test_1() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -542,7 +542,7 @@ test listing_buy_partial_failure_change_bond_name_test_1() {
   )
 }
 
-test listing_buy_partial_failure_listing_datum_owner_invalid_test_1() {
+test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -695,7 +695,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_test_1() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -712,7 +712,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_test_1() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_datum_test() {
+test listing_buy_partial_failure_invalid_escrow_datum() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -865,7 +865,7 @@ test listing_buy_partial_failure_invalid_escrow_datum_test() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -882,7 +882,7 @@ test listing_buy_partial_failure_invalid_escrow_datum_test() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_policy_id_test() {
+test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1042,7 +1042,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id_test() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_sm_bond_spending_2, input_buyer_1],
       [reference_input_1],
@@ -1059,7 +1059,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id_test() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_nodatum_test() {
+test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1212,7 +1212,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum_test() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1229,7 +1229,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum_test() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_claimed_test() {
+test listing_buy_partial_failure_invalid_escrow_claimed() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1390,7 +1390,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed_test() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1407,7 +1407,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed_test() {
   )
 }
 
-test listing_buy_partial_failure_buyer_is_owner_test_1() {
+test listing_buy_partial_failure_buyer_is_owner_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1560,7 +1560,7 @@ test listing_buy_partial_failure_buyer_is_owner_test_1() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1577,7 +1577,7 @@ test listing_buy_partial_failure_buyer_is_owner_test_1() {
   )
 }
 
-test listing_buy_partial_failure_buyer_is_market_test_1() {
+test listing_buy_partial_failure_buyer_is_market_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1730,7 +1730,7 @@ test listing_buy_partial_failure_buyer_is_market_test_1() {
       ),
       InlineDatum(listing_datum),
     )
-  !buy_listing(
+  !validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1747,7 +1747,7 @@ test listing_buy_partial_failure_buyer_is_market_test_1() {
   )
 }
 
-test listing_buy_partial_success_test() {
+test listing_buy_partial_success() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1900,7 +1900,7 @@ test listing_buy_partial_success_test() {
       ),
       InlineDatum(listing_datum),
     )
-  buy_listing(
+  validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1917,7 +1917,7 @@ test listing_buy_partial_success_test() {
   )
 }
 
-test listing_buy_full_success_test() {
+test listing_buy_full_success() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2070,7 +2070,7 @@ test listing_buy_full_success_test() {
       ),
       InlineDatum(listing_datum),
     )
-  buy_listing(
+  validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2087,7 +2087,7 @@ test listing_buy_full_success_test() {
   )
 }
 
-test listing_buy_full_success_test_1() {
+test listing_buy_full_success_1() {
   let time_of_tx =
     1666656000000
   let config_test_1 =
@@ -2232,7 +2232,7 @@ test listing_buy_full_success_test_1() {
       ),
       InlineDatum(listing_datum),
     )
-  buy_listing(
+  validation_listing.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
