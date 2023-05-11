@@ -1,6 +1,8 @@
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
-use bond/types.{BiddingDatum, Buy, Config, ListingDatum, TradeAction, Update}
+use bond/types.{
+  BiddingDatum, Buy, Config, ListingDatum, Sell, TradeAction, Update,
+}
 use bond/validation_bidding
 use bond/validation_listing
 use common/utils.{get_spending_input} as common_utils
@@ -83,8 +85,10 @@ validator(conf: Config) {
           conf,
           owner_address,
           smart_contract_address,
+          datum.quantity,
+          datum.requested_yield,
         )
-      Buy ->
+      Sell ->
         validation_listing.buy(
           tx,
           conf,

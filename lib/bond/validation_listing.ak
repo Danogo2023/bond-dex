@@ -44,13 +44,13 @@ fn update_is_correct(
       // trace @"biz_output_obj is Some"
       when biz_output.smart_contract.bond_outputs is {
         [_, ..] -> {
-          // trace @"update listing"
-          let miss_qty_or_owner =
+          // trace @"update"
+          let miss_qty =
             biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty == biz_output.smart_contract.bond_qty + biz_output.owner.bond_qty
-          biz_output.smart_contract.bond_datum_valid? && miss_qty_or_owner?
+          biz_output.smart_contract.bond_datum_valid? && miss_qty?
         }
         [] ->
-          // trace @"cancel listing"
+          // trace @"cancel"
           (biz_output.owner.bond_qty == biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty)?
       }
   }
@@ -126,9 +126,9 @@ fn buy_correct(
     }
     Some(biz_output) -> {
       // trace @"biz_output_obj is Some"
-      let miss_qty_or_owner =
+      let miss_qty =
         biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-      if miss_qty_or_owner? {
+      if miss_qty? {
         // trace @"total in SM+buyer bond inputs == outputs"
         // Gia bond theo requested_yield cua owner
         let price_of_one_bond =
