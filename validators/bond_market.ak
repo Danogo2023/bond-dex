@@ -80,7 +80,7 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        validation_bidding.update_simple(tx, conf, owner)
+        validation_bidding.update_simple(tx, owner_address)
       Sell ->
         validation_listing.buy(
           tx,
