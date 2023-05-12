@@ -1,7 +1,9 @@
 use aiken/bytearray
 use aiken/dict.{Dict}
 use aiken/hash.{Blake2b_256, Hash}
-use aiken/interval.{Finite, Interval, IntervalBound, PositiveInfinity, NegativeInfinity}
+use aiken/interval.{
+  Finite, Interval, IntervalBound, NegativeInfinity, PositiveInfinity,
+}
 use aiken/transaction.{
   Datum, Input, Output, OutputReference, Transaction, TransactionId,
 }
@@ -156,7 +158,9 @@ fn get_market_config() -> MarketConfig {
     bidding_yield: 533,
     bidding_duration: 0,
     bidding_maturity_day: 0,
+    bidding_validity_time: 15 * 60 * 1000,
   }
+  // 15 minutes
 }
 
 pub fn get_config_test_1() -> Config {

@@ -1,9 +1,9 @@
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
-  get_bond_id_1, get_bond_id_2, get_bond_policy_id, gen_input,
-  gen_bidding_datum, gen_output, get_owner_address,
-  get_owner_address_hash, get_smart_contract_address,
+  gen_bidding_datum, gen_input, gen_output, get_bond_id_1, get_bond_id_2,
+  get_bond_policy_id, get_owner_address, get_owner_address_hash,
+  get_smart_contract_address,
 }
 use bond/validation_bidding
 

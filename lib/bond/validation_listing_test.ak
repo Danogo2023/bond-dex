@@ -5,12 +5,12 @@ use aiken/hash.{blake2b_256}
 use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
-  calc_escrow_full_info, get_bond_id_1, get_bond_id_2, get_bond_policy_id,
-  get_buyer_address, get_config_test_1, get_config_test_2, get_escrow_datum,
-  get_escrow_policy_id, get_input_escrow, gen_input, gen_listing_datum,
-  get_market_address, get_not_escrow_policy_id, gen_output,
-  get_owner_address, get_owner_address_hash, get_payment_datum,
-  get_smart_contract_address, scripthash_address,
+  calc_escrow_full_info, gen_input, gen_listing_datum, gen_output, get_bond_id_1,
+  get_bond_id_2, get_bond_policy_id, get_buyer_address, get_config_test_1,
+  get_config_test_2, get_escrow_datum, get_escrow_policy_id, get_input_escrow,
+  get_market_address, get_not_escrow_policy_id, get_owner_address,
+  get_owner_address_hash, get_payment_datum, get_smart_contract_address,
+  scripthash_address,
 }
 use bond/utils.{get_price_of_bond}
 use bond/validation_listing

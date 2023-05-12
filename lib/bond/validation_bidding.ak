@@ -4,9 +4,7 @@ use aiken/interval.{Finite}
 use aiken/list
 use aiken/option
 use aiken/transaction.{Input, Transaction}
-use aiken/transaction/credential.{
-  Address, ScriptCredential, VerificationKeyCredential,
-}
+use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
   BizOutput, BizTxInfo, Config, DatumTypeBidding, Error, EscrowDatum, EscrowInfo,
@@ -249,83 +247,81 @@ pub fn sell(
   let tx_time_range =
     validity_before_must_set - validity_after_must_set
 
-  if
-  (validity_after_must_set <= 0)? || (validity_before_must_set <= 0)? || (tx_time_range <= 0)? || (tx_time_range > conf.market.bidding_validity_time)? || bytearray.is_empty(
-    owner_vk,
-  )?{
-  
-    False
-  } else {
-    when
-      list.find(
-        tx.reference_inputs,
-        fn(input) {
-          dict.size(
-            value.tokens(input.output.value, conf.bond.escrow_policy_id),
-          ) > 0
-        },
-      )
-    is {
-      Some(ref_input_escrow) ->
-        // trace @"found ref_input_escrow in reference_inputs"
-        when get_data(tx.datums, ref_input_escrow.output.datum) is {
-          Some(d) -> {
-            // trace @"found escrow datum"
-            expect escrow_datum: EscrowDatum =
-              d
-            // trace @"found escrow datum correct"
-            when
-              get_escrow_info(
-                conf.bond,
-                value.lovelace_of(ref_input_escrow.output.value),
-                escrow_datum,
-                validity_after_must_set,
-              )
-            is {
-              OK(escrow_info) -> {
-                // trace @"found escrow_info and owner_vk"
-                let BizTxInfo {
-                  valid: biz_tx_info_valid,
-                  biz_input_obj,
-                  biz_output_obj,
-                } =
-                  collect_biz_tx_info(
-                    conf,
-                    tx.inputs,
-                    tx.outputs,
-                    owner,
-                    smart_contract,
-                    [owner_vk],
-                    tx.datums,
-                    True,
-                    DatumTypeBidding,
-                  )
-                // trace @"found BizTxInfo"
-                biz_tx_info_valid && dict.has_key(
-                  biz_input_obj.unique_bonds,
-                  escrow_datum.token_name,
-                )? && sell_correct(
+  list.and(
+    [
+      validity_after_must_set > 0,
+      validity_before_must_set > 0,
+      tx_time_range > 0,
+      tx_time_range <= conf.market.bidding_validity_time,
+      !bytearray.is_empty(owner_vk),
+    ],
+  )? && when
+    list.find(
+      tx.reference_inputs,
+      fn(input) {
+        dict.size(value.tokens(input.output.value, conf.bond.escrow_policy_id)) > 0
+      },
+    )
+  is {
+    Some(ref_input_escrow) ->
+      // trace @"found ref_input_escrow in reference_inputs"
+      when get_data(tx.datums, ref_input_escrow.output.datum) is {
+        Some(d) -> {
+          // trace @"found escrow datum"
+          expect escrow_datum: EscrowDatum =
+            d
+          // trace @"found escrow datum correct"
+          when
+            get_escrow_info(
+              conf.bond,
+              value.lovelace_of(ref_input_escrow.output.value),
+              escrow_datum,
+              validity_after_must_set,
+            )
+          is {
+            OK(escrow_info) -> {
+              // trace @"found escrow_info and owner_vk"
+              let BizTxInfo {
+                valid: biz_tx_info_valid,
+                biz_input_obj,
+                biz_output_obj,
+              } =
+                collect_biz_tx_info(
                   conf,
-                  requested_yield,
-                  biz_input_obj,
-                  biz_output_obj,
-                  escrow_info,
+                  tx.inputs,
+                  tx.outputs,
+                  owner,
+                  smart_contract,
+                  [owner_vk],
+                  tx.datums,
+                  True,
+                  DatumTypeBidding,
                 )
-              }
-              Error(_) ->
-                // trace @"is closable"
-                False
+              // trace @"found BizTxInfo"
+              biz_tx_info_valid && dict.has_key(
+                biz_input_obj.unique_bonds,
+                escrow_datum.token_name,
+              )? && sell_correct(
+                conf,
+                requested_yield,
+                biz_input_obj,
+                biz_output_obj,
+                escrow_info,
+              )
             }
-          }
-          _ -> {
-            trace @"not found escrow datum in reference_inputs"
-            False
+            Error(_) ->
+              // trace @"is closable"
+              False
           }
         }
-      _ -> {
-        trace @"not found reference_inputs with escrow_policy_id"
-        False
+        _ -> {
+          trace @"not found escrow datum in reference_inputs"
+          False
+        }
       }
+    _ -> {
+      trace @"not found reference_inputs with escrow_policy_id"
+      False
     }
   }
 }

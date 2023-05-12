@@ -211,74 +211,68 @@ pub fn buy(
       _ ->
         #""
     }
-  if (validity_after_must_set <= 0)? || bytearray.is_empty(owner_vk)? {
-    False
-  } else {
-    when
-      list.find(
-        tx.reference_inputs,
-        fn(input) {
-          dict.size(
-            value.tokens(input.output.value, conf.bond.escrow_policy_id),
-          ) > 0
-        },
-      )
-    is {
-      Some(ref_input_escrow) ->
-        when get_data(tx.datums, ref_input_escrow.output.datum) is {
-          Some(d) -> {
-            expect escrow_datum: EscrowDatum =
-              d
-            when
-              get_escrow_info(
-                conf.bond,
-                value.lovelace_of(ref_input_escrow.output.value),
-                escrow_datum,
-                validity_after_must_set,
-              )
-            is {
-              OK(escrow_info) -> {
-                // trace @"found escrow_info and owner_vk"
-                let BizTxInfo {
-                  valid: biz_tx_info_valid,
-                  biz_input_obj,
-                  biz_output_obj,
-                } =
-                  collect_biz_tx_info(
-                    conf,
-                    tx.inputs,
-                    tx.outputs,
-                    owner,
-                    smart_contract,
-                    [owner_vk],
-                    tx.datums,
-                    True,
-                    DatumTypeListing,
-                  )
-                // trace @"found BizTxInfo"
-                biz_tx_info_valid && dict.has_key(
-                  biz_input_obj.unique_bonds,
-                  escrow_datum.token_name,
-                )? && buy_correct(
+  list.and([validity_after_must_set > 0, !bytearray.is_empty(owner_vk)])? && when
+    list.find(
+      tx.reference_inputs,
+      fn(input) {
+        dict.size(value.tokens(input.output.value, conf.bond.escrow_policy_id)) > 0
+      },
+    )
+  is {
+    Some(ref_input_escrow) ->
+      when get_data(tx.datums, ref_input_escrow.output.datum) is {
+        Some(d) -> {
+          expect escrow_datum: EscrowDatum =
+            d
+          when
+            get_escrow_info(
+              conf.bond,
+              value.lovelace_of(ref_input_escrow.output.value),
+              escrow_datum,
+              validity_after_must_set,
+            )
+          is {
+            OK(escrow_info) -> {
+              // trace @"found escrow_info and owner_vk"
+              let BizTxInfo {
+                valid: biz_tx_info_valid,
+                biz_input_obj,
+                biz_output_obj,
+              } =
+                collect_biz_tx_info(
                   conf,
-                  requested_yield,
-                  biz_input_obj,
-                  biz_output_obj,
-                  escrow_info,
+                  tx.inputs,
+                  tx.outputs,
+                  owner,
+                  smart_contract,
+                  [owner_vk],
+                  tx.datums,
+                  True,
+                  DatumTypeListing,
                 )
-              }
-              Error(_) ->
-                // trace @"is closable"
-                False
+              // trace @"found BizTxInfo"
+              biz_tx_info_valid && dict.has_key(
+                biz_input_obj.unique_bonds,
+                escrow_datum.token_name,
+              )? && buy_correct(
+                conf,
+                requested_yield,
+                biz_input_obj,
+                biz_output_obj,
+                escrow_info,
+              )
             }
+            Error(_) ->
+              // trace @"is closable"
+              False
           }
-          _ ->
-            // trace @"not found escrow datum in reference_inputs"
-            False
         }
-      _ ->
-        // trace @"not found reference_inputs with escrow_policy_id"
-        False
-    }
+        _ ->
+          // trace @"not found escrow datum in reference_inputs"
+          False
+      }
+    _ ->
+      // trace @"not found reference_inputs with escrow_policy_id"
+      False
   }
 }
