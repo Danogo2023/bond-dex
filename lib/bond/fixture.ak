@@ -156,6 +156,9 @@ fn get_market_config() -> MarketConfig {
     address: get_market_address(),
     buyer_fee: 100,
     seller_fee: 100,
+    bidding_yield: 533,
+    bidding_duration: 0,
+    bidding_maturity_day: 0,
   }
 }
 

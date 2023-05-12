@@ -37,7 +37,7 @@ fn update_is_correct(
   bidding_quantity: Int,
   bidding_requested_yield: Int,
 ) -> Bool {
-  let BizTxInfo { valid: biz_tx_info_valid, biz_input_obj, biz_output_obj } =
+  let BizTxInfo { valid: biz_tx_info_valid, biz_input_obj: _, biz_output_obj } =
     collect_biz_tx_info(
       conf,
       tx.inputs,
@@ -84,4 +84,12 @@ pub fn update(
     bidding_quantity,
     bidding_requested_yield,
   )
+}
+
+pub fn update_simple(tx: Transaction, owner: Address) -> Bool {
+  let extra_signatories =
+    list.at(tx.extra_signatories, 0)
+      |> option.and_then(fn(a) { Some([a]) })
+      |> option.or_else([])
+  must_be_signed_by(extra_signatories, owner)?
 }

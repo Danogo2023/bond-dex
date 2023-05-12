@@ -80,12 +80,7 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        must_be_signed_by(
-          list.at(tx.extra_signatories, 0)
-            |> option.and_then(fn(a) { Some([a]) })
-            |> option.or_else([]),
-          owner,
-        )?
+        validation_bidding.update_simple(tx, owner_address)
       Sell ->
         validation_listing.buy(
           tx,
