@@ -85,3 +85,15 @@ pub fn update(
     bidding_requested_yield,
   )
 }
+
+pub fn update_simple(
+  tx: Transaction,
+  conf: Config,
+  owner: Address,
+) -> Bool {
+  let extra_signatories =
+    list.at(tx.extra_signatories, 0)
+      |> option.and_then(fn(a) { Some([a]) })
+      |> option.or_else([])
+  must_be_signed_by(extra_signatories, owner)?
+}
