@@ -82,7 +82,7 @@ validator(conf: Config) {
       Update ->
         validation_bidding.update_simple(tx, owner_address)
       Sell ->
-        validation_listing.buy(
+        validation_bidding.sell(
           tx,
           conf,
           spending_input,

@@ -1,11 +1,10 @@
+use aiken/bytearray
 use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
 use aiken/option
 use aiken/transaction.{Input, Transaction}
-use aiken/transaction/credential.{
-  Address, ScriptCredential, VerificationKeyCredential,
-}
+use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
   BizOutput, BizTxInfo, Config, DatumTypeListing, Error, EscrowDatum, EscrowInfo,
@@ -120,10 +119,9 @@ fn buy_correct(
   escrow_info: EscrowInfo,
 ) -> Bool {
   when biz_output_obj is {
-    None -> {
-      trace @"biz_output_obj is None"
+    None ->
+      // trace @"biz_output_obj is None"
       False
-    }
     Some(biz_output) -> {
       // trace @"biz_output_obj is Some"
       let miss_qty =
@@ -166,10 +164,9 @@ fn buy_correct(
             },
           )
         is {
-          Some(_) -> {
-            trace @"output to smart contract contain bond name invalid!"
+          Some(_) ->
+            // trace @"output to smart contract contain bond name invalid!"
             False
-          }
           _ -> {
             let buy_partial_return_sm_matchs =
               min_ada_to_sm <= 0 || (biz_output.smart_contract.lovelace >= min_ada_to_sm)? && biz_output.smart_contract.bond_datum_valid?
@@ -200,91 +197,88 @@ pub fn buy(
   owner: Address,
   smart_contract: Address,
 ) -> Bool {
-  when tx.validity_range.lower_bound.bound_type is {
-    Finite(tx_posix_time) ->
-      // trace @"tx with validity_range lower_bound valid"
-      when
-        list.find(
-          tx.reference_inputs,
-          fn(input) {
-            dict.size(
-              value.tokens(input.output.value, conf.bond.escrow_policy_id),
-            ) > 0
-          },
-        )
-      is {
-        Some(ref_input_escrow) ->
-          // trace @"found ref_input_escrow in reference_inputs"
-          when get_data(tx.datums, ref_input_escrow.output.datum) is {
-            Some(d) -> {
-              // trace @"found escrow datum"
-              expect escrow_datum: EscrowDatum =
-                d
-              // trace @"found escrow datum correct"
-              when
-                (
-                  get_escrow_info(
-                    conf.bond,
-                    value.lovelace_of(ref_input_escrow.output.value),
-                    escrow_datum,
-                    tx_posix_time,
-                  ),
-                  owner.payment_credential,
-                )
-              is {
-                (OK(escrow_info), VerificationKeyCredential(owner_vk)) -> {
-                  // trace @"found escrow_info and owner_vk"
-                  let BizTxInfo {
-                    valid: biz_tx_info_valid,
-                    biz_input_obj,
-                    biz_output_obj,
-                  } =
-                    collect_biz_tx_info(
-                      conf,
-                      tx.inputs,
-                      tx.outputs,
-                      owner,
-                      smart_contract,
-                      [owner_vk],
-                      tx.datums,
-                      True,
-                      DatumTypeListing,
-                    )
-                  // trace @"found BizTxInfo"
-                  biz_tx_info_valid && dict.has_key(
-                    biz_input_obj.unique_bonds,
-                    escrow_datum.token_name,
-                  )? && buy_correct(
+  let validity_after_must_set =
+    when tx.validity_range.lower_bound.bound_type is {
+      Finite(x) ->
+        x
+      _ ->
+        0
+    }
+  let owner_vk =
+    when owner.payment_credential is {
+      VerificationKeyCredential(x) ->
+        x
+      _ ->
+        #""
+    }
+  if (validity_after_must_set <= 0)? || bytearray.is_empty(owner_vk)? {
+    False
+  } else {
+    when
+      list.find(
+        tx.reference_inputs,
+        fn(input) {
+          dict.size(
+            value.tokens(input.output.value, conf.bond.escrow_policy_id),
+          ) > 0
+        },
+      )
+    is {
+      Some(ref_input_escrow) ->
+        when get_data(tx.datums, ref_input_escrow.output.datum) is {
+          Some(d) -> {
+            expect escrow_datum: EscrowDatum =
+              d
+            when
+              get_escrow_info(
+                conf.bond,
+                value.lovelace_of(ref_input_escrow.output.value),
+                escrow_datum,
+                validity_after_must_set,
+              )
+            is {
+              OK(escrow_info) -> {
+                // trace @"found escrow_info and owner_vk"
+                let BizTxInfo {
+                  valid: biz_tx_info_valid,
+                  biz_input_obj,
+                  biz_output_obj,
+                } =
+                  collect_biz_tx_info(
                     conf,
-                    requested_yield,
-                    biz_input_obj,
-                    biz_output_obj,
-                    escrow_info,
+                    tx.inputs,
+                    tx.outputs,
+                    owner,
+                    smart_contract,
+                    [owner_vk],
+                    tx.datums,
+                    True,
+                    DatumTypeListing,
                   )
-                }
-                (Error(_), _) -> {
-                  trace @"is closable"
-                  False
-                }
-                (_, ScriptCredential(_)) -> {
-                  trace @"owner address is invalid"
-                  False
-                }
+                // trace @"found BizTxInfo"
+                biz_tx_info_valid && dict.has_key(
+                  biz_input_obj.unique_bonds,
+                  escrow_datum.token_name,
+                )? && buy_correct(
+                  conf,
+                  requested_yield,
+                  biz_input_obj,
+                  biz_output_obj,
+                  escrow_info,
+                )
               }
-            }
-            _ -> {
-              trace @"not found escrow datum in reference_inputs"
-              False
+              Error(_) ->
+                // trace @"is closable"
+                False
             }
           }
-        _ -> {
-          trace @"not found reference_inputs with escrow_policy_id"
-          False
+          _ ->
+            // trace @"not found escrow datum in reference_inputs"
+            False
         }
-      }
-    _ -> {
-      trace @"not found lower_bound of validity_range in tx"
-      False
+      _ ->
+        // trace @"not found reference_inputs with escrow_policy_id"
+        False
     }
   }
 }

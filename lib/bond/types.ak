@@ -44,6 +44,7 @@ pub type MarketConfig {
   bidding_yield: Int,
   bidding_duration: Int,
   bidding_maturity_day: Int,
+  bidding_validity_time: Int,
 }
 
 pub type Config {
