@@ -5,7 +5,7 @@ use bond/utils.{
   relative_epoch_to_posix_time_start,
 }
 
-test get_day_to_maturity_test_1() {
+test get_day_to_maturity_1() {
   let epoch_config =
     get_epoch_config_test_1()
   let tx_time: Int =
@@ -25,7 +25,7 @@ test get_day_to_maturity_test_1() {
   get_day_to_maturity(tx_time, end_epoch, epoch_config) == 5
 }
 
-test get_day_to_maturity_test_5() {
+test get_day_to_maturity_5() {
   let epoch_config =
     get_epoch_config_test_1()
   let tx_time: Int =
@@ -39,7 +39,7 @@ test get_day_to_maturity_test_5() {
   get_day_to_maturity(tx_time, end_epoch, epoch_config) == 5
 }
 
-test get_day_to_maturity_test_6() {
+test get_day_to_maturity_6() {
   let epoch_config =
     get_epoch_config_test_1()
   let tx_time: Int =
@@ -53,19 +53,19 @@ test get_day_to_maturity_test_6() {
   get_day_to_maturity(tx_time, end_epoch, epoch_config) == 4
 }
 
-test get_day_to_maturity_test_2() {
+test get_day_to_maturity_2() {
   get_day_to_maturity(1682577892000, 19593, get_epoch_config_test_1()) == 0
 }
 
-test get_day_to_maturity_test_4() {
+test get_day_to_maturity_4() {
   get_day_to_maturity(1682576167903, 19593, get_epoch_config_test_1()) == 5
 }
 
-test relative_epoch_to_posix_time_start_test_4() {
+test relative_epoch_to_posix_time_start_4() {
   relative_epoch_to_posix_time_start(19593 + 1, get_epoch_config_test_1()) == 1682577891000
 }
 
-test relative_epoch_to_posix_time_start_test_5() {
+test relative_epoch_to_posix_time_start_5() {
   relative_epoch_to_posix_time_end(19593, get_epoch_config_test_1()) == 1682577891000
 }
 
@@ -93,15 +93,15 @@ test posix_time_to_relative_epoch_test_2() {
   posix_time_to_relative_epoch(1680670422833, get_epoch_config_test_2()) == 403
 }
 
-test relative_epoch_to_posix_time_start_test_1() {
+test relative_epoch_to_posix_time_start_1() {
   relative_epoch_to_posix_time_start(18534, get_epoch_config_test_1()) == 1680669891000
 }
 
-test relative_epoch_to_posix_time_start_test_2() {
+test relative_epoch_to_posix_time_start_2() {
   relative_epoch_to_posix_time_start(403, get_epoch_config_test_2()) == 1680299091000
 }
 
-test relative_epoch_to_posix_time_start_test_3() {
+test relative_epoch_to_posix_time_start_3() {
   relative_epoch_to_posix_time_start(462, get_epoch_config_test_2()) == 1705787091000
 }
 

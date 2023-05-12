@@ -40,6 +40,10 @@ pub type MarketConfig {
   buyer_fee: Int,
   // value in range 0001 -> 9999 default: 1% per yield == 100
   seller_fee: Int,
+  // yield for bidding caculate deposit to smart contract. value in range 0001 -> 9999 default: 1% per yield == 100
+  bidding_yield: Int,
+  bidding_duration: Int,
+  bidding_maturity_day: Int,
 }
 
 pub type Config {
@@ -119,6 +123,7 @@ pub type BizTxInfo {
 pub type DatumType {
   DatumTypePayment
   DatumTypeListing
+  DatumTypeBidding
 }
 
 pub type PaymentDatum {
@@ -128,6 +133,15 @@ pub type PaymentDatum {
 pub type ListingDatum {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
+  requested_yield: Int,
+}
+
+pub type BiddingDatum {
+  owner_payment_key: ByteArray,
+  owner_stake_key: Option<ByteArray>,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
   requested_yield: Int,
 }
 
