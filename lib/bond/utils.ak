@@ -471,7 +471,6 @@ pub fn collect_biz_tx_info(
         biz_output_init,
         datum_type,
       )
-    // let sell_output_must_only_one_bond_name = trade_action != Sell || dict.size(biz_input_obj.owner.bond_assets) == 1
     BizTxInfo {
       valid: biz_output_obj.valid,
       biz_input_obj,

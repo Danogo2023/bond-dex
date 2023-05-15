@@ -3,7 +3,7 @@ use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
 use aiken/option
-use aiken/transaction.{Input, Transaction}
+use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
@@ -39,17 +39,16 @@ fn update_is_correct(
       // trace @"biz_output_obj is None"
       False
     Some(biz_output) -> {
-      let output_must_only_one_bond_name =
-        dict.size(biz_output.smart_contract.bond_assets) <= 1
       // trace @"biz_output_obj is Some"
-      output_must_only_one_bond_name? && when
+      when
         biz_output.smart_contract.bond_outputs
       is {
         [_, ..] -> {
           // trace @"update"
-          let miss_qty =
+          let output_must_only_one_bond_name = dict.size(biz_output.smart_contract.bond_assets) <= 1
+          let miss_balance_qty_bond =
             biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty == biz_output.smart_contract.bond_qty + biz_output.owner.bond_qty
-          biz_output.smart_contract.bond_datum_valid? && miss_qty?
+          output_must_only_one_bond_name? && biz_output.smart_contract.bond_datum_valid? && miss_balance_qty_bond?
         }
         [] -> {
           // trace @"cancel"
@@ -213,7 +212,6 @@ fn buy_correct(
 pub fn buy(
   tx: Transaction,
   conf: Config,
-  _spending_input: Input,
   requested_yield: Int,
   owner: Address,
   smart_contract: Address,
@@ -254,7 +252,6 @@ pub fn buy(
             )
           is {
             OK(escrow_info) -> {
-              // trace @"found escrow_info and owner_vk"
               let BizTxInfo {
                 valid: biz_tx_info_valid,
                 biz_input_obj,
@@ -270,11 +267,10 @@ pub fn buy(
                   tx.datums,
                   DatumTypeListing,
                 )
-              // trace @"found BizTxInfo"
               let input_must_only_one_bond_name =
                 dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
               biz_tx_info_valid && input_must_only_one_bond_name? && dict.has_key(
-                biz_input_obj.unique_bonds,
+                biz_input_obj.smart_contract.bond_assets,
                 escrow_datum.token_name,
               )? && buy_correct(
                 conf,

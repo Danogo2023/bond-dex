@@ -43,7 +43,6 @@ validator(conf: Config) {
         validation_listing.buy(
           tx,
           conf,
-          spending_input,
           datum.requested_yield,
           owner_address,
           smart_contract_address,
@@ -85,7 +84,6 @@ validator(conf: Config) {
         validation_bidding.sell(
           tx,
           conf,
-          spending_input,
           datum.requested_yield,
           owner_address,
           smart_contract_address,
