@@ -43,7 +43,6 @@ validator(conf: Config) {
         validation_listing.buy(
           tx,
           conf,
-          spending_input,
           datum.requested_yield,
           owner_address,
           smart_contract_address,
@@ -80,12 +79,11 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        validation_bidding.update_simple(tx, owner_address)
+        validation_bidding.update(tx, owner_address)
       Sell ->
-        validation_listing.buy(
+        validation_bidding.sell(
           tx,
           conf,
-          spending_input,
           datum.requested_yield,
           owner_address,
           smart_contract_address,

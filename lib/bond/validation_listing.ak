@@ -1,11 +1,10 @@
+use aiken/bytearray
 use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
 use aiken/option
-use aiken/transaction.{Input, Transaction}
-use aiken/transaction/credential.{
-  Address, ScriptCredential, VerificationKeyCredential,
-}
+use aiken/transaction.{Transaction}
+use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
   BizOutput, BizTxInfo, Config, DatumTypeListing, Error, EscrowDatum, EscrowInfo,
@@ -33,26 +32,32 @@ fn update_is_correct(
       smart_contract,
       extra_signatories,
       tx.datums,
-      False,
       DatumTypeListing,
     )
   biz_tx_info_valid && when biz_output_obj is {
     None ->
       // trace @"biz_output_obj is None"
       False
-    Some(biz_output) ->
+    Some(biz_output) -> {
       // trace @"biz_output_obj is Some"
-      when biz_output.smart_contract.bond_outputs is {
+      when
+        biz_output.smart_contract.bond_outputs
+      is {
         [_, ..] -> {
           // trace @"update"
-          let miss_qty =
+          let output_must_only_one_bond_name = dict.size(biz_output.smart_contract.bond_assets) <= 1
+          let miss_balance_qty_bond =
             biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty == biz_output.smart_contract.bond_qty + biz_output.owner.bond_qty
-          biz_output.smart_contract.bond_datum_valid? && miss_qty?
+          output_must_only_one_bond_name? && biz_output.smart_contract.bond_datum_valid? && miss_balance_qty_bond?
         }
-        [] ->
+        [] -> {
           // trace @"cancel"
-          (biz_output.owner.bond_qty == biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty)?
+          let value_to_owner_valid =
+            biz_output.owner.bond_qty == biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty
+          value_to_owner_valid?
+        }
       }
+    }
   }
 }
 
@@ -66,7 +71,9 @@ pub fn update(
     list.at(tx.extra_signatories, 0)
       |> option.and_then(fn(a) { Some([a]) })
       |> option.or_else([])
-  must_be_signed_by(extra_signatories, owner)? && update_is_correct(
+  let owner_is_valid =
+    must_be_signed_by(extra_signatories, owner)
+  owner_is_valid? && update_is_correct(
     conf,
     tx,
     owner,
@@ -120,15 +127,18 @@ fn buy_correct(
   escrow_info: EscrowInfo,
 ) -> Bool {
   when biz_output_obj is {
-    None -> {
-      trace @"biz_output_obj is None"
+    None ->
+      // trace @"biz_output_obj is None"
       False
-    }
     Some(biz_output) -> {
       // trace @"biz_output_obj is Some"
-      let miss_qty =
+      let miss_balance_qty_bond =
         biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-      if miss_qty? {
+      let buyer_is_not_owner =
+        biz_output.other.bond_qty > 0
+      let buyer_is_not_market =
+        not(biz_output.market.bond_qty > 0)
+      if buyer_is_not_market? && buyer_is_not_owner? && miss_balance_qty_bond? {
         // trace @"total in SM+buyer bond inputs == outputs"
         // Gia bond theo requested_yield cua owner
         let price_of_one_bond =
@@ -138,7 +148,12 @@ fn buy_correct(
             requested_yield,
             conf.bond.basis_points_ref_unit,
           )
-        let (qty_owner_2_buyer, min_ada_to_sm, min_ada_to_market) =
+        let (
+          qty_owner_2_buyer,
+          min_ada_to_sm,
+          min_ada_to_market,
+          output_must_only_one_bond_name,
+        ) =
           when biz_output.smart_contract.bond_outputs is {
             [_, ..] ->
               // trace @"buy partial"
@@ -146,6 +161,7 @@ fn buy_correct(
                 biz_input_obj.smart_contract.bond_qty - biz_output.smart_contract.bond_qty,
                 biz_input_obj.smart_contract.lovelace,
                 0,
+                dict.size(biz_output.smart_contract.bond_assets) <= 1,
               )
             [] ->
               // trace @"buy all"
@@ -153,9 +169,10 @@ fn buy_correct(
                 biz_input_obj.smart_contract.bond_qty,
                 0,
                 biz_input_obj.smart_contract.lovelace,
+                True,
               )
           }
-        when
+        output_must_only_one_bond_name && when
           list.find(
             dict.keys(biz_output.smart_contract.bond_assets),
             fn(sm_bond_name_output) {
@@ -195,95 +212,87 @@ fn buy_correct(
 pub fn buy(
   tx: Transaction,
   conf: Config,
-  _spending_input: Input,
   requested_yield: Int,
   owner: Address,
   smart_contract: Address,
 ) -> Bool {
-  when tx.validity_range.lower_bound.bound_type is {
-    Finite(tx_posix_time) ->
-      // trace @"tx with validity_range lower_bound valid"
-      when
-        list.find(
-          tx.reference_inputs,
-          fn(input) {
-            dict.size(
-              value.tokens(input.output.value, conf.bond.escrow_policy_id),
-            ) > 0
-          },
-        )
-      is {
-        Some(ref_input_escrow) ->
-          // trace @"found ref_input_escrow in reference_inputs"
-          when get_data(tx.datums, ref_input_escrow.output.datum) is {
-            Some(d) -> {
-              // trace @"found escrow datum"
-              expect escrow_datum: EscrowDatum =
-                d
-              // trace @"found escrow datum correct"
-              when
-                (
-                  get_escrow_info(
-                    conf.bond,
-                    value.lovelace_of(ref_input_escrow.output.value),
-                    escrow_datum,
-                    tx_posix_time,
-                  ),
-                  owner.payment_credential,
+  let validity_after_must_set =
+    when tx.validity_range.lower_bound.bound_type is {
+      Finite(x) ->
+        x
+      _ ->
+        0
+    }
+  let owner_vk =
+    when owner.payment_credential is {
+      VerificationKeyCredential(x) ->
+        x
+      _ ->
+        #""
+    }
+  (validity_after_must_set > 0)? && not(bytearray.is_empty(owner_vk))? && when
+    list.find(
+      tx.reference_inputs,
+      fn(input) {
+        dict.size(value.tokens(input.output.value, conf.bond.escrow_policy_id)) > 0
+      },
+    )
+  is {
+    Some(ref_input_escrow) ->
+      when get_data(tx.datums, ref_input_escrow.output.datum) is {
+        Some(d) -> {
+          expect escrow_datum: EscrowDatum =
+            d
+          when
+            get_escrow_info(
+              conf.bond,
+              value.lovelace_of(ref_input_escrow.output.value),
+              escrow_datum,
+              validity_after_must_set,
+            )
+          is {
+            OK(escrow_info) -> {
+              let BizTxInfo {
+                valid: biz_tx_info_valid,
+                biz_input_obj,
+                biz_output_obj,
+              } =
+                collect_biz_tx_info(
+                  conf,
+                  tx.inputs,
+                  tx.outputs,
+                  owner,
+                  smart_contract,
+                  [owner_vk],
+                  tx.datums,
+                  DatumTypeListing,
                 )
-              is {
-                (OK(escrow_info), VerificationKeyCredential(owner_vk)) -> {
-                  // trace @"found escrow_info and owner_vk"
-                  let BizTxInfo {
-                    valid: biz_tx_info_valid,
-                    biz_input_obj,
-                    biz_output_obj,
-                  } =
-                    collect_biz_tx_info(
-                      conf,
-                      tx.inputs,
-                      tx.outputs,
-                      owner,
-                      smart_contract,
-                      [owner_vk],
-                      tx.datums,
-                      True,
-                      DatumTypeListing,
-                    )
-                  // trace @"found BizTxInfo"
-                  biz_tx_info_valid && dict.has_key(
-                    biz_input_obj.unique_bonds,
-                    escrow_datum.token_name,
-                  )? && buy_correct(
-                    conf,
-                    requested_yield,
-                    biz_input_obj,
-                    biz_output_obj,
-                    escrow_info,
-                  )
-                }
-                (Error(_), _) -> {
-                  trace @"is closable"
-                  False
-                }
-                (_, ScriptCredential(_)) -> {
-                  trace @"owner address is invalid"
-                  False
-                }
-              }
+              let input_must_only_one_bond_name =
+                dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
+              biz_tx_info_valid && input_must_only_one_bond_name? && dict.has_key(
+                biz_input_obj.smart_contract.bond_assets,
+                escrow_datum.token_name,
+              )? && buy_correct(
+                conf,
+                requested_yield,
+                biz_input_obj,
+                biz_output_obj,
+                escrow_info,
+              )
             }
-            _ -> {
-              trace @"not found escrow datum in reference_inputs"
+            Error(_) -> {
+              trace @"is closable"
               False
             }
           }
+        }
         _ -> {
-          trace @"not found reference_inputs with escrow_policy_id"
+          trace @"not found escrow datum in reference_inputs"
           False
         }
       }
     _ -> {
-      trace @"not found lower_bound of validity_range in tx"
+      trace @"not found reference_inputs with escrow_policy_id"
       False
     }
   }

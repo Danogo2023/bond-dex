@@ -5,28 +5,28 @@ use aiken/hash.{blake2b_256}
 use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
-  calc_escrow_full_info, get_bond_id_1, get_bond_id_2, get_bond_policy_id,
-  get_buyer_address, get_config_test_1, get_config_test_2, get_escrow_datum,
-  get_escrow_policy_id, get_input_escrow, get_input_listing, get_listing_datum,
-  get_market_address, get_not_escrow_policy_id, get_output_listing,
-  get_owner_address, get_owner_address_hash, get_payment_datum,
-  get_smart_contract_address, scripthash_address,
+  calc_escrow_full_info, gen_input, gen_listing_datum, gen_output, get_bond_id_1,
+  get_bond_id_2, get_bond_policy_id, get_buyer_address, get_config_test_1,
+  get_config_test_2, get_escrow_datum, get_escrow_policy_id, get_input_escrow,
+  get_market_address, get_not_escrow_policy_id, get_owner_address,
+  get_owner_address_hash, get_payment_datum, get_smart_contract_address,
+  scripthash_address,
 }
 use bond/utils.{get_price_of_bond}
 use bond/validation_listing
 
 test listing_update_failure_miss_signed_by_owner() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
@@ -40,6 +40,7 @@ test listing_update_failure_miss_signed_by_owner() {
       Some([#"00010203040506"]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -49,18 +50,18 @@ test listing_update_failure_miss_signed_by_owner() {
 
 test listing_update_failure_miss_datum_requested_yield_inside_range_0001_9999() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let listing_datum_invalid =
-    get_listing_datum(get_owner_address(), 0)
+    gen_listing_datum(get_owner_address(), 0)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
@@ -74,6 +75,7 @@ test listing_update_failure_miss_datum_requested_yield_inside_range_0001_9999() 
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -83,23 +85,23 @@ test listing_update_failure_miss_datum_requested_yield_inside_range_0001_9999() 
 
 test listing_update_failure_must_only_one_bond_name_market_1() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 3)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
@@ -113,6 +115,7 @@ test listing_update_failure_must_only_one_bond_name_market_1() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -122,9 +125,9 @@ test listing_update_failure_must_only_one_bond_name_market_1() {
 
 test listing_update_failure_must_only_one_bond_name_market_2() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -136,21 +139,21 @@ test listing_update_failure_must_only_one_bond_name_market_2() {
       InlineDatum(listing_datum),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 3)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 5)),
       InlineDatum(listing_datum),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
@@ -164,6 +167,7 @@ test listing_update_failure_must_only_one_bond_name_market_2() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -173,7 +177,7 @@ test listing_update_failure_must_only_one_bond_name_market_2() {
 
 test listing_update_single_success_1() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -185,15 +189,15 @@ test listing_update_single_success_1() {
       NoDatum,
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(
@@ -205,11 +209,11 @@ test listing_update_single_success_1() {
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 6)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   validation_listing.update(
     fixture.tx(
@@ -217,6 +221,7 @@ test listing_update_single_success_1() {
       [],
       [output_owner_1, output_sm_1],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -228,9 +233,9 @@ test listing_update_single_success_1() {
 
 test listing_update_single_success_2() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -241,27 +246,35 @@ test listing_update_single_success_2() {
       ),
       NoDatum,
     )
-  let input_sm_2 =
-    get_input_listing(
+  let input_sm_1 =
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 3)),
       InlineDatum(listing_datum),
     )
   // 
+  let output_owner_1 =
+    gen_output(
+      get_owner_address(),
+      1300000,
+      Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 5)),
+      NoDatum,
+    )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
-  !validation_listing.update(
+  validation_listing.update(
     fixture.tx(
-      [input_owner_1, input_sm_2],
+      [input_sm_1, input_owner_1],
       [],
-      [output_sm_1],
+      [output_owner_1, output_sm_1],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -273,7 +286,7 @@ test listing_update_single_success_2() {
 
 test listing_update_multi_success_1() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -285,22 +298,22 @@ test listing_update_multi_success_1() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(
@@ -312,11 +325,11 @@ test listing_update_multi_success_1() {
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   validation_listing.update(
     fixture.tx(
@@ -324,6 +337,7 @@ test listing_update_multi_success_1() {
       [],
       [output_owner_1, output_sm_1],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -335,7 +349,7 @@ test listing_update_multi_success_1() {
 
 test listing_update_multi_success_2() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -347,22 +361,22 @@ test listing_update_multi_success_2() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(
@@ -374,18 +388,18 @@ test listing_update_multi_success_2() {
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_owner_address(), 5463)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 5463)),
     )
   validation_listing.update(
     fixture.tx(
@@ -393,6 +407,7 @@ test listing_update_multi_success_2() {
       [],
       [output_owner_1, output_sm_1, output_sm_2],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -404,7 +419,7 @@ test listing_update_multi_success_2() {
 
 test listing_update_multi_success_3() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -416,33 +431,33 @@ test listing_update_multi_success_3() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 11)),
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   validation_listing.update(
     fixture.tx(
@@ -450,6 +465,7 @@ test listing_update_multi_success_3() {
       [],
       [output_owner_1, output_sm_1],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -461,7 +477,7 @@ test listing_update_multi_success_3() {
 
 test listing_update_multi_success_4() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -473,22 +489,22 @@ test listing_update_multi_success_4() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(
@@ -500,18 +516,18 @@ test listing_update_multi_success_4() {
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_owner_address(), 5463)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 5463)),
     )
   validation_listing.update(
     fixture.tx(
@@ -519,6 +535,7 @@ test listing_update_multi_success_4() {
       [],
       [output_owner_1, output_sm_1, output_sm_2],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -530,7 +547,7 @@ test listing_update_multi_success_4() {
 
 test listing_update_multi_failure_1() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -542,40 +559,40 @@ test listing_update_multi_failure_1() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 7)),
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1345)),
     )
   !validation_listing.update(
     fixture.tx(
@@ -583,6 +600,7 @@ test listing_update_multi_failure_1() {
       [],
       [output_owner_1, output_sm_1, output_sm_2],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -594,7 +612,7 @@ test listing_update_multi_failure_1() {
 
 test listing_update_multi_failure_2() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -606,40 +624,40 @@ test listing_update_multi_failure_2() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_buyer_address(), 500)),
+      InlineDatum(gen_listing_datum(get_buyer_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 7)),
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1345)),
     )
   !validation_listing.update(
     fixture.tx(
@@ -647,6 +665,7 @@ test listing_update_multi_failure_2() {
       [],
       [output_owner_1, output_sm_1, output_sm_2],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -658,7 +677,7 @@ test listing_update_multi_failure_2() {
 
 test listing_update_multi_failure_3() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -670,40 +689,40 @@ test listing_update_multi_failure_3() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 7)),
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_buyer_address(), 1345)),
+      InlineDatum(gen_listing_datum(get_buyer_address(), 1345)),
     )
   !validation_listing.update(
     fixture.tx(
@@ -711,6 +730,7 @@ test listing_update_multi_failure_3() {
       [],
       [output_owner_1, output_sm_1, output_sm_2],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -722,7 +742,7 @@ test listing_update_multi_failure_3() {
 
 test listing_update_multi_failure_4() {
   let input_owner_1 =
-    get_input_listing(
+    gen_input(
       get_owner_address(),
       1300000,
       Some(
@@ -734,22 +754,22 @@ test listing_update_multi_failure_4() {
       NoDatum,
     )
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   //
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(
@@ -761,18 +781,18 @@ test listing_update_multi_failure_4() {
       NoDatum,
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 2)),
-      InlineDatum(get_listing_datum(get_owner_address(), 2345)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 2345)),
     )
   let output_sm_2 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_buyer_address(), 5463)),
+      InlineDatum(gen_listing_datum(get_buyer_address(), 5463)),
     )
   !validation_listing.update(
     fixture.tx(
@@ -780,6 +800,7 @@ test listing_update_multi_failure_4() {
       [],
       [output_owner_1, output_sm_1, output_sm_2],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -791,21 +812,21 @@ test listing_update_multi_failure_4() {
 
 test listing_update_cancel_listing_success() {
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 8)),
@@ -819,6 +840,7 @@ test listing_update_cancel_listing_success() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -828,28 +850,28 @@ test listing_update_cancel_listing_success() {
 
 test listing_update_multi_cancel_listing_success_1() {
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_3 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 12)),
@@ -863,6 +885,7 @@ test listing_update_multi_cancel_listing_success_1() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -872,28 +895,28 @@ test listing_update_multi_cancel_listing_success_1() {
 
 test listing_update_multi_cancel_listing_failure_1() {
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
-      InlineDatum(get_listing_datum(get_owner_address(), 500)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 500)),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
-      InlineDatum(get_listing_datum(get_owner_address(), 1000)),
+      InlineDatum(gen_listing_datum(get_owner_address(), 1000)),
     )
   let input_sm_3 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
-      InlineDatum(get_listing_datum(get_buyer_address(), 500)),
+      InlineDatum(gen_listing_datum(get_buyer_address(), 500)),
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 12)),
@@ -907,6 +930,7 @@ test listing_update_multi_cancel_listing_failure_1() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -916,30 +940,30 @@ test listing_update_multi_cancel_listing_failure_1() {
 
 test listing_update_failure_cancel_listing_miss_qty() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       InlineDatum(listing_datum),
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       NoDatum,
     )
   let output_market_1 =
-    get_output_listing(
+    gen_output(
       get_market_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 2)),
@@ -953,6 +977,7 @@ test listing_update_failure_cancel_listing_miss_qty() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -962,23 +987,23 @@ test listing_update_failure_cancel_listing_miss_qty() {
 
 test listing_update_failure_cancel_listing_miss_owner() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       InlineDatum(listing_datum),
     )
   let output_market_1 =
-    get_output_listing(
+    gen_output(
       get_market_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 8)),
@@ -992,6 +1017,7 @@ test listing_update_failure_cancel_listing_miss_owner() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -1001,30 +1027,30 @@ test listing_update_failure_cancel_listing_miss_owner() {
 
 test listing_update_failure_miss_output_datum() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       NoDatum,
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
@@ -1038,6 +1064,7 @@ test listing_update_failure_miss_output_datum() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -1047,23 +1074,23 @@ test listing_update_failure_miss_output_datum() {
 
 test listing_update_failure_miss_output_token_with_amount_not_greater_than_zero() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 1)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 0)),
       NoDatum,
     )
   let output_market_1 =
-    get_output_listing(
+    gen_output(
       get_market_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 1)),
@@ -1077,6 +1104,7 @@ test listing_update_failure_miss_output_token_with_amount_not_greater_than_zero(
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -1086,23 +1114,23 @@ test listing_update_failure_miss_output_token_with_amount_not_greater_than_zero(
 
 test listing_update_failure_miss_output_token() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       InlineDatum(listing_datum),
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 1)),
       InlineDatum(listing_datum),
     )
   let output_market_1 =
-    get_output_listing(
+    gen_output(
       get_market_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
@@ -1116,6 +1144,7 @@ test listing_update_failure_miss_output_token() {
       Some([get_owner_address_hash()]),
       None,
       None,
+      None,
     ),
     get_config_test_1(),
     get_owner_address(),
@@ -1125,30 +1154,30 @@ test listing_update_failure_miss_output_token() {
 
 test listing_update_failure_miss_output_datum_owner() {
   let listing_datum =
-    get_listing_datum(get_owner_address(), 500)
+    gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
   let input_sm_2 =
-    get_input_listing(
+    gen_input(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
       InlineDatum(listing_datum),
     )
   let output_sm_1 =
-    get_output_listing(
+    gen_output(
       get_smart_contract_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
-      InlineDatum(get_listing_datum(get_market_address(), 500)),
+      InlineDatum(gen_listing_datum(get_market_address(), 500)),
     )
   let output_owner_1 =
-    get_output_listing(
+    gen_output(
       get_owner_address(),
       1300000,
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 3)),
@@ -1160,6 +1189,7 @@ test listing_update_failure_miss_output_datum_owner() {
       [],
       [output_sm_1, output_owner_1],
       Some([get_owner_address_hash()]),
+      None,
       None,
       None,
     ),
@@ -1177,7 +1207,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -1216,7 +1246,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -1236,7 +1266,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -1283,7 +1313,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -1292,7 +1322,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -1301,7 +1331,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -1313,7 +1343,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -1333,9 +1363,9 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -1350,7 +1380,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -1389,7 +1419,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -1402,7 +1432,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
       InlineDatum(listing_datum),
     )
   let input_sm_bond_spending_2 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -1413,7 +1443,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -1460,7 +1490,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -1469,7 +1499,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -1478,7 +1508,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -1490,7 +1520,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -1510,9 +1540,9 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -1527,7 +1557,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -1566,7 +1596,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -1583,7 +1613,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(
@@ -1636,7 +1666,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -1645,7 +1675,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -1654,7 +1684,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -1667,7 +1697,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -1687,9 +1717,9 @@ test listing_buy_partial_failure_change_bond_name_1() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -1704,7 +1734,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(scripthash_address(#"010203040506"), 515)
+    gen_listing_datum(scripthash_address(#"010203040506"), 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -1743,7 +1773,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -1760,7 +1790,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -1807,7 +1837,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -1816,7 +1846,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -1825,7 +1855,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -1837,7 +1867,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -1857,9 +1887,9 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -1874,7 +1904,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -1913,7 +1943,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -1930,7 +1960,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -1977,7 +2007,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -1986,7 +2016,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -1995,7 +2025,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -2007,7 +2037,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -2027,9 +2057,9 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -2044,7 +2074,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -2083,7 +2113,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -2096,7 +2126,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
       InlineDatum(listing_datum),
     )
   let input_sm_bond_spending_2 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -2107,7 +2137,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -2154,7 +2184,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -2163,7 +2193,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -2172,7 +2202,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -2184,7 +2214,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -2204,9 +2234,9 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -2221,7 +2251,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -2260,7 +2290,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -2277,7 +2307,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -2324,7 +2354,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -2333,7 +2363,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -2342,7 +2372,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -2354,7 +2384,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -2374,16 +2404,16 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_claimed() {
+test listing_buy_partial_failure_invalid_escrow_closable() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2391,7 +2421,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -2438,7 +2468,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -2455,7 +2485,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -2502,7 +2532,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -2511,7 +2541,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -2520,7 +2550,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -2532,7 +2562,7 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -2552,9 +2582,9 @@ test listing_buy_partial_failure_invalid_escrow_claimed() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -2569,7 +2599,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -2608,7 +2638,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -2625,7 +2655,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   let buyer_address =
     owner_address
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -2672,7 +2702,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -2681,7 +2711,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -2690,7 +2720,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -2702,7 +2732,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -2722,9 +2752,9 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -2741,7 +2771,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -2780,7 +2810,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -2797,7 +2827,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
   let buyer_address =
     market_address
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -2842,7 +2872,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
            bytearray.compare,
          )
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -2851,7 +2881,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -2860,7 +2890,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -2872,7 +2902,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -2892,9 +2922,9 @@ test listing_buy_partial_failure_buyer_is_market_1() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -2909,7 +2939,7 @@ test listing_buy_partial_success() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -2948,7 +2978,7 @@ test listing_buy_partial_success() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -2965,7 +2995,7 @@ test listing_buy_partial_success() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -3012,7 +3042,7 @@ test listing_buy_partial_success() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -3021,7 +3051,7 @@ test listing_buy_partial_success() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -3030,7 +3060,7 @@ test listing_buy_partial_success() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -3042,7 +3072,7 @@ test listing_buy_partial_success() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -3062,9 +3092,9 @@ test listing_buy_partial_success() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -3079,7 +3109,7 @@ test listing_buy_full_success() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 515)
+    gen_listing_datum(owner_address, 515)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -3118,7 +3148,7 @@ test listing_buy_full_success() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -3135,7 +3165,7 @@ test listing_buy_full_success() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(
+    gen_input(
       buyer_address,
       buyer_fee_ada,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
@@ -3182,7 +3212,7 @@ test listing_buy_full_success() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -3191,7 +3221,7 @@ test listing_buy_full_success() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -3200,7 +3230,7 @@ test listing_buy_full_success() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -3212,7 +3242,7 @@ test listing_buy_full_success() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -3232,9 +3262,9 @@ test listing_buy_full_success() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_2,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,
@@ -3249,7 +3279,7 @@ test listing_buy_full_success_1() {
   let owner_address =
     get_owner_address()
   let listing_datum =
-    get_listing_datum(owner_address, 7)
+    gen_listing_datum(owner_address, 7)
   let bond_name_listing_1 =
     get_bond_id_1()
   let bond_name_listing_2 =
@@ -3288,7 +3318,7 @@ test listing_buy_full_success_1() {
   let sm_address =
     get_smart_contract_address()
   let input_sm_bond_spending_1 =
-    get_input_listing(
+    gen_input(
       sm_address,
       sm_min_ada_input,
       Some(
@@ -3305,7 +3335,7 @@ test listing_buy_full_success_1() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    get_input_listing(buyer_address, buyer_fee_ada, None, NoDatum)
+    gen_input(buyer_address, buyer_fee_ada, None, NoDatum)
   //
   let buyer_qty =
     1
@@ -3347,7 +3377,7 @@ test listing_buy_full_success_1() {
   let market_address =
     get_market_address()
   let output_market =
-    get_output_listing(
+    gen_output(
       market_address,
       market_received,
       None,
@@ -3356,7 +3386,7 @@ test listing_buy_full_success_1() {
   let owner_received =
     received_with_yield - market_fee_seller
   let output_owner =
-    get_output_listing(
+    gen_output(
       owner_address,
       owner_received,
       None,
@@ -3365,7 +3395,7 @@ test listing_buy_full_success_1() {
   let buyer_received =
     buyer_fee_ada + sm_min_ada_input - market_received - owner_received
   let output_buyer =
-    get_output_listing(
+    gen_output(
       buyer_address,
       buyer_received,
       Some(
@@ -3374,7 +3404,7 @@ test listing_buy_full_success_1() {
       DatumHash(payment_datum_hash),
     )
   let output_sm =
-    get_output_listing(
+    gen_output(
       sm_address,
       sm_min_ada_input - min_ada_to_market,
       Some(
@@ -3394,9 +3424,9 @@ test listing_buy_full_success_1() {
       Some([get_owner_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
+      None,
     ),
     config_test_1,
-    input_sm_bond_spending_1,
     listing_datum.requested_yield,
     owner_address,
     sm_address,

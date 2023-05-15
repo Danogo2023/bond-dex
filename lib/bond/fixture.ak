@@ -1,7 +1,9 @@
 use aiken/bytearray
 use aiken/dict.{Dict}
 use aiken/hash.{Blake2b_256, Hash}
-use aiken/interval.{Finite, Interval, IntervalBound, PositiveInfinity}
+use aiken/interval.{
+  Finite, Interval, IntervalBound, NegativeInfinity, PositiveInfinity,
+}
 use aiken/transaction.{
   Datum, Input, Output, OutputReference, Transaction, TransactionId,
 }
@@ -10,8 +12,8 @@ use aiken/transaction/credential.{
 }
 use aiken/transaction/value.{AssetName, PolicyId, Value}
 use bond/types.{
-  BondConfig, Config, EpochConfig, EscrowDatum, ListingDatum, MarketConfig,
-  PaymentDatum,
+  BiddingDatum, BondConfig, Config, EpochConfig, EscrowDatum, ListingDatum,
+  MarketConfig, PaymentDatum,
 }
 use bond/utils.{get_day_to_maturity, posix_time_to_relative_epoch}
 use common/types.{PublicKeyHash, SlotConfigNetwork} as common_types
@@ -36,7 +38,8 @@ pub fn tx(
   outputs: List<Output>,
   extra_signatories: Option<List<PublicKeyHash>>,
   datums: Option<Dict<Hash<Blake2b_256, Data>, Data>>,
-  valid_from_posix_time: Option<Int>,
+  validity_after: Option<Int>,
+  validity_before: Option<Int>,
 ) -> Transaction {
   let tx =
     Transaction {
@@ -47,29 +50,25 @@ pub fn tx(
       mint: value.from_asset(#"000000", #"000020e05363726970744f776e6572", -1),
       certificates: [],
       withdrawals: dict.new(),
-      validity_range: when valid_from_posix_time is {
-        Some(x) ->
-          Interval {
-            lower_bound: IntervalBound {
-              bound_type: Finite(x),
-              is_inclusive: True,
-            },
-            upper_bound: IntervalBound {
-              bound_type: PositiveInfinity,
-              is_inclusive: True,
-            },
-          }
-        _ ->
-          Interval {
-            lower_bound: IntervalBound {
-              bound_type: PositiveInfinity,
-              is_inclusive: True,
-            },
-            upper_bound: IntervalBound {
-              bound_type: PositiveInfinity,
-              is_inclusive: True,
-            },
-          }
+      validity_range: Interval {
+        lower_bound: IntervalBound {
+          bound_type: when validity_after is {
+            Some(x) ->
+              Finite(x)
+            _ ->
+              NegativeInfinity
+          },
+          is_inclusive: True,
+        },
+        upper_bound: IntervalBound {
+          bound_type: when validity_before is {
+            Some(x) ->
+              Finite(x)
+            _ ->
+              PositiveInfinity
+          },
+          is_inclusive: True,
+        },
       },
       extra_signatories: when extra_signatories is {
         Some(s) ->
@@ -159,7 +158,9 @@ fn get_market_config() -> MarketConfig {
     bidding_yield: 533,
     bidding_duration: 0,
     bidding_maturity_day: 0,
+    bidding_validity_time: 15 * 60 * 1000,
   }
+  // 15 minutes
 }
 
 pub fn get_config_test_1() -> Config {
@@ -378,29 +379,52 @@ pub fn get_input_escrow(
   }
 }
 
-pub fn get_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
-  let payment_credential =
-    when owner.payment_credential is {
+pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
+  ListingDatum {
+    owner_payment_key: when owner.payment_credential is {
       VerificationKeyCredential(vk) ->
         vk
       ScriptCredential(sh) ->
         sh
-    }
-  let stake_credential =
-    when owner.stake_credential is {
+    },
+    owner_stake_key: when owner.stake_credential is {
       Some(Inline(VerificationKeyCredential(vk))) ->
         Some(vk)
       _ ->
         None
-    }
-  ListingDatum {
-    owner_payment_key: payment_credential,
-    owner_stake_key: stake_credential,
+    },
     requested_yield,
   }
 }
 
-pub fn get_input_listing(
+pub fn gen_bidding_datum(
+  owner: Address,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
+  requested_yield: Int,
+) -> BiddingDatum {
+  BiddingDatum {
+    owner_payment_key: when owner.payment_credential is {
+      VerificationKeyCredential(vk) ->
+        vk
+      ScriptCredential(sh) ->
+        sh
+    },
+    owner_stake_key: when owner.stake_credential is {
+      Some(Inline(VerificationKeyCredential(vk))) ->
+        Some(vk)
+      _ ->
+        None
+    },
+    from_epoch,
+    to_epoch,
+    quantity,
+    requested_yield,
+  }
+}
+
+pub fn gen_input(
   address: Address,
   lovelace: Int,
   assets: Option<Value>,
@@ -433,7 +457,7 @@ pub fn get_payment_datum() -> PaymentDatum {
   PaymentDatum { output_reference: get_output_reference() }
 }
 
-pub fn get_output_listing(
+pub fn gen_output(
   address: Address,
   lovelace: Int,
   assets: Option<Value>,
