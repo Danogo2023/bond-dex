@@ -246,7 +246,7 @@ test listing_update_single_success_2() {
       ),
       NoDatum,
     )
-  let input_sm_2 =
+  let input_sm_1 =
     gen_input(
       get_smart_contract_address(),
       1300000,
@@ -254,6 +254,13 @@ test listing_update_single_success_2() {
       InlineDatum(listing_datum),
     )
   // 
+  let output_owner_1 =
+    gen_output(
+      get_owner_address(),
+      1300000,
+      Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 5)),
+      NoDatum,
+    )
   let output_sm_1 =
     gen_output(
       get_smart_contract_address(),
@@ -261,11 +268,11 @@ test listing_update_single_success_2() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(listing_datum),
     )
-  !validation_listing.update(
+  validation_listing.update(
     fixture.tx(
-      [input_owner_1, input_sm_2],
+      [input_sm_1, input_owner_1],
       [],
-      [output_sm_1],
+      [output_owner_1, output_sm_1],
       Some([get_owner_address_hash()]),
       None,
       None,
@@ -2413,7 +2420,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_claimed() {
+test listing_buy_partial_failure_invalid_escrow_closable() {
   let time_of_tx =
     1681095094000
   let config_test_2 =

@@ -52,20 +52,22 @@ fn update_is_correct(
       smart_contract,
       extra_signatories,
       tx.datums,
-      False,
       DatumTypeBidding,
     )
   biz_tx_info_valid && when biz_output_obj is {
     None ->
       // trace @"biz_output_obj is None"
       False
-    Some(biz_output) ->
+    Some(biz_output) -> {
       // trace @"biz_output_obj is Some"
-      biz_output.smart_contract.lovelace >= calc_deposit(
+      let output_must_only_one_bond_name =
+        dict.size(biz_output.smart_contract.bond_assets) <= 1
+      output_must_only_one_bond_name? && biz_output.smart_contract.lovelace >= calc_deposit(
         conf,
         quantity,
         requested_yield,
       )
+    }
   }
 }
 
@@ -81,7 +83,9 @@ pub fn update(
     list.at(tx.extra_signatories, 0)
       |> option.and_then(fn(a) { Some([a]) })
       |> option.or_else([])
-  must_be_signed_by(extra_signatories, owner)? && update_is_correct(
+  let owner_is_valid =
+    must_be_signed_by(extra_signatories, owner)
+  owner_is_valid? && update_is_correct(
     conf,
     tx,
     owner,
@@ -93,11 +97,14 @@ pub fn update(
 }
 
 pub fn update_simple(tx: Transaction, owner: Address) -> Bool {
-  let extra_signatories =
-    list.at(tx.extra_signatories, 0)
-      |> option.and_then(fn(a) { Some([a]) })
-      |> option.or_else([])
-  must_be_signed_by(extra_signatories, owner)?
+  let owner_is_valid =
+    must_be_signed_by(
+      list.at(tx.extra_signatories, 0)
+        |> option.and_then(fn(a) { Some([a]) })
+        |> option.or_else([]),
+      owner,
+    )
+  owner_is_valid?
 }
 
 fn sell_is_valid(
@@ -152,7 +159,11 @@ fn sell_correct(
       // trace @"biz_output_obj is Some"
       let miss_qty =
         biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-      if miss_qty? {
+      let buyer_is_not_owner =
+        biz_output.other.bond_qty > 0
+      let buyer_is_not_market =
+        not(biz_output.market.bond_qty > 0)
+      if buyer_is_not_market? && buyer_is_not_owner? && miss_qty? {
         // trace @"total in SM+buyer bond inputs == outputs"
         // Gia bond theo requested_yield cua owner
         let price_of_one_bond =
@@ -190,9 +201,10 @@ fn sell_correct(
             },
           )
         is {
-          Some(_) ->
-            // trace @"output to smart contract contain bond name invalid!"
+          Some(_) -> {
+            trace @"output to smart contract contain bond name invalid!"
             False
+          }
           _ -> {
             let buy_partial_return_sm_matchs =
               min_ada_to_sm <= 0 || (biz_output.smart_contract.lovelace >= min_ada_to_sm)? && biz_output.smart_contract.bond_datum_valid?
@@ -249,13 +261,12 @@ pub fn sell(
 
   list.and(
     [
-      validity_after_must_set > 0,
-      validity_before_must_set > 0,
-      tx_time_range > 0,
-      tx_time_range <= conf.market.bidding_validity_time,
-      !bytearray.is_empty(owner_vk),
+      (validity_after_must_set > 0)?,
+      (validity_before_must_set > 0)?,
+      (tx_time_range > 0)?,
+      (tx_time_range <= conf.market.bidding_validity_time)?,
     ],
-  )? && when
+  ) && not(bytearray.is_empty(owner_vk))? && when
     list.find(
       tx.reference_inputs,
       fn(input) {
@@ -294,7 +305,6 @@ pub fn sell(
                   smart_contract,
                   [owner_vk],
                   tx.datums,
-                  True,
                   DatumTypeBidding,
                 )
               // trace @"found BizTxInfo"
@@ -309,9 +319,10 @@ pub fn sell(
                 escrow_info,
               )
             }
-            Error(_) ->
-              // trace @"is closable"
+            Error(_) -> {
+              trace @"is closable"
               False
+            }
           }
         }
         _ -> {

@@ -184,20 +184,32 @@ fn datum_is_valid(
     DatumTypeListing -> {
       expect listing_datum: ListingDatum =
         datum
-      list.has(extra_signatories, listing_datum.owner_payment_key)? && (math.clamp(
-        listing_datum.requested_yield,
-        conf.bond.basis_points_min,
-        conf.bond.basis_points_max,
-      ) == listing_datum.requested_yield)?
+      let owner_is_valid =
+        list.has(extra_signatories, listing_datum.owner_payment_key)
+      let requested_yield_is_valid =
+        math.clamp(
+          listing_datum.requested_yield,
+          conf.bond.basis_points_min,
+          conf.bond.basis_points_max,
+        ) == listing_datum.requested_yield
+      owner_is_valid? && requested_yield_is_valid?
     }
     DatumTypeBidding -> {
       expect bidding_datum: BiddingDatum =
         datum
-      list.has(extra_signatories, bidding_datum.owner_payment_key)? && (math.clamp(
-        bidding_datum.requested_yield,
-        conf.bond.basis_points_min,
-        conf.bond.basis_points_max,
-      ) == bidding_datum.requested_yield)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)? && (bidding_datum.quantity > 0)?
+      let owner_is_valid =
+        list.has(extra_signatories, bidding_datum.owner_payment_key)
+      let requested_yield_is_valid =
+        math.clamp(
+          bidding_datum.requested_yield,
+          conf.bond.basis_points_min,
+          conf.bond.basis_points_max,
+        ) == bidding_datum.requested_yield
+      let datum_epoch_is_valid =
+        bidding_datum.to_epoch >= bidding_datum.from_epoch
+      let datum_quantity_is_valid =
+        bidding_datum.quantity > 0
+      owner_is_valid? && requested_yield_is_valid? && datum_epoch_is_valid? && datum_quantity_is_valid?
     }
     _ ->
       False
@@ -236,8 +248,10 @@ fn build_biz_output_info(
         !check_datum || when get_data(datums, output.datum) is {
           Some(datum) ->
             datum_is_valid(conf, extra_signatories, datum_type, datum)
-          None ->
+          None -> {
+            trace @"not found datum"
             False
+          }
         }
       BizOutputInfo {
         addresses,
@@ -413,7 +427,6 @@ pub fn collect_biz_tx_info(
   smart_contract: Address,
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
-  is_buy: Bool,
   datum_type: DatumType,
 ) -> BizTxInfo {
   let biz_output_info_init =
@@ -446,11 +459,7 @@ pub fn collect_biz_tx_info(
       biz_output_init,
       datum_type,
     )
-  if
-  biz_input_obj.valid? && (
-    !is_buy || (dict.size(biz_input_obj.smart_contract.bond_assets) <= 1)?
-  ){
-  
+  if biz_input_obj.valid {
     let biz_output_obj: BizOutput =
       get_biz_output(
         conf,
@@ -462,18 +471,11 @@ pub fn collect_biz_tx_info(
         biz_output_init,
         datum_type,
       )
-    if
-    biz_output_obj.valid? && (dict.size(
-      biz_output_obj.smart_contract.bond_assets,
-    ) <= 1)?{
-    
-      BizTxInfo {
-        valid: True,
-        biz_input_obj,
-        biz_output_obj: Some(biz_output_obj),
-      }
-    } else {
-      BizTxInfo { valid: False, biz_input_obj, biz_output_obj: None }
+    // let sell_output_must_only_one_bond_name = trade_action != Sell || dict.size(biz_input_obj.owner.bond_assets) == 1
+    BizTxInfo {
+      valid: biz_output_obj.valid,
+      biz_input_obj,
+      biz_output_obj: Some(biz_output_obj),
     }
   } else {
     BizTxInfo { valid: False, biz_input_obj, biz_output_obj: None }

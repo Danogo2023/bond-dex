@@ -13,6 +13,7 @@ pub type EpochConfig {
   epoch_boundary_as_epoch: Int,
   // Each Cardano epoch consists of a number of slots, where each slot lasts for one second
   // A Cardano epoch currently includes 432,000 slots (5 days)
+  // Format with miliseconds
   // mainnet: 432_000_000
   // preview: 1_800_000
   epoch_length: Int,
@@ -44,6 +45,7 @@ pub type MarketConfig {
   bidding_yield: Int,
   bidding_duration: Int,
   bidding_maturity_day: Int,
+  // time to live of transaction with format milisecond(s)
   bidding_validity_time: Int,
 }
 
