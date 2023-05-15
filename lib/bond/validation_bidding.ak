@@ -15,7 +15,7 @@ use bond/utils.{
 }
 use common/utils.{get_data} as common_utils
 
-pub fn update_simple(tx: Transaction, owner: Address) -> Bool {
+pub fn update(tx: Transaction, owner: Address) -> Bool {
   let owner_is_valid =
     must_be_signed_by(
       list.at(tx.extra_signatories, 0)

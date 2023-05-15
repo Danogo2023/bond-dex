@@ -79,7 +79,7 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        validation_bidding.update_simple(tx, owner_address)
+        validation_bidding.update(tx, owner_address)
       Sell ->
         validation_bidding.sell(
           tx,

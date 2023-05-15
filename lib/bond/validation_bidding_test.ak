@@ -24,7 +24,7 @@ test bidding_update_failure_miss_signed_by_owner() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(bidding_datum),
     )
-  !validation_bidding.update_simple(
+  !validation_bidding.update(
     fixture.tx(
       [input_sm_1],
       [],
@@ -78,7 +78,7 @@ test bidding_update_single_success_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 6)),
       InlineDatum(gen_bidding_datum(get_owner_address(), 100, 172, 10, 500)),
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_owner_1, input_sm_2],
       [],
@@ -139,7 +139,7 @@ test bidding_update_multi_success_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 5)),
       InlineDatum(gen_bidding_datum(get_owner_address(), 100, 172, 10, 2345)),
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -207,7 +207,7 @@ test bidding_update_multi_success_2() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(gen_bidding_datum(get_owner_address(), 100, 172, 10, 5463)),
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -263,7 +263,7 @@ test bidding_update_multi_success_3() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_2(), 2)),
       InlineDatum(gen_bidding_datum(get_owner_address(), 100, 172, 10, 2345)),
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -331,7 +331,7 @@ test bidding_update_multi_success_4() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 4)),
       InlineDatum(gen_bidding_datum(get_owner_address(), 100, 172, 10, 5463)),
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_owner_1, input_sm_1, input_sm_2],
       [],
@@ -367,7 +367,7 @@ test bidding_update_cancel_listing_success() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 8)),
       NoDatum,
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_sm_1, input_sm_2],
       [],
@@ -410,7 +410,7 @@ test bidding_update_multi_cancel_listing_success_1() {
       Some(value.from_asset(get_bond_policy_id(), get_bond_id_1(), 12)),
       NoDatum,
     )
-  validation_bidding.update_simple(
+  validation_bidding.update(
     fixture.tx(
       [input_sm_1, input_sm_2, input_sm_3],
       [],
