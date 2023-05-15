@@ -132,13 +132,13 @@ fn buy_correct(
       False
     Some(biz_output) -> {
       // trace @"biz_output_obj is Some"
-      let miss_qty =
+      let miss_balance_qty_bond =
         biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
       let buyer_is_not_owner =
         biz_output.other.bond_qty > 0
       let buyer_is_not_market =
         not(biz_output.market.bond_qty > 0)
-      if buyer_is_not_market? && buyer_is_not_owner? && miss_qty? {
+      if buyer_is_not_market? && buyer_is_not_owner? && miss_balance_qty_bond? {
         // trace @"total in SM+buyer bond inputs == outputs"
         // Gia bond theo requested_yield cua owner
         let price_of_one_bond =

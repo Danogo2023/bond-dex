@@ -13,86 +13,7 @@ use bond/types.{
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_price_of_bond, must_be_signed_by,
 }
-use common/types.{PublicKeyHash} as common_types
 use common/utils.{get_data} as common_utils
-
-fn calc_deposit(conf: Config, quantity: Int, requested_yield: Int) -> Int {
-  // let principal_lovelace = quantity * conf.bond.bond_face_value
-  let lender_interest_one_bond_lovelace =
-    conf.bond.bond_face_value + conf.bond.bond_face_value * conf.market.bidding_yield * conf.market.bidding_duration / conf.bond.epoch_config.year_to_epoch / conf.bond.basis_points_ref_unit
-  let price_of_one_bond =
-    get_price_of_bond(
-      lender_interest_one_bond_lovelace,
-      conf.market.bidding_maturity_day,
-      requested_yield,
-      conf.bond.basis_points_ref_unit,
-    )
-  let received_diff =
-    ( lender_interest_one_bond_lovelace - price_of_one_bond ) * quantity
-  let market_fee_buyer =
-    received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  lender_interest_one_bond_lovelace + market_fee_buyer
-}
-
-fn update_is_correct(
-  conf: Config,
-  tx: Transaction,
-  owner: Address,
-  smart_contract: Address,
-  extra_signatories: List<PublicKeyHash>,
-  quantity: Int,
-  requested_yield: Int,
-) -> Bool {
-  let BizTxInfo { valid: biz_tx_info_valid, biz_input_obj: _, biz_output_obj } =
-    collect_biz_tx_info(
-      conf,
-      tx.inputs,
-      tx.outputs,
-      owner,
-      smart_contract,
-      extra_signatories,
-      tx.datums,
-      DatumTypeBidding,
-    )
-  biz_tx_info_valid && when biz_output_obj is {
-    Some(biz_output) -> {
-      // trace @"biz_output_obj is Some"
-      biz_output.smart_contract.lovelace >= calc_deposit(
-        conf,
-        quantity,
-        requested_yield,
-      )
-    }
-    None ->
-      // trace @"biz_output_obj is None"
-      False
-  }
-}
-
-pub fn update(
-  tx: Transaction,
-  conf: Config,
-  owner: Address,
-  smart_contract: Address,
-  quantity: Int,
-  requested_yield: Int,
-) -> Bool {
-  let extra_signatories =
-    list.at(tx.extra_signatories, 0)
-      |> option.and_then(fn(a) { Some([a]) })
-      |> option.or_else([])
-  let owner_is_valid =
-    must_be_signed_by(extra_signatories, owner)
-  owner_is_valid? && update_is_correct(
-    conf,
-    tx,
-    owner,
-    smart_contract,
-    extra_signatories,
-    quantity,
-    requested_yield,
-  )
-}
 
 pub fn update_simple(tx: Transaction, owner: Address) -> Bool {
   let owner_is_valid =
@@ -149,13 +70,13 @@ fn sell_correct(
   biz_output: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
-  let miss_qty =
+  let miss_balance_qty_bond =
     biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
   let buyer_is_not_owner =
     biz_output.other.bond_qty > 0
   let buyer_is_not_market =
     not(biz_output.market.bond_qty > 0)
-  if buyer_is_not_market? && buyer_is_not_owner? && miss_qty? {
+  if buyer_is_not_market? && buyer_is_not_owner? && miss_balance_qty_bond? {
     // trace @"total in SM+buyer bond inputs == outputs"
     // Gia bond theo requested_yield cua owner
     let price_of_one_bond =
