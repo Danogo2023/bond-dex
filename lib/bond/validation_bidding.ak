@@ -27,108 +27,49 @@ pub fn update(tx: Transaction, owner: Address) -> Bool {
   owner_is_valid?
 }
 
-fn sell_is_valid(
-  conf: Config,
-  biz_input_obj: BizOutput,
-  biz_output_obj: BizOutput,
-  escrow_info: EscrowInfo,
-  buyer_qty: Int,
-  price_of_one_bond: Int,
-  min_ada_to_market: Int,
-) -> Bool {
-  // trace @"start sell_is_valid"
-  // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
-  let received_at_maturity =
-    escrow_info.received_at_maturity_one_bond * buyer_qty
-  // Tong tien buyer phai tra/owner nhan duoc chua tru phi
-  let received_with_yield =
-    price_of_one_bond * buyer_qty
-  // Chenh lech tien lai nhan duoc
-  let received_diff =
-    received_at_maturity - received_with_yield
-  // phi owner phai tra cho san theo ti le trong config
-  let market_fee_seller =
-    received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
-  // phi buyer phai tra cho san theo ti le trong config
-  let market_fee_buyer =
-    received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
-  let market_fee_receive_valid =
-    biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market
-  // So tien owner listing nhan duoc sau khi tru phi
-  let owner_receive_valid =
-    biz_output_obj.owner.lovelace >= received_with_yield - market_fee_seller
-  // So bond cua giao dich chuyen ve cho owner
-  let buyer_receive_bond_valid =
-    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty
-  market_fee_receive_valid? && owner_receive_valid? && buyer_receive_bond_valid?
-}
-
 fn sell_correct(
   conf: Config,
-  requested_yield: Int,
+  bidding_datum: BiddingDatum,
   biz_input_obj: BizOutput,
   biz_output_obj: BizOutput,
   escrow_info: EscrowInfo,
+  sm_output_utxo: Output,
 ) -> Bool {
-  // let sm_input_lovelace =
-  //   biz_input_obj.smart_contract.lovelace
-  // let sm_output_lovelace =
-  //   biz_output_obj.smart_contract.lovelace
+  let buyer_receive_bonds_qty = biz_output_obj.owner.bond_qty
+  let buyer_receive_lovelace = biz_output_obj.owner.lovelace
+  let buyer_bidding_bonds_qty = bidding_datum.quantity
+
+  let seller_input_bonds_qty = biz_input_obj.other.bond_qty
+  let seller_input_lovelace = biz_input_obj.other.lovelace
 
   let price_of_one_bond =
     get_price_of_bond(
       escrow_info.received_at_maturity_one_bond,
       escrow_info.day_to_maturity,
-      requested_yield,
+      bidding_datum.requested_yield,
       conf.bond.basis_points_ref_unit,
     )
-  let (qty_owner_2_buyer, min_ada_to_sm, min_ada_to_market) =
-    when biz_output_obj.smart_contract.bond_outputs is {
-      [_, ..] ->
-        // trace @"sell partial"
-        (
-          biz_input_obj.smart_contract.bond_qty - biz_output_obj.smart_contract.bond_qty,
-          biz_input_obj.smart_contract.lovelace,
-          0,
-        )
-      [] ->
-        // trace @"sell all"
-        (
-          biz_input_obj.smart_contract.bond_qty,
-          0,
-          biz_input_obj.smart_contract.lovelace,
-        )
-    }
-  when
-    list.find(
-      dict.keys(biz_output_obj.smart_contract.bond_assets),
-      fn(sm_bond_name_output) {
-        !list.has(
-          dict.keys(biz_input_obj.smart_contract.bond_assets),
-          sm_bond_name_output,
-        )
-      },
-    )
-  is {
-    Some(_) -> {
-      trace @"output to smart contract contain bond name invalid!"
-      False
-    }
-    _ -> {
-      let buy_partial_return_sm_matchs =
-        min_ada_to_sm <= 0 || (biz_output_obj.smart_contract.lovelace >= min_ada_to_sm)? && biz_output_obj.smart_contract.bond_datum_valid?
-      buy_partial_return_sm_matchs && sell_is_valid(
-        conf,
-        biz_input_obj,
-        biz_output_obj,
-        escrow_info,
-        qty_owner_2_buyer,
-        price_of_one_bond,
-        min_ada_to_market,
-      )?
-    }
-  }
+  // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
+  let received_at_maturity = escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
+  // Tong tien buyer(owner of bidding) phai tra/seller nhan duoc chua tru phi
+  let received_with_yield = price_of_one_bond * buyer_receive_bonds_qty
+  // Chenh lech tien lai nhan duoc
+  let received_diff = received_at_maturity - received_with_yield
+  // phi seller phai tra cho san theo ti le trong config
+  let market_fee_seller = received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
+  // phi buyer(owner of bidding) phai tra cho san theo ti le trong config
+  let market_fee_buyer = received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
+  let market_fee_total = market_fee_buyer + market_fee_seller
+  let seller_receive_total = received_with_yield - market_fee_seller
+
+  // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
+  let market_fee_receive_valid = biz_output_obj.market.lovelace >= market_fee_total
+  // So tien seller nhan duoc sau khi tru phi
+  let seller_receive_valid = biz_output_obj.other.lovelace <= seller_input_lovelace + seller_receive_total
+  // So tien smart contract phai thu lai sau khi da tru tien phi, tien tra cho seller va tien so du toi thieu gui bond cho buyer(owner of bidding)
+  let sm_receive_valid = biz_output_obj.smart_contract.lovelace >= biz_input_obj.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace
+
+  market_fee_receive_valid? && seller_receive_valid? && sm_receive_valid?
 }
 
 pub fn sell(
@@ -220,12 +161,16 @@ pub fn sell(
                     biz_input_obj.owner.lovelace <= 0
                   let seller_must_not_market =
                     biz_input_obj.market.lovelace <= 0
-                  owner_output_must_only_one_bond_name? && owner_output_bond_same_escrow? && seller_must_not_owner? && seller_must_not_market? && sell_correct(
+                  let sm_output_utxos = [biz_output.smart_contract.bond_outputs,..biz_output.smart_contract.other_outputs]
+                  let sm_output_must_only_one_utxo = list.length(sm_output_utxos) <= 1
+                  let buyer_receive_bonds_valid = biz_output.owner.bond_qty > 0 && biz_output.owner.bond_qty <= bidding_datum.quantity
+                  buyer_receive_bonds_valid? && owner_output_must_only_one_bond_name? && owner_output_bond_same_escrow? && seller_must_not_owner? && seller_must_not_market? && sm_output_must_only_one_utxo? && sell_correct(
                     conf,
-                    bidding_datum.requested_yield,
+                    bidding_datum,
                     biz_input_obj,
                     biz_output,
                     escrow_info,
+                    list.at(sm_output_utxos, 0),
                   )
                 }
               }

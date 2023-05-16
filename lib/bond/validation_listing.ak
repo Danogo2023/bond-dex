@@ -37,10 +37,8 @@ fn update_is_correct(
     )
   biz_tx_info_valid && when biz_output_obj is {
     None ->
-      // trace @"biz_output_obj is None"
       False
     Some(biz_output) ->
-      // trace @"biz_output_obj is Some"
       when biz_output.smart_contract.bond_outputs is {
         [_, ..] -> {
           // trace @"update"
@@ -90,17 +88,16 @@ fn buy_is_valid(
   price_of_one_bond: Int,
   min_ada_to_market: Int,
 ) -> Bool {
-  // trace @"start buy_is_valid"
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
     escrow_info.received_at_maturity_one_bond * buyer_qty
-  // Tong tien buyer phai tra/owner nhan duoc chua tru phi
+  // Tong tien buyer phai tra/seller(owner of listing) nhan duoc chua tru phi
   let received_with_yield =
     price_of_one_bond * buyer_qty
   // Chenh lech tien lai nhan duoc
   let received_diff =
     received_at_maturity - received_with_yield
-  // phi owner phai tra cho san theo ti le trong config
+  // phi seller(owner of listing) phai tra cho san theo ti le trong config
   let market_fee_seller =
     received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
   // phi buyer phai tra cho san theo ti le trong config
@@ -109,13 +106,14 @@ fn buy_is_valid(
   // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
   let market_fee_receive_valid =
     biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market
-  // So tien owner listing nhan duoc sau khi tru phi
-  let owner_receive_valid =
+  // So tien seller(owner of listing) listing nhan duoc sau khi tru phi
+  let seller_receive_valid =
     biz_output_obj.owner.lovelace >= received_with_yield - market_fee_seller
   // So bond cua giao dich chuyen ve cho owner
   let buyer_receive_bond_valid =
     biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty
-  market_fee_receive_valid? && owner_receive_valid? && buyer_receive_bond_valid?
+    
+  market_fee_receive_valid? && seller_receive_valid? && buyer_receive_bond_valid?
 }
 
 fn buy_correct(
