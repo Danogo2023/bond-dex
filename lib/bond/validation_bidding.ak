@@ -156,13 +156,6 @@ pub fn sell(
       _ ->
         0
     }
-  let validity_before_must_set =
-    when tx.validity_range.upper_bound.bound_type is {
-      Finite(x) ->
-        x
-      _ ->
-        0
-    }
   let owner_vk =
     when owner.payment_credential is {
       VerificationKeyCredential(x) ->
@@ -170,16 +163,11 @@ pub fn sell(
       _ ->
         #""
     }
-  let tx_time_range =
-    validity_before_must_set - validity_after_must_set
-
   list.and(
     [
+      (bidding_datum.quantity > 0)?,
       (bidding_datum.to_epoch >= bidding_datum.from_epoch)?,
       (validity_after_must_set > 0)?,
-      (validity_before_must_set > 0)?,
-      (tx_time_range > 0)?,
-      (tx_time_range <= conf.market.bidding_validity_time)?,
     ],
   ) && not(bytearray.is_empty(owner_vk))? && when
     list.find(
@@ -190,7 +178,6 @@ pub fn sell(
     )
   is {
     Some(ref_input_escrow) ->
-      // trace @"found ref_input_escrow in reference_inputs"
       when get_data(tx.datums, ref_input_escrow.output.datum) is {
         Some(d) -> {
           expect escrow_datum: EscrowDatum =
@@ -206,7 +193,7 @@ pub fn sell(
             start_epoch + escrow_datum.duration
           list.and(
             [
-              end_epoch >= current_epoch,
+              (end_epoch >= current_epoch)?,
               (end_epoch >= bidding_datum.from_epoch)?,
               (end_epoch <= bidding_datum.to_epoch)?,
             ],
