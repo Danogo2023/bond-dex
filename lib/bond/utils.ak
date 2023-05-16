@@ -85,6 +85,7 @@ pub fn get_escrow_info(
       lender_interest / bond_config.basis_points_ref_unit / escrow_datum.bond_amount
     OK(
       EscrowInfo {
+        token_name: escrow_datum.token_name,
         // Tong tien goc + lai cua 1 bond theo lai suat Optim ma lender nhan duoc 
         received_at_maturity_one_bond: interest_at_maturity_one_bond_lovelace + bond_config.bond_face_value,
         // So ngay den ky dao han cua bond

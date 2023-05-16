@@ -15,7 +15,7 @@ use bond/fixture.{
 use bond/utils.{get_price_of_bond}
 use bond/validation_listing
 
-test listing_update_failure_miss_signed_by_owner() {
+test listing_update_fail_miss_signed_by_owner() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -48,7 +48,7 @@ test listing_update_failure_miss_signed_by_owner() {
   )
 }
 
-test listing_update_failure_miss_datum_requested_yield_inside_range_0001_9999() {
+test listing_update_fail_miss_requested_yield() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let listing_datum_invalid =
@@ -83,7 +83,7 @@ test listing_update_failure_miss_datum_requested_yield_inside_range_0001_9999() 
   )
 }
 
-test listing_update_failure_must_only_one_bond_name_market_1() {
+test listing_update_fail_must_only_one_bond_name_1() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -123,7 +123,7 @@ test listing_update_failure_must_only_one_bond_name_market_1() {
   )
 }
 
-test listing_update_failure_must_only_one_bond_name_market_2() {
+test listing_update_fail_must_only_one_bond_name_2() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -175,7 +175,7 @@ test listing_update_failure_must_only_one_bond_name_market_2() {
   )
 }
 
-test listing_update_single_success_1() {
+test listing_update_succ_single_1() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -231,7 +231,7 @@ test listing_update_single_success_1() {
   )
 }
 
-test listing_update_single_success_2() {
+test listing_update_succ_single_2() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_owner_1 =
@@ -284,7 +284,7 @@ test listing_update_single_success_2() {
   )
 }
 
-test listing_update_multi_success_1() {
+test listing_update_succ_multi_1() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -347,7 +347,7 @@ test listing_update_multi_success_1() {
   )
 }
 
-test listing_update_multi_success_2() {
+test listing_update_succ_multi_2() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -417,7 +417,7 @@ test listing_update_multi_success_2() {
   )
 }
 
-test listing_update_multi_success_3() {
+test listing_update_succ_multi_3() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -475,7 +475,7 @@ test listing_update_multi_success_3() {
   )
 }
 
-test listing_update_multi_success_4() {
+test listing_update_succ_multi_4() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -545,7 +545,7 @@ test listing_update_multi_success_4() {
   )
 }
 
-test listing_update_multi_failure_1() {
+test listing_update_fail_multi_1() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -610,7 +610,7 @@ test listing_update_multi_failure_1() {
   )
 }
 
-test listing_update_multi_failure_2() {
+test listing_update_fail_multi_2() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -675,7 +675,7 @@ test listing_update_multi_failure_2() {
   )
 }
 
-test listing_update_multi_failure_3() {
+test listing_update_fail_multi_3() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -740,7 +740,7 @@ test listing_update_multi_failure_3() {
   )
 }
 
-test listing_update_multi_failure_4() {
+test listing_update_fail_multi_4() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -810,7 +810,7 @@ test listing_update_multi_failure_4() {
   )
 }
 
-test listing_update_cancel_listing_success() {
+test listing_update_succ_cancel_single() {
   let input_sm_1 =
     gen_input(
       get_smart_contract_address(),
@@ -848,7 +848,7 @@ test listing_update_cancel_listing_success() {
   )
 }
 
-test listing_update_multi_cancel_listing_success_1() {
+test listing_update_succ_cancel_multi() {
   let input_sm_1 =
     gen_input(
       get_smart_contract_address(),
@@ -893,7 +893,7 @@ test listing_update_multi_cancel_listing_success_1() {
   )
 }
 
-test listing_update_multi_cancel_listing_failure_1() {
+test listing_update_fail_cancel_multi() {
   let input_sm_1 =
     gen_input(
       get_smart_contract_address(),
@@ -938,7 +938,7 @@ test listing_update_multi_cancel_listing_failure_1() {
   )
 }
 
-test listing_update_failure_cancel_listing_miss_qty() {
+test listing_update_fail_cancel_miss_qty() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -985,7 +985,7 @@ test listing_update_failure_cancel_listing_miss_qty() {
   )
 }
 
-test listing_update_failure_cancel_listing_miss_owner() {
+test listing_update_fail_cancel_miss_owner() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -1025,7 +1025,7 @@ test listing_update_failure_cancel_listing_miss_owner() {
   )
 }
 
-test listing_update_failure_miss_output_datum() {
+test listing_update_fail_miss_output_datum() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -1072,7 +1072,7 @@ test listing_update_failure_miss_output_datum() {
   )
 }
 
-test listing_update_failure_miss_output_token_with_amount_not_greater_than_zero() {
+test listing_update_fail_miss_output_token_with_amount_not_greater_than_zero() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -1112,7 +1112,7 @@ test listing_update_failure_miss_output_token_with_amount_not_greater_than_zero(
   )
 }
 
-test listing_update_failure_miss_output_token() {
+test listing_update_fail_miss_output_token() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -1152,7 +1152,7 @@ test listing_update_failure_miss_output_token() {
   )
 }
 
-test listing_update_failure_miss_output_datum_owner() {
+test listing_update_fail_miss_output_datum_owner() {
   let listing_datum =
     gen_listing_datum(get_owner_address(), 500)
   let input_sm_1 =
@@ -1199,7 +1199,7 @@ test listing_update_failure_miss_output_datum_owner() {
   )
 }
 
-test listing_buy_partial_failure_must_only_one_bond_1() {
+test listing_buy_fail_partial_must_only_one_bond_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1372,7 +1372,7 @@ test listing_buy_partial_failure_must_only_one_bond_1() {
   )
 }
 
-test listing_buy_partial_failure_must_only_one_bond_2() {
+test listing_buy_fail_partial_must_only_one_bond_2() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1549,7 +1549,7 @@ test listing_buy_partial_failure_must_only_one_bond_2() {
   )
 }
 
-test listing_buy_partial_failure_change_bond_name_1() {
+test listing_buy_fail_partial_change_bond_name() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1726,7 +1726,7 @@ test listing_buy_partial_failure_change_bond_name_1() {
   )
 }
 
-test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
+test listing_buy_fail_partial_listing_datum_owner_invalid() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -1896,7 +1896,7 @@ test listing_buy_partial_failure_listing_datum_owner_invalid_1() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_datum() {
+test listing_buy_fail_partial_invalid_escrow_datum() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2066,7 +2066,7 @@ test listing_buy_partial_failure_invalid_escrow_datum() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_policy_id() {
+test listing_buy_fail_partial_invalid_escrow_policy_id() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2243,7 +2243,7 @@ test listing_buy_partial_failure_invalid_escrow_policy_id() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_nodatum() {
+test listing_buy_fail_partial_invalid_escrow_nodatum() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2413,7 +2413,7 @@ test listing_buy_partial_failure_invalid_escrow_nodatum() {
   )
 }
 
-test listing_buy_partial_failure_invalid_escrow_closable() {
+test listing_buy_fail_partial_invalid_escrow_closable() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2591,7 +2591,7 @@ test listing_buy_partial_failure_invalid_escrow_closable() {
   )
 }
 
-test listing_buy_partial_failure_buyer_is_owner_1() {
+test listing_buy_fail_buyer_must_not_owner() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2761,7 +2761,7 @@ test listing_buy_partial_failure_buyer_is_owner_1() {
   )
 }
 
-test listing_buy_partial_failure_buyer_is_market_1() {
+test listing_buy_fail_buyer_must_not_market() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -2931,7 +2931,7 @@ test listing_buy_partial_failure_buyer_is_market_1() {
   )
 }
 
-test listing_buy_partial_success() {
+test listing_buy_succ_partial() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -3101,7 +3101,7 @@ test listing_buy_partial_success() {
   )
 }
 
-test listing_buy_full_success() {
+test listing_buy_succ_full_1() {
   let time_of_tx =
     1681095094000
   let config_test_2 =
@@ -3271,7 +3271,7 @@ test listing_buy_full_success() {
   )
 }
 
-test listing_buy_full_success_1() {
+test listing_buy_succ_full_2() {
   let time_of_tx =
     1666656000000
   let config_test_1 =
@@ -3313,6 +3313,8 @@ test listing_buy_full_success_1() {
   //
   let sm_qty_input =
     1
+  let buyer_qty =
+    0
   let sm_min_ada_input =
     1599010
   let sm_address =
@@ -3335,10 +3337,15 @@ test listing_buy_full_success_1() {
   let buyer_address =
     get_buyer_address()
   let input_buyer_1 =
-    gen_input(buyer_address, buyer_fee_ada, None, NoDatum)
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1),
+      ),
+      NoDatum,
+    )
   //
-  let buyer_qty =
-    1
   let received_at_maturity =
     escrow_full_info.received_at_maturity_one_bond * buyer_qty
   let received_with_yield =
@@ -3399,7 +3406,7 @@ test listing_buy_full_success_1() {
       buyer_address,
       buyer_received,
       Some(
-        value.from_asset(get_bond_policy_id(), bond_name_listing_2, buyer_qty),
+        value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1),
       ),
       DatumHash(payment_datum_hash),
     )

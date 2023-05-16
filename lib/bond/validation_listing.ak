@@ -38,14 +38,13 @@ fn update_is_correct(
     None ->
       // trace @"biz_output_obj is None"
       False
-    Some(biz_output) -> {
+    Some(biz_output) ->
       // trace @"biz_output_obj is Some"
-      when
-        biz_output.smart_contract.bond_outputs
-      is {
+      when biz_output.smart_contract.bond_outputs is {
         [_, ..] -> {
           // trace @"update"
-          let output_must_only_one_bond_name = dict.size(biz_output.smart_contract.bond_assets) <= 1
+          let output_must_only_one_bond_name =
+            dict.size(biz_output.smart_contract.bond_assets) <= 1
           let miss_balance_qty_bond =
             biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty == biz_output.smart_contract.bond_qty + biz_output.owner.bond_qty
           output_must_only_one_bond_name? && biz_output.smart_contract.bond_datum_valid? && miss_balance_qty_bond?
@@ -57,7 +56,6 @@ fn update_is_correct(
           value_to_owner_valid?
         }
       }
-    }
   }
 }
 
@@ -134,11 +132,11 @@ fn buy_correct(
       // trace @"biz_output_obj is Some"
       let miss_balance_qty_bond =
         biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-      let buyer_is_not_owner =
+      let buyer_must_not_owner =
         biz_output.other.bond_qty > 0
-      let buyer_is_not_market =
+      let buyer_must_not_market =
         not(biz_output.market.bond_qty > 0)
-      if buyer_is_not_market? && buyer_is_not_owner? && miss_balance_qty_bond? {
+      if buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? {
         // trace @"total in SM+buyer bond inputs == outputs"
         // Gia bond theo requested_yield cua owner
         let price_of_one_bond =
@@ -152,7 +150,8 @@ fn buy_correct(
           qty_owner_2_buyer,
           min_ada_to_sm,
           min_ada_to_market,
-          output_must_only_one_bond_name,
+          sm_output_must_only_one_bond_name,
+          sm_output_bond_same_escrow,
         ) =
           when biz_output.smart_contract.bond_outputs is {
             [_, ..] ->
@@ -162,6 +161,10 @@ fn buy_correct(
                 biz_input_obj.smart_contract.lovelace,
                 0,
                 dict.size(biz_output.smart_contract.bond_assets) <= 1,
+                dict.has_key(
+                  biz_output.smart_contract.bond_assets,
+                  escrow_info.token_name,
+                ),
               )
             [] ->
               // trace @"buy all"
@@ -170,9 +173,15 @@ fn buy_correct(
                 0,
                 biz_input_obj.smart_contract.lovelace,
                 True,
+                True,
               )
           }
-        output_must_only_one_bond_name && when
+        let buyer_output_bond_same_escrow =
+          qty_owner_2_buyer == 0 || dict.has_key(
+            biz_output.other.bond_assets,
+            escrow_info.token_name,
+          )
+        sm_output_must_only_one_bond_name? && sm_output_bond_same_escrow? && buyer_output_bond_same_escrow? && when
           list.find(
             dict.keys(biz_output.smart_contract.bond_assets),
             fn(sm_bond_name_output) {
@@ -267,12 +276,14 @@ pub fn buy(
                   tx.datums,
                   DatumTypeListing,
                 )
-              let input_must_only_one_bond_name =
+              let sm_input_must_only_one_bond_name =
                 dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
-              biz_tx_info_valid && input_must_only_one_bond_name? && dict.has_key(
-                biz_input_obj.smart_contract.bond_assets,
-                escrow_datum.token_name,
-              )? && buy_correct(
+              let sm_input_bond_same_escrow =
+                dict.has_key(
+                  biz_input_obj.smart_contract.bond_assets,
+                  escrow_info.token_name,
+                )
+              biz_tx_info_valid && sm_input_must_only_one_bond_name? && sm_input_bond_same_escrow? && buy_correct(
                 conf,
                 requested_yield,
                 biz_input_obj,

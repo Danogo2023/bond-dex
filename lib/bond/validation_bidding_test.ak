@@ -7,7 +7,7 @@ use bond/fixture.{
 }
 use bond/validation_bidding
 
-test bidding_update_failure_miss_signed_by_owner() {
+test bidding_update_fail_miss_signed_by_owner() {
   let bidding_datum =
     gen_bidding_datum(get_owner_address(), 100, 172, 10, 500)
   let input_sm_1 =
@@ -38,7 +38,7 @@ test bidding_update_failure_miss_signed_by_owner() {
   )
 }
 
-test bidding_update_single_success_1() {
+test bidding_update_succ_single() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -92,7 +92,7 @@ test bidding_update_single_success_1() {
   )
 }
 
-test bidding_update_multi_success_1() {
+test bidding_update_succ_multi_1() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -153,7 +153,7 @@ test bidding_update_multi_success_1() {
   )
 }
 
-test bidding_update_multi_success_2() {
+test bidding_update_succ_multi_2() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -221,7 +221,7 @@ test bidding_update_multi_success_2() {
   )
 }
 
-test bidding_update_multi_success_3() {
+test bidding_update_succ_multi_3() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -277,7 +277,7 @@ test bidding_update_multi_success_3() {
   )
 }
 
-test bidding_update_multi_success_4() {
+test bidding_update_succ_multi_4() {
   let input_owner_1 =
     gen_input(
       get_owner_address(),
@@ -345,7 +345,7 @@ test bidding_update_multi_success_4() {
   )
 }
 
-test bidding_update_cancel_listing_success() {
+test bidding_update_succ_cancel_single() {
   let input_sm_1 =
     gen_input(
       get_smart_contract_address(),
@@ -381,7 +381,7 @@ test bidding_update_cancel_listing_success() {
   )
 }
 
-test bidding_update_multi_cancel_listing_success_1() {
+test bidding_update_succ_cancel_multi() {
   let input_sm_1 =
     gen_input(
       get_smart_contract_address(),

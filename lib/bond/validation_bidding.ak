@@ -72,11 +72,11 @@ fn sell_correct(
 ) -> Bool {
   let miss_balance_qty_bond =
     biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-  let buyer_is_not_owner =
+  let buyer_must_not_owner =
     biz_output.other.bond_qty > 0
-  let buyer_is_not_market =
+  let buyer_must_not_market =
     not(biz_output.market.bond_qty > 0)
-  if buyer_is_not_market? && buyer_is_not_owner? && miss_balance_qty_bond? {
+  if buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? {
     // trace @"total in SM+buyer bond inputs == outputs"
     // Gia bond theo requested_yield cua owner
     let price_of_one_bond =
@@ -133,7 +133,7 @@ fn sell_correct(
       }
     }
   } else {
-    // trace @"total in SM+buyer bond inputs != outputs"
+    trace @"total in SM+buyer bond inputs != outputs"
     False
   }
 }
@@ -188,7 +188,8 @@ pub fn sell(
       // trace @"found ref_input_escrow in reference_inputs"
       when get_data(tx.datums, ref_input_escrow.output.datum) is {
         Some(d) -> {
-          expect escrow_datum: EscrowDatum = d
+          expect escrow_datum: EscrowDatum =
+            d
           when
             get_escrow_info(
               conf.bond,
@@ -215,10 +216,14 @@ pub fn sell(
                 )
               biz_tx_info_valid && when biz_output_obj is {
                 Some(biz_output) -> {
-                  dict.has_key(
-                    biz_output.owner.bond_assets,
-                    escrow_datum.token_name,
-                  )? && sell_correct(
+                  let output_must_only_one_bond_name =
+                    dict.size(biz_output.owner.bond_assets) <= 1
+                  let owner_receive_bond_same_escrow =
+                    dict.has_key(
+                      biz_output.owner.bond_assets,
+                      escrow_datum.token_name,
+                    )
+                  output_must_only_one_bond_name? && owner_receive_bond_same_escrow? && sell_correct(
                     conf,
                     requested_yield,
                     biz_input_obj,
