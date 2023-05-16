@@ -41,12 +41,6 @@ pub type MarketConfig {
   buyer_fee: Int,
   // value in range 0001 -> 9999 default: 1% per yield == 100
   seller_fee: Int,
-  // yield for bidding caculate deposit to smart contract. value in range 0001 -> 9999 default: 1% per yield == 100
-  bidding_yield: Int,
-  bidding_duration: Int,
-  bidding_maturity_day: Int,
-  // time to live of transaction with format milisecond(s)
-  bidding_validity_time: Int,
 }
 
 pub type Config {
