@@ -8,7 +8,7 @@ use bond/validation_listing
 use common/utils.{get_spending_input} as common_utils
 
 validator(conf: Config) {
-  fn listing_v1_0(
+  fn listing_v1_1(
     datum: ListingDatum,
     action: TradeAction,
     ctx: ScriptContext,
@@ -61,10 +61,6 @@ validator(conf: Config) {
   ) -> Bool {
     let tx =
       ctx.transaction
-    let spending_input =
-      get_spending_input(ctx)
-    let smart_contract_address =
-      spending_input.output.address
     let owner_stake_key =
       when datum.owner_stake_key is {
         Some(owner_stake_key) ->
@@ -84,9 +80,9 @@ validator(conf: Config) {
         validation_bidding.sell(
           tx,
           conf,
-          datum.requested_yield,
+          datum,
           owner_address,
-          smart_contract_address,
+          get_spending_input(ctx).output.address,
         )
       _ ->
         False
