@@ -68,16 +68,19 @@ fn sell_correct(
   conf: Config,
   requested_yield: Int,
   biz_input_obj: BizOutput,
-  biz_output: BizOutput,
+  biz_output_obj: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
-  let miss_balance_qty_bond =
-    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
+  // let sm_input_lovelace =
+  //   biz_input_obj.smart_contract.lovelace
+  // let sm_output_lovelace =
+  //   biz_output_obj.smart_contract.lovelace
+
   let buyer_must_not_owner =
-    biz_output.other.bond_qty > 0
+    biz_output_obj.owner.bond_qty <= 0
   let buyer_must_not_market =
-    not(biz_output.market.bond_qty > 0)
-  if buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? {
+    not(biz_output_obj.market.bond_qty > 0)
+  if buyer_must_not_market? && buyer_must_not_owner? {
     // trace @"total in SM+buyer bond inputs == outputs"
     // Gia bond theo requested_yield cua owner
     let price_of_one_bond =
@@ -88,16 +91,16 @@ fn sell_correct(
         conf.bond.basis_points_ref_unit,
       )
     let (qty_owner_2_buyer, min_ada_to_sm, min_ada_to_market) =
-      when biz_output.smart_contract.bond_outputs is {
+      when biz_output_obj.smart_contract.bond_outputs is {
         [_, ..] ->
-          // trace @"buy partial"
+          // trace @"sell partial"
           (
-            biz_input_obj.smart_contract.bond_qty - biz_output.smart_contract.bond_qty,
+            biz_input_obj.smart_contract.bond_qty - biz_output_obj.smart_contract.bond_qty,
             biz_input_obj.smart_contract.lovelace,
             0,
           )
         [] ->
-          // trace @"buy all"
+          // trace @"sell all"
           (
             biz_input_obj.smart_contract.bond_qty,
             0,
@@ -106,7 +109,7 @@ fn sell_correct(
       }
     when
       list.find(
-        dict.keys(biz_output.smart_contract.bond_assets),
+        dict.keys(biz_output_obj.smart_contract.bond_assets),
         fn(sm_bond_name_output) {
           !list.has(
             dict.keys(biz_input_obj.smart_contract.bond_assets),
@@ -121,11 +124,11 @@ fn sell_correct(
       }
       _ -> {
         let buy_partial_return_sm_matchs =
-          min_ada_to_sm <= 0 || (biz_output.smart_contract.lovelace >= min_ada_to_sm)? && biz_output.smart_contract.bond_datum_valid?
+          min_ada_to_sm <= 0 || (biz_output_obj.smart_contract.lovelace >= min_ada_to_sm)? && biz_output_obj.smart_contract.bond_datum_valid?
         buy_partial_return_sm_matchs && sell_is_valid(
           conf,
           biz_input_obj,
-          biz_output,
+          biz_output_obj,
           escrow_info,
           qty_owner_2_buyer,
           price_of_one_bond,
@@ -193,7 +196,10 @@ pub fn sell(
           expect escrow_datum: EscrowDatum =
             d
           let current_epoch =
-            posix_time_to_relative_epoch(validity_after_must_set, conf.bond.epoch_config)
+            posix_time_to_relative_epoch(
+              validity_after_must_set,
+              conf.bond.epoch_config,
+            )
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
           let end_epoch =
@@ -205,7 +211,7 @@ pub fn sell(
               (end_epoch <= bidding_datum.to_epoch)?,
             ],
           ) && when
-            get_escrow_info(git 
+            get_escrow_info(
               conf.bond,
               value.lovelace_of(ref_input_escrow.output.value),
               escrow_datum,
@@ -232,6 +238,10 @@ pub fn sell(
                   DatumTypeBidding,
                 )
               biz_tx_info_valid && when biz_output_obj is {
+                None -> {
+                  trace @"biz_output_obj is None"
+                  False
+                }
                 Some(biz_output) -> {
                   let owner_output_must_only_one_bond_name =
                     dict.size(biz_output.owner.bond_assets) <= 1
@@ -247,10 +257,6 @@ pub fn sell(
                     biz_output,
                     escrow_info,
                   )
-                }
-                None -> {
-                  trace @"biz_output_obj is None"
-                  False
                 }
               }
             }
