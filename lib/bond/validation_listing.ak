@@ -112,7 +112,6 @@ fn buy_is_valid(
   // So bond cua giao dich chuyen ve cho owner
   let buyer_receive_bond_valid =
     biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty
-    
   market_fee_receive_valid? && seller_receive_valid? && buyer_receive_bond_valid?
 }
 
