@@ -106,16 +106,16 @@ fn buy_is_valid(
   // phi buyer phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  list.and(
-    [
-      // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
-      (biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)?,
-      // So tien owner listing nhan duoc sau khi tru phi
-      (biz_output_obj.owner.lovelace >= received_with_yield - market_fee_seller)?,
-      // So bond cua giao dich chuyen ve cho owner
-      (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty)?,
-    ],
-  )
+  // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
+  let market_fee_receive_valid =
+    biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market
+  // So tien owner listing nhan duoc sau khi tru phi
+  let owner_receive_valid =
+    biz_output_obj.owner.lovelace >= received_with_yield - market_fee_seller
+  // So bond cua giao dich chuyen ve cho owner
+  let buyer_receive_bond_valid =
+    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty
+  market_fee_receive_valid? && owner_receive_valid? && buyer_receive_bond_valid?
 }
 
 fn buy_correct(
@@ -125,90 +125,76 @@ fn buy_correct(
   biz_output_obj: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
-  // trace @"biz_output_obj is Some"
-  let miss_balance_qty_bond =
-    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output_obj.smart_contract.bond_qty + biz_output_obj.other.bond_qty
-  let buyer_must_not_owner =
-    biz_output_obj.owner.bond_qty <= 0
-  let buyer_must_not_market =
-    biz_output_obj.market.bond_qty <= 0
-  if buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? {
-    // trace @"total in SM+buyer bond inputs == outputs"
-    // Gia bond theo requested_yield cua owner
-    let price_of_one_bond =
-      get_price_of_bond(
-        escrow_info.received_at_maturity_one_bond,
-        escrow_info.day_to_maturity,
-        requested_yield,
-        conf.bond.basis_points_ref_unit,
-      )
-    let (
-      qty_owner_2_buyer,
-      min_ada_to_sm,
-      min_ada_to_market,
-      sm_output_must_only_one_bond_name,
-      sm_output_bond_same_escrow,
-    ) =
-      when biz_output_obj.smart_contract.bond_outputs is {
-        [_, ..] ->
-          // trace @"buy partial"
-          (
-            biz_input_obj.smart_contract.bond_qty - biz_output_obj.smart_contract.bond_qty,
-            biz_input_obj.smart_contract.lovelace,
-            0,
-            dict.size(biz_output_obj.smart_contract.bond_assets) <= 1,
-            dict.has_key(
-              biz_output_obj.smart_contract.bond_assets,
-              escrow_info.token_name,
-            ),
-          )
-        [] ->
-          // trace @"buy all"
-          (
-            biz_input_obj.smart_contract.bond_qty,
-            0,
-            biz_input_obj.smart_contract.lovelace,
-            True,
-            True,
-          )
-      }
-    let buyer_output_bond_same_escrow =
-      qty_owner_2_buyer == 0 || dict.has_key(
-        biz_output_obj.other.bond_assets,
-        escrow_info.token_name,
-      )
-    sm_output_must_only_one_bond_name? && sm_output_bond_same_escrow? && buyer_output_bond_same_escrow? && when
-      list.find(
-        dict.keys(biz_output_obj.smart_contract.bond_assets),
-        fn(sm_bond_name_output) {
-          !list.has(
-            dict.keys(biz_input_obj.smart_contract.bond_assets),
-            sm_bond_name_output,
-          )
-        },
-      )
-    is {
-      Some(_) -> {
-        trace @"output to smart contract contain bond name invalid!"
-        False
-      }
-      _ -> {
-        let buy_partial_return_sm_matchs =
-          min_ada_to_sm <= 0 || (biz_output_obj.smart_contract.lovelace >= min_ada_to_sm)? && biz_output_obj.smart_contract.bond_datum_valid?
-        buy_partial_return_sm_matchs && buy_is_valid(
-          conf,
-          biz_input_obj,
-          biz_output_obj,
-          escrow_info,
-          qty_owner_2_buyer,
-          price_of_one_bond,
-          min_ada_to_market,
-        )?
-      }
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_info.received_at_maturity_one_bond,
+      escrow_info.day_to_maturity,
+      requested_yield,
+      conf.bond.basis_points_ref_unit,
+    )
+  let (
+    qty_owner_2_buyer,
+    min_ada_to_sm,
+    min_ada_to_market,
+    sm_output_must_only_one_bond_name,
+    sm_output_bond_same_escrow,
+  ) =
+    when biz_output_obj.smart_contract.bond_outputs is {
+      [_, ..] ->
+        // trace @"buy partial"
+        (
+          biz_input_obj.smart_contract.bond_qty - biz_output_obj.smart_contract.bond_qty,
+          biz_input_obj.smart_contract.lovelace,
+          0,
+          dict.size(biz_output_obj.smart_contract.bond_assets) <= 1,
+          dict.has_key(
+            biz_output_obj.smart_contract.bond_assets,
+            escrow_info.token_name,
+          ),
+        )
+      [] ->
+        // trace @"buy all"
+        (
+          biz_input_obj.smart_contract.bond_qty,
+          0,
+          biz_input_obj.smart_contract.lovelace,
+          True,
+          True,
+        )
     }
-  } else {
-    // trace @"total in SM+buyer bond inputs != outputs"
-    False
+  let buyer_output_bond_same_escrow =
+    qty_owner_2_buyer == 0 || dict.has_key(
+      biz_output_obj.other.bond_assets,
+      escrow_info.token_name,
+    )
+  sm_output_must_only_one_bond_name? && sm_output_bond_same_escrow? && buyer_output_bond_same_escrow? && when
+    list.find(
+      dict.keys(biz_output_obj.smart_contract.bond_assets),
+      fn(sm_bond_name_output) {
+        !list.has(
+          dict.keys(biz_input_obj.smart_contract.bond_assets),
+          sm_bond_name_output,
+        )
+      },
+    )
+  is {
+    Some(_) -> {
+      trace @"output to smart contract contain bond name invalid!"
+      False
+    }
+    _ -> {
+      let buy_partial_return_sm_matchs =
+        min_ada_to_sm <= 0 || (biz_output_obj.smart_contract.lovelace >= min_ada_to_sm)? && biz_output_obj.smart_contract.bond_datum_valid?
+      buy_partial_return_sm_matchs && buy_is_valid(
+        conf,
+        biz_input_obj,
+        biz_output_obj,
+        escrow_info,
+        qty_owner_2_buyer,
+        price_of_one_bond,
+        min_ada_to_market,
+      )?
+    }
   }
 }
 
@@ -296,18 +282,25 @@ pub fn buy(
                   trace @"biz_output_obj is None"
                   False
                 }
-                Some(biz_output) ->
-                  buy_correct(
+                Some(biz_output) -> {
+                  let miss_balance_qty_bond =
+                    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
+                  let buyer_must_not_owner =
+                    biz_input_obj.owner.bond_qty <= 0
+                  let buyer_must_not_market =
+                    biz_input_obj.market.bond_qty <= 0
+                  buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? && buy_correct(
                     conf,
                     requested_yield,
                     biz_input_obj,
                     biz_output,
                     escrow_info,
                   )
+                }
               }
             }
             Error(_) -> {
-              trace @"is closable"
+              trace @"bond is closable"
               False
             }
           }
