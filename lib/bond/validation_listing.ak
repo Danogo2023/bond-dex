@@ -12,6 +12,7 @@ use bond/types.{
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_price_of_bond, must_be_signed_by,
+  posix_time_to_relative_epoch,
 }
 use common/types.{PublicKeyHash} as common_types
 use common/utils.{get_data} as common_utils
@@ -136,7 +137,9 @@ fn buy_correct(
         biz_output.other.bond_qty > 0
       let buyer_must_not_market =
         not(biz_output.market.bond_qty > 0)
-      if buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? {
+      if
+      buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond?{
+      
         // trace @"total in SM+buyer bond inputs == outputs"
         // Gia bond theo requested_yield cua owner
         let price_of_one_bond =
@@ -252,12 +255,21 @@ pub fn buy(
         Some(d) -> {
           expect escrow_datum: EscrowDatum =
             d
+          let current_epoch =
+            posix_time_to_relative_epoch(validity_after_must_set, conf.bond.epoch_config)
+          let start_epoch =
+            escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+          let end_epoch =
+            start_epoch + escrow_datum.duration
           when
             get_escrow_info(
               conf.bond,
               value.lovelace_of(ref_input_escrow.output.value),
               escrow_datum,
               validity_after_must_set,
+              current_epoch,
+              start_epoch,
+              end_epoch,
             )
           is {
             OK(escrow_info) -> {

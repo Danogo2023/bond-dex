@@ -7,11 +7,12 @@ use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
-  BizOutput, BizTxInfo, Config, DatumTypeBidding, Error, EscrowDatum, EscrowInfo,
-  OK,
+  BiddingDatum, BizOutput, BizTxInfo, Config, DatumTypeBidding, Error,
+  EscrowDatum, EscrowInfo, OK,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_price_of_bond, must_be_signed_by,
+  posix_time_to_relative_epoch,
 }
 use common/utils.{get_data} as common_utils
 
@@ -141,7 +142,7 @@ fn sell_correct(
 pub fn sell(
   tx: Transaction,
   conf: Config,
-  requested_yield: Int,
+  bidding_datum: BiddingDatum,
   owner: Address,
   smart_contract: Address,
 ) -> Bool {
@@ -171,6 +172,7 @@ pub fn sell(
 
   list.and(
     [
+      (bidding_datum.to_epoch >= bidding_datum.from_epoch)?,
       (validity_after_must_set > 0)?,
       (validity_before_must_set > 0)?,
       (tx_time_range > 0)?,
@@ -190,12 +192,27 @@ pub fn sell(
         Some(d) -> {
           expect escrow_datum: EscrowDatum =
             d
-          when
-            get_escrow_info(
+          let current_epoch =
+            posix_time_to_relative_epoch(validity_after_must_set, conf.bond.epoch_config)
+          let start_epoch =
+            escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+          let end_epoch =
+            start_epoch + escrow_datum.duration
+          list.and(
+            [
+              end_epoch >= current_epoch,
+              (end_epoch >= bidding_datum.from_epoch)?,
+              (end_epoch <= bidding_datum.to_epoch)?,
+            ],
+          ) && when
+            get_escrow_info(git 
               conf.bond,
               value.lovelace_of(ref_input_escrow.output.value),
               escrow_datum,
               validity_after_must_set,
+              current_epoch,
+              start_epoch,
+              end_epoch,
             )
           is {
             OK(escrow_info) -> {
@@ -216,16 +233,16 @@ pub fn sell(
                 )
               biz_tx_info_valid && when biz_output_obj is {
                 Some(biz_output) -> {
-                  let output_must_only_one_bond_name =
+                  let owner_output_must_only_one_bond_name =
                     dict.size(biz_output.owner.bond_assets) <= 1
-                  let owner_receive_bond_same_escrow =
+                  let owner_output_bond_same_escrow =
                     dict.has_key(
                       biz_output.owner.bond_assets,
-                      escrow_datum.token_name,
+                      escrow_info.token_name,
                     )
-                  output_must_only_one_bond_name? && owner_receive_bond_same_escrow? && sell_correct(
+                  owner_output_must_only_one_bond_name? && owner_output_bond_same_escrow? && sell_correct(
                     conf,
-                    requested_yield,
+                    bidding_datum.requested_yield,
                     biz_input_obj,
                     biz_output,
                     escrow_info,

@@ -32,13 +32,10 @@ pub fn get_escrow_info(
   escrow_lovelace: Int,
   escrow_datum: EscrowDatum,
   tx_posix_time: Int,
+  current_epoch: Int,
+  start_epoch: Int,
+  end_epoch: Int,
 ) -> EscrowInfoResult<EscrowInfo, ByteArray> {
-  let current_epoch =
-    posix_time_to_relative_epoch(tx_posix_time, bond_config.epoch_config)
-  let start_epoch =
-    escrow_datum.start + bond_config.epoch_config.epoch_boundary_as_epoch
-  let end_epoch =
-    start_epoch + escrow_datum.duration
   // Tong tien lai moi epoch Borrower phai tra
   let epoch_rewards_lovelace =
     value.lovelace_of(escrow_datum.epo_rewards)

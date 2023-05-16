@@ -3340,9 +3340,7 @@ test listing_buy_succ_full_2() {
     gen_input(
       buyer_address,
       buyer_fee_ada,
-      Some(
-        value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1),
-      ),
+      Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1)),
       NoDatum,
     )
   //
@@ -3405,9 +3403,7 @@ test listing_buy_succ_full_2() {
     gen_output(
       buyer_address,
       buyer_received,
-      Some(
-        value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1),
-      ),
+      Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1)),
       DatumHash(payment_datum_hash),
     )
   let output_sm =
