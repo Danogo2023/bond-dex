@@ -155,12 +155,7 @@ fn get_market_config() -> MarketConfig {
     address: get_market_address(),
     buyer_fee: 100,
     seller_fee: 100,
-    // bidding_yield: 533,
-    // bidding_duration: 0,
-    // bidding_maturity_day: 0,
-    // bidding_validity_time: 15 * 60 * 1000,
   }
-  // 15 minutes
 }
 
 pub fn get_config_test_1() -> Config {
@@ -203,16 +198,20 @@ pub fn get_not_escrow_policy_id() -> PolicyId {
   )
 }
 
-pub fn get_owner_address() -> Address {
-  keyhash_address(get_owner_address_hash())
+pub fn get_seller_address() -> Address {
+  keyhash_address(get_seller_address_hash())
 }
 
-pub fn get_owner_address_hash() -> ByteArray {
+pub fn get_seller_address_hash() -> ByteArray {
   #"010203"
 }
 
 pub fn get_buyer_address() -> Address {
-  keyhash_address(#"010204")
+  keyhash_address(get_buyer_address_hash())
+}
+
+pub fn get_buyer_address_hash() -> ByteArray {
+  #"010204"
 }
 
 pub fn get_smart_contract_address() -> Address {

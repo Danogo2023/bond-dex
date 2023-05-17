@@ -107,10 +107,9 @@ fn sell_correct(
           sm_output_bidding_datum_pk_valid? && sm_output_bidding_datum_sk_valid? && sm_output_bidding_datum_tepoch_valid && sm_output_bidding_datum_fepoch_valid? && sm_output_bidding_datum_yield_valid? && sm_output_bidding_datum_quantity_valid?
         }
 
-        None -> {
-          trace @"not found output bidding datum"
+        None ->
+          // trace @"not found output bidding datum"
           False
-        }
       }
     None ->
       True
@@ -138,7 +137,9 @@ pub fn sell(
       _ ->
         #""
     }
-  (bidding_datum.quantity > 0)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)? && (validity_after_must_set > 0)? && not(
+  let bidding_datum_valid =
+    (bidding_datum.quantity > 0)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)?
+  bidding_datum_valid && (validity_after_must_set > 0)? && not(
     bytearray.is_empty(owner_vk),
   )? && when
     list.find(
@@ -190,10 +191,9 @@ pub fn sell(
                   DatumTypeBidding,
                 )
               biz_tx_info_valid && when biz_output_obj is {
-                None -> {
-                  trace @"biz_output_obj is None"
+                None ->
+                  // trace @"biz_output_obj is None"
                   False
-                }
                 Some(biz_output) -> {
                   let owner_output_must_only_one_bond_name =
                     dict.size(biz_output.owner.bond_assets) <= 1
@@ -206,7 +206,11 @@ pub fn sell(
                     biz_input_obj.owner.lovelace <= 0
                   let seller_must_not_market =
                     biz_input_obj.market.lovelace <= 0
-                  let sm_output_utxos = list.concat(biz_output.smart_contract.bond_outputs, biz_output.smart_contract.other_outputs)
+                  let sm_output_utxos =
+                    list.concat(
+                      biz_output.smart_contract.bond_outputs,
+                      biz_output.smart_contract.other_outputs,
+                    )
                   let sm_output_must_only_one_utxo =
                     list.length(sm_output_utxos) <= 1
                   let buyer_receive_bonds_valid =
@@ -223,20 +227,17 @@ pub fn sell(
                 }
               }
             }
-            Error(_) -> {
-              trace @"bond is closable"
+            Error(_) ->
+              // trace @"bond is closable"
               False
-            }
           }
         }
-        _ -> {
-          trace @"not found escrow datum in reference_inputs"
+        _ ->
+          // trace @"not found escrow datum in reference_inputs"
           False
-        }
       }
-    _ -> {
-      trace @"not found reference_inputs with escrow_policy_id"
+    _ ->
+      // trace @"not found reference_inputs with escrow_policy_id"
       False
-    }
   }
 }
