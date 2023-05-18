@@ -206,6 +206,10 @@ pub fn get_seller_address_hash() -> ByteArray {
   #"010203"
 }
 
+pub fn get_buyer_address_scripthash() -> Address {
+  scripthash_address(get_buyer_address_hash())
+}
+
 pub fn get_buyer_address() -> Address {
   keyhash_address(get_buyer_address_hash())
 }

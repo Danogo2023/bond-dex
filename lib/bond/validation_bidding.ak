@@ -104,7 +104,7 @@ fn sell_correct(
           let sm_output_bidding_datum_quantity_valid =
             sm_output_bidding_datum.quantity == buyer_bidding_bonds_qty - buyer_receive_bonds_qty
 
-          sm_output_bidding_datum_pk_valid? && sm_output_bidding_datum_sk_valid? && sm_output_bidding_datum_tepoch_valid && sm_output_bidding_datum_fepoch_valid? && sm_output_bidding_datum_yield_valid? && sm_output_bidding_datum_quantity_valid?
+          sm_output_bidding_datum_pk_valid? && sm_output_bidding_datum_sk_valid? && sm_output_bidding_datum_tepoch_valid? && sm_output_bidding_datum_fepoch_valid? && sm_output_bidding_datum_yield_valid? && sm_output_bidding_datum_quantity_valid?
         }
 
         None ->
@@ -191,9 +191,10 @@ pub fn sell(
                   DatumTypeBidding,
                 )
               biz_tx_info_valid && when biz_output_obj is {
-                None ->
-                  // trace @"biz_output_obj is None"
+                None -> {
+                  trace @"biz_output_obj is None"
                   False
+                }
                 Some(biz_output) -> {
                   let owner_output_must_only_one_bond_name =
                     dict.size(biz_output.owner.bond_assets) <= 1
@@ -227,17 +228,20 @@ pub fn sell(
                 }
               }
             }
-            Error(_) ->
-              // trace @"bond is closable"
+            Error(_) -> {
+              trace @"bond is closable"
               False
+            }
           }
         }
-        _ ->
-          // trace @"not found escrow datum in reference_inputs"
+        _ -> {
+          trace @"not found escrow datum in reference_inputs"
           False
+        }
       }
-    _ ->
-      // trace @"not found reference_inputs with escrow_policy_id"
+    _ -> {
+      trace @"not found reference_inputs with escrow_policy_id"
       False
+    }
   }
 }
