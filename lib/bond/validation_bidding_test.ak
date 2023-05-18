@@ -1,14 +1,12 @@
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
-  get_bond_id_2,
-  get_seller_address_hash,
-  
   calc_escrow_full_info, gen_bidding_datum, gen_input, gen_output, get_bond_id_1,
-  get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
+  get_bond_id_2, get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
   get_buyer_address_scripthash, get_config_test_2, get_escrow_datum,
   get_escrow_policy_id, get_input_escrow, get_market_address,
-  get_not_escrow_policy_id, get_seller_address, get_smart_contract_address,
+  get_not_escrow_policy_id, get_seller_address, get_seller_address_hash,
+  get_smart_contract_address,
 }
 use bond/utils.{get_price_of_bond}
 use bond/validation_bidding
@@ -430,7 +428,6 @@ test bidding_update_succ_cancel_multi() {
   )
 }
 
-/////
 test bidding_sell_succ_full() {
   let time_of_tx =
     1681095094000
@@ -2000,4 +1997,3 @@ test bidding_sell_fail_escrow_datum_unexpect() {
     sm_address,
   )
 }
-
