@@ -1876,7 +1876,7 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
   )
 }
 
-test listing_buy_fail_partial_invalid_escrow_datum() {
+test listing_buy_fail_partial_escrow_datum_unexpect() {
   let time_of_tx =
     1681095094000
   let cfg =
