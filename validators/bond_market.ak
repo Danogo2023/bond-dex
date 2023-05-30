@@ -9,7 +9,7 @@ use bond/validation_listing
 use common/utils.{get_spending_input} as common_utils
 
 validator(conf: Config) {
-  fn listing_v1_1(
+  fn listing_v1_2(
     datum: ListingDatum,
     action: TradeAction,
     ctx: ScriptContext,
@@ -34,12 +34,13 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        validation_listing.update(
-          tx,
-          conf,
-          owner_address,
-          smart_contract_address,
-        )
+        must_be_signed_by(tx.extra_signatories, owner_address)
+        // validation_listing.update(
+        //   tx,
+        //   conf,
+        //   owner_address,
+        //   smart_contract_address,
+        // )
       Buy ->
         validation_listing.buy(
           tx,
