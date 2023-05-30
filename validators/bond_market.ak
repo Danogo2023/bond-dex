@@ -9,7 +9,7 @@ use bond/validation_listing
 use common/utils.{get_spending_input} as common_utils
 
 validator(conf: Config) {
-  fn listing_v1_2(
+  fn listing_202305301854(
     datum: ListingDatum,
     action: TradeAction,
     ctx: ScriptContext,
@@ -58,7 +58,7 @@ validator(conf: Config) {
 }
 
 validator(conf: Config) {
-  fn bidding_v1_0(
+  fn bidding_202305301854(
     datum: BiddingDatum,
     action: TradeAction,
     ctx: ScriptContext,
