@@ -34,13 +34,7 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        must_be_signed_by(tx.extra_signatories, owner_address)
-        // validation_listing.update(
-        //   tx,
-        //   conf,
-        //   owner_address,
-        //   smart_contract_address,
-        // )
+        validation_listing.update_simple(tx, owner_address)
       Buy ->
         validation_listing.buy(
           tx,

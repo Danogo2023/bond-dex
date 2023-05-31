@@ -79,6 +79,10 @@ pub fn update(
   )
 }
 
+pub fn update_simple(tx: Transaction, owner: Address) -> Bool {
+  must_be_signed_by(tx.extra_signatories, owner)?
+}
+
 fn buy_is_valid(
   conf: Config,
   biz_input_obj: BizOutput,
