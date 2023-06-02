@@ -2,7 +2,6 @@ use aiken/bytearray
 use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
-use aiken/option
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
@@ -11,77 +10,10 @@ use bond/types.{
   OK,
 }
 use bond/utils.{
-  collect_biz_tx_info, get_escrow_info, get_price_of_bond, must_be_signed_by,
+  collect_biz_tx_info, get_escrow_info, get_price_of_bond,
   posix_time_to_relative_epoch,
 }
-use common/types.{PublicKeyHash} as common_types
 use common/utils.{get_data} as common_utils
-
-fn update_is_correct(
-  conf: Config,
-  tx: Transaction,
-  owner: Address,
-  smart_contract: Address,
-  extra_signatories: List<PublicKeyHash>,
-) -> Bool {
-  let BizTxInfo { valid: biz_tx_info_valid, biz_input_obj, biz_output_obj } =
-    collect_biz_tx_info(
-      conf,
-      tx.inputs,
-      tx.outputs,
-      owner,
-      smart_contract,
-      extra_signatories,
-      tx.datums,
-      DatumTypeListing,
-    )
-  biz_tx_info_valid && when biz_output_obj is {
-    None ->
-      False
-    Some(biz_output) ->
-      when biz_output.smart_contract.bond_outputs is {
-        [_, ..] -> {
-          // trace @"update"
-          let output_must_only_one_bond_name =
-            dict.size(biz_output.smart_contract.bond_assets) <= 1
-          let miss_balance_qty_bond =
-            biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty == biz_output.smart_contract.bond_qty + biz_output.owner.bond_qty
-          output_must_only_one_bond_name? && biz_output.smart_contract.bond_datum_valid? && miss_balance_qty_bond?
-        }
-        [] -> {
-          // trace @"cancel"
-          let value_to_owner_valid =
-            biz_output.owner.bond_qty == biz_input_obj.smart_contract.bond_qty + biz_input_obj.owner.bond_qty
-          value_to_owner_valid?
-        }
-      }
-  }
-}
-
-pub fn update(
-  tx: Transaction,
-  conf: Config,
-  owner: Address,
-  smart_contract: Address,
-) -> Bool {
-  let extra_signatories =
-    list.at(tx.extra_signatories, 0)
-      |> option.and_then(fn(a) { Some([a]) })
-      |> option.or_else([])
-  let owner_is_valid =
-    must_be_signed_by(extra_signatories, owner)
-  owner_is_valid? && update_is_correct(
-    conf,
-    tx,
-    owner,
-    smart_contract,
-    extra_signatories,
-  )
-}
-
-pub fn update_simple(tx: Transaction, owner: Address) -> Bool {
-  must_be_signed_by(tx.extra_signatories, owner)?
-}
 
 fn buy_is_valid(
   conf: Config,

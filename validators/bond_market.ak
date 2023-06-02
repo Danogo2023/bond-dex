@@ -1,8 +1,9 @@
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
 use bond/types.{
-  BiddingDatum, Buy, Config, ListingDatum, Sell, TradeAction, Update, Withdraw,
+  BiddingDatum, Buy, Config, ListingDatum, Sell, TradeAction, Update,
 }
+// Withdraw,
 use bond/utils.{must_be_signed_by}
 use bond/validation_bidding
 use bond/validation_listing
@@ -34,7 +35,7 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        validation_listing.update_simple(tx, owner_address)
+        must_be_signed_by(tx.extra_signatories, owner_address)?
       Buy ->
         validation_listing.buy(
           tx,
@@ -43,8 +44,8 @@ validator(conf: Config) {
           owner_address,
           smart_contract_address,
         )
-      Withdraw ->
-        must_be_signed_by(tx.extra_signatories, conf.market.address)?
+      // Withdraw ->
+      //   must_be_signed_by(tx.extra_signatories, conf.market.address)?
       _ ->
         False
     }
@@ -73,7 +74,7 @@ validator(conf: Config) {
       }
     when action is {
       Update ->
-        validation_bidding.update(tx, owner_address)
+        must_be_signed_by(tx.extra_signatories, owner_address)?
       Sell ->
         validation_bidding.sell(
           tx,
@@ -82,8 +83,8 @@ validator(conf: Config) {
           owner_address,
           get_spending_input(ctx).output.address,
         )
-      Withdraw ->
-        must_be_signed_by(tx.extra_signatories, conf.market.address)?
+      // Withdraw ->
+      //   must_be_signed_by(tx.extra_signatories, conf.market.address)?
       _ ->
         False
     }
