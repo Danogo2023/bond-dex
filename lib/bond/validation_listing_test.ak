@@ -6,8 +6,8 @@ use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
   calc_escrow_full_info, gen_input, gen_listing_datum, gen_output, get_bond_id_1,
-  get_bond_id_2, get_bond_policy_id, get_buyer_address, get_config_test_1,
-  get_config_test_2, get_escrow_datum, get_escrow_policy_id, get_input_escrow,
+  get_bond_id_2, get_bond_policy_id, get_buyer_address, get_config_mainnet,
+  get_config_preview, get_escrow_datum, get_escrow_policy_id, get_input_escrow,
   get_market_address, get_not_escrow_policy_id, get_payment_datum,
   get_seller_address, get_seller_address_hash, get_smart_contract_address,
   scripthash_address,
@@ -19,7 +19,7 @@ test listing_buy_fail_partial_must_only_one_bond_1() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -187,7 +187,7 @@ test listing_buy_fail_partial_must_only_one_bond_2() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -359,7 +359,7 @@ test listing_buy_fail_partial_change_bond_name() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -531,7 +531,7 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -696,7 +696,7 @@ test listing_buy_fail_partial_escrow_datum_unexpect() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -861,7 +861,7 @@ test listing_buy_fail_partial_invalid_escrow_policy_id() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -1033,7 +1033,7 @@ test listing_buy_fail_partial_invalid_escrow_nodatum() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -1198,7 +1198,7 @@ test listing_buy_fail_partial_invalid_escrow_closable() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -1371,7 +1371,7 @@ test listing_buy_fail_buyer_must_not_owner() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -1536,7 +1536,7 @@ test listing_buy_fail_buyer_must_not_market() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let market_address =
     get_market_address()
   let owner_address =
@@ -1701,7 +1701,7 @@ test listing_buy_succ_partial() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -1866,7 +1866,7 @@ test listing_buy_succ_full_1() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -2028,10 +2028,12 @@ test listing_buy_succ_full_1() {
 }
 
 test listing_buy_succ_full_2() {
+  // let time_of_tx = 1666656000 000
   let time_of_tx =
-    1666656000000
+    1687343990000
+  // => current_epoch = 22241
   let cfg =
-    get_config_test_1()
+    get_config_preview()
   let owner_address =
     get_seller_address()
   let listing_datum =
@@ -2040,8 +2042,10 @@ test listing_buy_succ_full_2() {
     get_bond_id_1()
   let bond_name_listing_2 =
     get_bond_id_2()
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_datum =
-    get_escrow_datum(bond_name_listing_1, 7, 958, 54, 18602)
+    get_escrow_datum(bond_name_listing_1, 20, 1084931, 54, 21862)
+  // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace =
     701430920
   let escrow_full_info =

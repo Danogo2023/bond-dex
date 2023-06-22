@@ -3,10 +3,9 @@ use aiken/transaction/value
 use bond/fixture.{
   calc_escrow_full_info, gen_bidding_datum, gen_input, gen_output, get_bond_id_1,
   get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
-  get_buyer_address_scripthash, get_config_test_2, get_escrow_datum,
+  get_buyer_address_scripthash, get_config_mainnet, get_escrow_datum,
   get_escrow_policy_id, get_input_escrow, get_market_address,
-  get_not_escrow_policy_id, get_seller_address,
-  get_smart_contract_address,
+  get_not_escrow_policy_id, get_seller_address, get_smart_contract_address,
 }
 use bond/utils.{get_price_of_bond}
 use bond/validation_bidding
@@ -15,7 +14,7 @@ test bidding_sell_succ_full() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -134,7 +133,7 @@ test bidding_sell_succ_partial() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -253,7 +252,7 @@ test bidding_sell_fail_input_epoch_1() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -372,7 +371,7 @@ test bidding_sell_fail_input_epoch_2() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -504,7 +503,7 @@ test bidding_sell_fail_input_epoch_3() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -623,7 +622,7 @@ test bidding_sell_fail_input_epoch_4() {
   let time_of_tx =
     1681095094000 + 25920000000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -752,7 +751,7 @@ test bidding_sell_fail_input_qty() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -871,7 +870,7 @@ test bidding_sell_fail_output_qty() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -990,7 +989,7 @@ test bidding_sell_fail_validity_after_not_set() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -1109,7 +1108,7 @@ test bidding_sell_fail_owner_address_format() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -1228,7 +1227,7 @@ test bidding_sell_fail_escrow_policy_id_not_found() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -1347,7 +1346,7 @@ test bidding_sell_fail_escrow_datum_not_found() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
@@ -1466,7 +1465,7 @@ test bidding_sell_fail_escrow_datum_unexpect() {
   let time_of_tx =
     1681095094000
   let cfg =
-    get_config_test_2()
+    get_config_mainnet()
   let owner_address =
     get_buyer_address()
   let seller_address =
