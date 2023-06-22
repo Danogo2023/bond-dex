@@ -104,11 +104,6 @@ pub fn sell(
       Finite(x) -> x
       _ -> 0
     }
-  let validity_end_must_set =
-    when tx.validity_range.upper_bound.bound_type is {
-      Finite(x) -> x
-      _ -> 0
-    }
   let owner_vk =
     when owner.payment_credential is {
       VerificationKeyCredential(x) -> x
@@ -116,11 +111,7 @@ pub fn sell(
     }
   let bidding_datum_valid =
     (bidding_datum.quantity > 0)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)?
-  let validity_range =
-    validity_end_must_set - validity_after_must_set <= conf.market.sell_valid_slot * conf.slot_config_network.slot_length
-  let validity_range_sell_valid =
-    (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && validity_range?
-  bidding_datum_valid && validity_range_sell_valid && not(
+  bidding_datum_valid && (validity_after_must_set > 0)? && not(
     bytearray.is_empty(owner_vk),
   )? && when
     list.find(
