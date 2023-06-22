@@ -151,8 +151,12 @@ pub fn buy(
       VerificationKeyCredential(x) -> x
       _ -> #""
     }
+  let sell_valid_slot = when conf.market.sell_valid_slot is {
+    Some(x) -> x
+    None -> 3 * 60 * 60
+  }
   let validity_range =
-    validity_end_must_set - validity_after_must_set <= conf.market.sell_valid_slot * conf.slot_config_network.slot_length
+    validity_end_must_set - validity_after_must_set <= sell_valid_slot * conf.slot_config_network.slot_length
   let validity_range_sell_valid =
     (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && validity_range?
   validity_range_sell_valid && not(bytearray.is_empty(owner_vk))? && when
