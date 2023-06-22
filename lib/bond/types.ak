@@ -41,6 +41,8 @@ pub type MarketConfig {
   buyer_fee: Int,
   // value in range 0001 -> 9999 default: 1% per yield == 100
   seller_fee: Int,
+  // Khoảng thời gian giao dịch sell hợp lệ, giá trị tính theo slot
+  sell_valid_slot: Int, 
 }
 
 pub type Config {
