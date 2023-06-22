@@ -53,35 +53,28 @@ pub fn tx(
       validity_range: Interval {
         lower_bound: IntervalBound {
           bound_type: when validity_after is {
-            Some(x) ->
-              Finite(x)
-            _ ->
-              NegativeInfinity
+            Some(x) -> Finite(x)
+            _ -> NegativeInfinity
           },
           is_inclusive: True,
         },
         upper_bound: IntervalBound {
           bound_type: when validity_before is {
-            Some(x) ->
-              Finite(x)
-            _ ->
-              PositiveInfinity
+            Some(x) -> Finite(x)
+            _ -> PositiveInfinity
           },
           is_inclusive: True,
         },
       },
       extra_signatories: when extra_signatories is {
-        Some(s) ->
-          s
+        Some(s) -> s
         _ ->
           [#"00010203040506"]
       },
       redeemers: dict.new(),
       datums: when datums is {
-        Some(d) ->
-          d
-        _ ->
-          dict.new()
+        Some(d) -> d
+        _ -> dict.new()
       },
       id: TransactionId { hash: #"" },
     }
@@ -155,7 +148,7 @@ fn get_market_config() -> MarketConfig {
     address: get_market_address(),
     buyer_fee: 100,
     seller_fee: 100,
-    sell_valid_slot: 6 * 60
+    sell_valid_slot: Some(6 * 60),
   }
 }
 
@@ -280,17 +273,14 @@ pub fn calc_escrow_full_info(
     posix_time_to_relative_epoch(tx_posix_time, bond_config.epoch_config)
   let start_epoch =
     escrow_datum.start + bond_config.epoch_config.epoch_boundary_as_epoch
-  let end_epoch =
-    start_epoch + escrow_datum.duration
+  let end_epoch = start_epoch + escrow_datum.duration
   // Tong tien goc voi thong tin so luong bond trong datum
   let principal_lovelace =
     escrow_datum.bond_amount * bond_config.bond_face_value
   // Tong tien lai dang giu trong escrow
-  let premium_paid_lovelace =
-    escrow_lovelace - principal_lovelace
+  let premium_paid_lovelace = escrow_lovelace - principal_lovelace
   // So tien lai borrower phai tra moi epoch cho tong so bond phat hanh
-  let epoch_rewards_lovelace =
-    value.lovelace_of(escrow_datum.epo_rewards)
+  let epoch_rewards_lovelace = value.lovelace_of(escrow_datum.epo_rewards)
   // Tong so tien lai borrower phai tra den current epoch
   let interest_due_paid_lovelace =
     if current_epoch >= end_epoch {
@@ -299,14 +289,12 @@ pub fn calc_escrow_full_info(
       current_epoch - start_epoch + 1
     } * epoch_rewards_lovelace
   // Tong so tien lai theo epoch da duoc borrower thanh toan
-  let premium_paid_epoch =
-    premium_paid_lovelace / epoch_rewards_lovelace
+  let premium_paid_epoch = premium_paid_lovelace / epoch_rewards_lovelace
   // Tong so tien lai dang tra thua
   let interest_level_lovelace =
     premium_paid_lovelace - interest_due_paid_lovelace
   // Tong so tien lai dang tra thua tinh theo epoch
-  let interest_level_epoch =
-    interest_level_lovelace / epoch_rewards_lovelace
+  let interest_level_epoch = interest_level_lovelace / epoch_rewards_lovelace
   // Tien phi Optim thu cua Borrower 3%
   let lend_after_fee =
     1 * bond_config.basis_points_ref_unit - escrow_datum.otm_fee
@@ -386,16 +374,12 @@ pub fn get_input_escrow(
 pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
   ListingDatum {
     owner_payment_key: when owner.payment_credential is {
-      VerificationKeyCredential(vk) ->
-        vk
-      ScriptCredential(sh) ->
-        sh
+      VerificationKeyCredential(vk) -> vk
+      ScriptCredential(sh) -> sh
     },
     owner_stake_key: when owner.stake_credential is {
-      Some(Inline(VerificationKeyCredential(vk))) ->
-        Some(vk)
-      _ ->
-        None
+      Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
+      _ -> None
     },
     requested_yield,
   }
@@ -410,16 +394,12 @@ pub fn gen_bidding_datum(
 ) -> BiddingDatum {
   BiddingDatum {
     owner_payment_key: when owner.payment_credential is {
-      VerificationKeyCredential(vk) ->
-        vk
-      ScriptCredential(sh) ->
-        sh
+      VerificationKeyCredential(vk) -> vk
+      ScriptCredential(sh) -> sh
     },
     owner_stake_key: when owner.stake_credential is {
-      Some(Inline(VerificationKeyCredential(vk))) ->
-        Some(vk)
-      _ ->
-        None
+      Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
+      _ -> None
     },
     from_epoch,
     to_epoch,
@@ -439,10 +419,8 @@ pub fn gen_input(
     output: Output {
       address,
       value: when assets is {
-        Some(x) ->
-          value.add(value.from_lovelace(lovelace), x)
-        _ ->
-          value.from_lovelace(lovelace)
+        Some(x) -> value.add(value.from_lovelace(lovelace), x)
+        _ -> value.from_lovelace(lovelace)
       },
       datum,
       reference_script: None,
@@ -470,10 +448,8 @@ pub fn gen_output(
   Output {
     address,
     value: when assets is {
-      Some(x) ->
-        value.add(value.from_lovelace(lovelace), x)
-      _ ->
-        value.from_lovelace(lovelace)
+      Some(x) -> value.add(value.from_lovelace(lovelace), x)
+      _ -> value.from_lovelace(lovelace)
     },
     datum,
     reference_script: None,
