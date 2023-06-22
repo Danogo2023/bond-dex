@@ -61,9 +61,13 @@ pub fn get_escrow_info(
   // Tong so epoch ma Borrower tra du tinh tu epoch hien tai
   let interest_level_epoch =
     ( premium_paid_lovelace - interest_due_paid_lovelace ) / epoch_rewards_lovelace
+  let interest_lovelace_max =
+    escrow_datum.duration * epoch_rewards_lovelace
   // So epoch con lai cho den khi bond se duoc phep dong
   let closable_in =
-    if interest_due_paid_epoch >= escrow_datum.duration {
+    if
+    interest_due_paid_epoch >= escrow_datum.duration || escrow_lovelace >= interest_lovelace_max{
+    
       end_epoch - current_epoch
     } else {
       interest_level_epoch - escrow_datum.buffer + 1

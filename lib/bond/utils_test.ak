@@ -1,4 +1,4 @@
-use bond/fixture.{get_epoch_config_test_1, get_epoch_config_test_2}
+use bond/fixture.{get_epoch_config_mainnet, get_epoch_config_preview}
 use bond/utils.{
   get_day_to_maturity, get_milliseconds_of_day, get_price_of_bond,
   posix_time_to_relative_epoch, relative_epoch_to_posix_time_end,
@@ -7,7 +7,7 @@ use bond/utils.{
 
 test get_day_to_maturity_1() {
   let epoch_config =
-    get_epoch_config_test_1()
+    get_epoch_config_preview()
   let tx_time: Int =
     1682576167903
   let end_epoch: Int =
@@ -27,7 +27,7 @@ test get_day_to_maturity_1() {
 
 test get_day_to_maturity_5() {
   let epoch_config =
-    get_epoch_config_test_1()
+    get_epoch_config_preview()
   let tx_time: Int =
     1682576167903 - ( 360000 - 283097 )
   let end_epoch: Int =
@@ -41,7 +41,7 @@ test get_day_to_maturity_5() {
 
 test get_day_to_maturity_6() {
   let epoch_config =
-    get_epoch_config_test_1()
+    get_epoch_config_preview()
   let tx_time: Int =
     1682576167903 + 283097
   let end_epoch: Int =
@@ -54,63 +54,64 @@ test get_day_to_maturity_6() {
 }
 
 test get_day_to_maturity_2() {
-  get_day_to_maturity(1682577892000, 19593, get_epoch_config_test_1()) == 0
+  get_day_to_maturity(1682577892000, 19593, get_epoch_config_preview()) == 0
 }
 
 test get_day_to_maturity_4() {
-  get_day_to_maturity(1682576167903, 19593, get_epoch_config_test_1()) == 5
+  get_day_to_maturity(1682576167903, 19593, get_epoch_config_preview()) == 5
 }
 
 test relative_epoch_to_posix_time_start_4() {
-  relative_epoch_to_posix_time_start(19593 + 1, get_epoch_config_test_1()) == 1682577891000
+  relative_epoch_to_posix_time_start(19593 + 1, get_epoch_config_preview()) == 1682577891000
 }
 
 test relative_epoch_to_posix_time_start_5() {
-  relative_epoch_to_posix_time_end(19593, get_epoch_config_test_1()) == 1682577891000
+  relative_epoch_to_posix_time_end(19593, get_epoch_config_preview()) == 1682577891000
 }
 
 test get_day_to_maturity_3() {
   get_day_to_maturity(
-    relative_epoch_to_posix_time_start(390, get_epoch_config_test_2()),
+    relative_epoch_to_posix_time_start(390, get_epoch_config_mainnet()),
     462,
-    get_epoch_config_test_2(),
+    get_epoch_config_mainnet(),
   ) == 365
 }
 
 test get_epoch_length_rate_1() {
-  get_milliseconds_of_day(get_epoch_config_test_1()) == 360000
+  get_milliseconds_of_day(get_epoch_config_preview()) == 360000
 }
 
 test get_epoch_length_rate_2() {
-  get_milliseconds_of_day(get_epoch_config_test_2()) == 86400000
+  get_milliseconds_of_day(get_epoch_config_mainnet()) == 86400000
 }
 
-test posix_time_to_relative_epoch_1() {
-  posix_time_to_relative_epoch(1680670422833, get_epoch_config_test_1()) == 18534
+test posix_time_to_relative_epoch_preview() {
+  posix_time_to_relative_epoch(1687343990000, get_epoch_config_preview()) == 18534
+  // posix_time_to_relative_epoch(1680670422833, get_epoch_config_preview()) == 18534
 }
 
-test posix_time_to_relative_epoch_2() {
-  posix_time_to_relative_epoch(1680670422833, get_epoch_config_test_2()) == 403
+test posix_time_to_relative_epoch_mainnet() {
+  posix_time_to_relative_epoch(1680670422833, get_epoch_config_mainnet()) == 403
 }
 
-test relative_epoch_to_posix_time_start_1() {
-  relative_epoch_to_posix_time_start(18534, get_epoch_config_test_1()) == 1680669891000
+test relative_epoch_to_posix_time_start_preview() {
+  relative_epoch_to_posix_time_start(18534, get_epoch_config_preview()) == 1680669891000
 }
 
-test relative_epoch_to_posix_time_start_2() {
-  relative_epoch_to_posix_time_start(403, get_epoch_config_test_2()) == 1680299091000
+test relative_epoch_to_posix_time_start_mainnet() {
+  relative_epoch_to_posix_time_start(403, get_epoch_config_mainnet()) == 1680299091000
 }
 
 test relative_epoch_to_posix_time_start_3() {
-  relative_epoch_to_posix_time_start(462, get_epoch_config_test_2()) == 1705787091000
+  relative_epoch_to_posix_time_start(462, get_epoch_config_mainnet()) == 1705787091000
 }
 
 test relative_epoch_to_posix_time_end_1() {
-  relative_epoch_to_posix_time_end(18534, get_epoch_config_test_1()) == 1680671691000
+  relative_epoch_to_posix_time_end(18534, get_epoch_config_preview()) == 1680671691000
 }
 
 test relative_epoch_to_posix_time_end_2() {
-  relative_epoch_to_posix_time_end(403, get_epoch_config_test_2()) == 1680731091000
+  relative_epoch_to_posix_time_end(403, get_epoch_config_mainnet()) == 1680731091000
 }
 
 test get_price_of_bond_1() {

@@ -88,7 +88,7 @@ pub fn tx(
   tx
 }
 
-pub fn get_epoch_config_test_1() -> EpochConfig {
+pub fn get_epoch_config_preview() -> EpochConfig {
   EpochConfig {
     year_to_epoch: 73,
     epoch_boundary: 1647899091000,
@@ -98,7 +98,7 @@ pub fn get_epoch_config_test_1() -> EpochConfig {
   }
 }
 
-pub fn get_epoch_config_test_2() -> EpochConfig {
+pub fn get_epoch_config_mainnet() -> EpochConfig {
   EpochConfig {
     year_to_epoch: 73,
     epoch_boundary: 1647899091000,
@@ -108,7 +108,7 @@ pub fn get_epoch_config_test_2() -> EpochConfig {
   }
 }
 
-pub fn get_slot_config_network_test_1() -> SlotConfigNetwork {
+pub fn get_slot_config_network_preview() -> SlotConfigNetwork {
   SlotConfigNetwork {
     zero_time: 1666656000000,
     zero_slot: 0,
@@ -116,7 +116,7 @@ pub fn get_slot_config_network_test_1() -> SlotConfigNetwork {
   }
 }
 
-pub fn get_slot_config_network_test_2() -> SlotConfigNetwork {
+pub fn get_slot_config_network_mainnet() -> SlotConfigNetwork {
   SlotConfigNetwork {
     zero_time: 1596059091000,
     zero_slot: 4492800,
@@ -124,7 +124,7 @@ pub fn get_slot_config_network_test_2() -> SlotConfigNetwork {
   }
 }
 
-fn get_bond_config_test_1() -> BondConfig {
+fn get_bond_config_preview() -> BondConfig {
   BondConfig {
     bond_policy_id: get_bond_policy_id(),
     escrow_policy_id: get_escrow_policy_id(),
@@ -133,11 +133,11 @@ fn get_bond_config_test_1() -> BondConfig {
     basis_points_max: 9999,
     one_ada_2_lovelace: 1000000,
     bond_face_value: 100000000,
-    epoch_config: get_epoch_config_test_1(),
+    epoch_config: get_epoch_config_preview(),
   }
 }
 
-fn get_bond_config_test_2() -> BondConfig {
+fn get_bond_config_mainnet() -> BondConfig {
   BondConfig {
     bond_policy_id: get_bond_policy_id(),
     escrow_policy_id: get_escrow_policy_id(),
@@ -146,7 +146,7 @@ fn get_bond_config_test_2() -> BondConfig {
     basis_points_max: 9999,
     one_ada_2_lovelace: 1000000,
     bond_face_value: 100000000,
-    epoch_config: get_epoch_config_test_2(),
+    epoch_config: get_epoch_config_mainnet(),
   }
 }
 
@@ -158,19 +158,19 @@ fn get_market_config() -> MarketConfig {
   }
 }
 
-pub fn get_config_test_1() -> Config {
+pub fn get_config_preview() -> Config {
   Config {
-    bond: get_bond_config_test_1(),
+    bond: get_bond_config_preview(),
     market: get_market_config(),
-    slot_config_network: get_slot_config_network_test_1(),
+    slot_config_network: get_slot_config_network_preview(),
   }
 }
 
-pub fn get_config_test_2() -> Config {
+pub fn get_config_mainnet() -> Config {
   Config {
-    bond: get_bond_config_test_2(),
+    bond: get_bond_config_mainnet(),
     market: get_market_config(),
-    slot_config_network: get_slot_config_network_test_2(),
+    slot_config_network: get_slot_config_network_mainnet(),
   }
 }
 
