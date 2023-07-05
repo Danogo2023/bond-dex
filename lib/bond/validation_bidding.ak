@@ -159,6 +159,7 @@ pub fn sell(
                   [owner_vk],
                   tx.datums,
                   DatumTypeBidding,
+                  escrow_datum.bond_symbol,
                 )
               biz_tx_info_valid && when biz_output_obj is {
                 None -> {
