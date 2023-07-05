@@ -151,10 +151,11 @@ pub fn buy(
       VerificationKeyCredential(x) -> x
       _ -> #""
     }
-  let sell_valid_slot = when conf.market.sell_valid_slot is {
-    Some(x) -> x
-    None -> 3 * 60 * 60
-  }
+  let sell_valid_slot =
+    when conf.market.sell_valid_slot is {
+      Some(x) -> x
+      None -> 3 * 60 * 60
+    }
   let validity_range =
     validity_end_must_set - validity_after_must_set <= sell_valid_slot * conf.slot_config_network.slot_length
   let validity_range_sell_valid =
@@ -205,7 +206,10 @@ pub fn buy(
                   [owner_vk],
                   tx.datums,
                   DatumTypeListing,
+                  escrow_datum.bond_symbol,
                 )
+              let sm_input_bond_policy_id_match_escrow =
+                dict.size(biz_output.smart_contract.bond_assets) > 0
               let sm_input_must_only_one_bond_name =
                 dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
               let sm_input_bond_same_escrow =
@@ -213,7 +217,7 @@ pub fn buy(
                   biz_input_obj.smart_contract.bond_assets,
                   escrow_info.token_name,
                 )
-              biz_tx_info_valid && sm_input_must_only_one_bond_name? && sm_input_bond_same_escrow? && when
+              biz_tx_info_valid && sm_input_bond_policy_id_match_escrow? && sm_input_must_only_one_bond_name? && sm_input_bond_same_escrow? && when
                 biz_output_obj
               is {
                 None -> {
