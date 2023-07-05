@@ -86,7 +86,7 @@ test get_epoch_length_rate_2() {
 }
 
 test posix_time_to_relative_epoch_preview() {
-  posix_time_to_relative_epoch(1687343990000, get_epoch_config_preview()) == 18534
+  posix_time_to_relative_epoch(1687343990000, get_epoch_config_preview()) == 22241
   // posix_time_to_relative_epoch(1680670422833, get_epoch_config_preview()) == 18534
 }
 

@@ -277,9 +277,10 @@ fn build_biz_data(
   datums: Datums,
   data: BizOutput,
   datum_type: DatumType,
+  bond_policy_id: ByteArray,
 ) -> BizOutput {
   let bond_values =
-    value.tokens(output.value, conf.bond.bond_policy_id)
+    value.tokens(output.value, bond_policy_id)
   let biz_output_info =
     build_biz_output_info(
       if output.address == smart_contract {
@@ -344,6 +345,7 @@ fn get_biz_output(
   datums: Datums,
   recursive: BizOutput,
   datum_type: DatumType,
+  bond_policy_id: ByteArray,
 ) -> BizOutput {
   when outputs is {
     [] ->
@@ -359,6 +361,7 @@ fn get_biz_output(
           datums,
           recursive,
           datum_type,
+          bond_policy_id,
         )
       if !biz_data.valid {
         biz_data
@@ -372,6 +375,7 @@ fn get_biz_output(
           datums,
           biz_data,
           datum_type,
+          bond_policy_id,
         )
       }
     }
@@ -387,6 +391,7 @@ fn get_biz_input(
   datums: Datums,
   recursive: BizOutput,
   datum_type: DatumType,
+  bond_policy_id: ByteArray,
 ) -> BizOutput {
   when outputs is {
     [] ->
@@ -402,6 +407,7 @@ fn get_biz_input(
           datums,
           recursive,
           datum_type,
+          bond_policy_id,
         )
       if !biz_data.valid {
         biz_data
@@ -415,6 +421,7 @@ fn get_biz_input(
           datums,
           biz_data,
           datum_type,
+          bond_policy_id,
         )
       }
     }
@@ -430,6 +437,7 @@ pub fn collect_biz_tx_info(
   extra_signatories: List<PublicKeyHash>,
   datums: Datums,
   datum_type: DatumType,
+  bond_policy_id: ByteArray,
 ) -> BizTxInfo {
   let biz_output_info_init =
     BizOutputInfo {
@@ -460,6 +468,7 @@ pub fn collect_biz_tx_info(
       datums,
       biz_output_init,
       datum_type,
+      bond_policy_id,
     )
   if biz_input_obj.valid {
     let biz_output_obj: BizOutput =
@@ -472,6 +481,7 @@ pub fn collect_biz_tx_info(
         datums,
         biz_output_init,
         datum_type,
+        bond_policy_id,
       )
     BizTxInfo {
       valid: biz_output_obj.valid,
