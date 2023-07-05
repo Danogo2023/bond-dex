@@ -3463,7 +3463,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
-      Some(time_of_tx - 1),
+      Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
     listing_datum.requested_yield,
