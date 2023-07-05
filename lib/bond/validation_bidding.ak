@@ -177,6 +177,8 @@ pub fn sell(
                   let seller_must_not_owner = biz_input_obj.owner.lovelace <= 0
                   let seller_must_not_market =
                     biz_input_obj.market.lovelace <= 0
+                  let seller_input_bond_policy_id_match_escrow =
+                    dict.size(biz_output.owner.bond_assets) > 0
                   let sm_output_utxos =
                     list.concat(
                       biz_output.smart_contract.bond_outputs,
@@ -186,7 +188,7 @@ pub fn sell(
                     list.length(sm_output_utxos) <= 1
                   let buyer_receive_bonds_valid =
                     biz_output.owner.bond_qty > 0 && biz_output.owner.bond_qty <= bidding_datum.quantity
-                  owner_output_must_only_one_bond_name? && owner_output_bond_same_escrow? && seller_must_not_owner? && seller_must_not_market? && sm_output_must_only_one_utxo? && buyer_receive_bonds_valid? && sell_correct(
+                  seller_input_bond_policy_id_match_escrow? && owner_output_must_only_one_bond_name? && owner_output_bond_same_escrow? && seller_must_not_owner? && seller_must_not_market? && sm_output_must_only_one_utxo? && buyer_receive_bonds_valid? && sell_correct(
                     tx,
                     conf,
                     bidding_datum,
