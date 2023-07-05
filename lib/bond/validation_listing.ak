@@ -208,7 +208,7 @@ pub fn buy(
                   DatumTypeListing,
                   escrow_datum.bond_symbol,
                 )
-              let sm_input_bond_policy_id_match_escrow =
+              let buy_bond_policy_id_match_escrow =
                 dict.size(biz_input_obj.smart_contract.bond_assets) > 0
               let sm_input_must_only_one_bond_name =
                 dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
@@ -217,7 +217,7 @@ pub fn buy(
                   biz_input_obj.smart_contract.bond_assets,
                   escrow_info.token_name,
                 )
-              biz_tx_info_valid && sm_input_bond_policy_id_match_escrow? && sm_input_must_only_one_bond_name? && sm_input_bond_same_escrow? && when
+              biz_tx_info_valid && buy_bond_policy_id_match_escrow? && sm_input_must_only_one_bond_name? && sm_input_bond_same_escrow? && when
                 biz_output_obj
               is {
                 None -> {
