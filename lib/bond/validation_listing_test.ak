@@ -3373,7 +3373,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
       sm_input_lovelace,
       Some(
         value.from_asset(
-          get_bond_policy_id(),
+          get_not_bond_policy_id(),
           bond_name_listing_1,
           sm_input_bond_qty,
         ),
@@ -3386,7 +3386,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
     gen_input(
       buyer_address,
       buyer_fee_ada,
-      Some(value.from_asset(get_not_bond_policy_id(), bond_name_listing_2, 1)),
+      Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 1)),
       NoDatum,
     )
   //
