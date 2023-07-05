@@ -209,7 +209,7 @@ pub fn buy(
                   escrow_datum.bond_symbol,
                 )
               let sm_input_bond_policy_id_match_escrow =
-                dict.size(biz_output.smart_contract.bond_assets) > 0
+                dict.size(biz_input_obj.smart_contract.bond_assets) > 0
               let sm_input_must_only_one_bond_name =
                 dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
               let sm_input_bond_same_escrow =
