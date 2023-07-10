@@ -42,7 +42,7 @@ pub type MarketConfig {
   // value in range 0001 -> 9999 default: 1% per yield == 100
   seller_fee: Int,
   // Khoảng thời gian giao dịch sell hợp lệ, giá trị tính theo slot
-  sell_valid_slot: Option<Int>, 
+  sell_valid_slot: Option<Int>,
 }
 
 pub type Config {

@@ -28,9 +28,11 @@ fn buy_is_valid(
   let received_at_maturity =
     escrow_info.received_at_maturity_one_bond * buyer_qty
   // Tong tien buyer phai tra/seller(owner of listing) nhan duoc chua tru phi
-  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_with_yield =
+    price_of_one_bond * buyer_qty
   // Chenh lech tien lai nhan duoc
-  let received_diff = received_at_maturity - received_with_yield
+  let received_diff =
+    received_at_maturity - received_with_yield
   // phi seller(owner of listing) phai tra cho san theo ti le trong config
   let market_fee_seller =
     received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
@@ -138,23 +140,31 @@ pub fn buy(
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
-      Finite(x) -> x
-      _ -> 0
+      Finite(x) ->
+        x
+      _ ->
+        0
     }
   let validity_end_must_set =
     when tx.validity_range.upper_bound.bound_type is {
-      Finite(x) -> x
-      _ -> 0
+      Finite(x) ->
+        x
+      _ ->
+        0
     }
   let owner_vk =
     when owner.payment_credential is {
-      VerificationKeyCredential(x) -> x
-      _ -> #""
+      VerificationKeyCredential(x) ->
+        x
+      _ ->
+        #""
     }
   let sell_valid_slot =
     when conf.market.sell_valid_slot is {
-      Some(x) -> x
-      None -> 3 * 60 * 60
+      Some(x) ->
+        x
+      None ->
+        3 * 60 * 60
     }
   let validity_range =
     validity_end_must_set - validity_after_must_set <= sell_valid_slot * conf.slot_config_network.slot_length
@@ -171,7 +181,8 @@ pub fn buy(
     Some(ref_input_escrow) ->
       when get_data(tx.datums, ref_input_escrow.output.datum) is {
         Some(d) -> {
-          expect escrow_datum: EscrowDatum = d
+          expect escrow_datum: EscrowDatum =
+            d
           let current_epoch =
             posix_time_to_relative_epoch(
               validity_after_must_set,
@@ -179,7 +190,8 @@ pub fn buy(
             )
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-          let end_epoch = start_epoch + escrow_datum.duration
+          let end_epoch =
+            start_epoch + escrow_datum.duration
           when
             get_escrow_info(
               conf.bond,
@@ -227,8 +239,10 @@ pub fn buy(
                 Some(biz_output) -> {
                   let miss_balance_qty_bond =
                     biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-                  let buyer_must_not_owner = biz_input_obj.owner.bond_qty <= 0
-                  let buyer_must_not_market = biz_input_obj.market.bond_qty <= 0
+                  let buyer_must_not_owner =
+                    biz_input_obj.owner.bond_qty <= 0
+                  let buyer_must_not_market =
+                    biz_input_obj.market.bond_qty <= 0
                   buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? && buy_correct(
                     conf,
                     requested_yield,
