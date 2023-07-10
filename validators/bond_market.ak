@@ -15,14 +15,18 @@ validator(conf: Config) {
     action: TradeAction,
     ctx: ScriptContext,
   ) -> Bool {
-    let tx = ctx.transaction
-    let spending_input = get_spending_input(ctx)
-    let smart_contract_address = spending_input.output.address
+    let tx =
+      ctx.transaction
+    let spending_input =
+      get_spending_input(ctx)
+    let smart_contract_address =
+      spending_input.output.address
     let owner_stake_key =
       when datum.owner_stake_key is {
         Some(owner_stake_key) ->
           Some(Inline(VerificationKeyCredential(owner_stake_key)))
-        _ -> None
+        _ ->
+          None
       }
     let owner_address =
       Address {
@@ -30,7 +34,8 @@ validator(conf: Config) {
         stake_credential: owner_stake_key,
       }
     when action is {
-      Update -> must_be_signed_by(tx.extra_signatories, owner_address)?
+      Update ->
+        must_be_signed_by(tx.extra_signatories, owner_address)?
       Buy ->
         validation_listing.buy(
           tx,
@@ -41,7 +46,8 @@ validator(conf: Config) {
         )
       // Withdraw ->
       //   must_be_signed_by(tx.extra_signatories, conf.market.address)?
-      _ -> False
+      _ ->
+        False
     }
   }
 }
@@ -52,12 +58,14 @@ validator(conf: Config) {
     action: TradeAction,
     ctx: ScriptContext,
   ) -> Bool {
-    let tx = ctx.transaction
+    let tx =
+      ctx.transaction
     let owner_stake_key =
       when datum.owner_stake_key is {
         Some(owner_stake_key) ->
           Some(Inline(VerificationKeyCredential(owner_stake_key)))
-        _ -> None
+        _ ->
+          None
       }
     let owner_address =
       Address {
@@ -65,7 +73,8 @@ validator(conf: Config) {
         stake_credential: owner_stake_key,
       }
     when action is {
-      Update -> must_be_signed_by(tx.extra_signatories, owner_address)?
+      Update ->
+        must_be_signed_by(tx.extra_signatories, owner_address)?
       Sell ->
         validation_bidding.sell(
           tx,
@@ -76,7 +85,8 @@ validator(conf: Config) {
         )
       // Withdraw ->
       //   must_be_signed_by(tx.extra_signatories, conf.market.address)?
-      _ -> False
+      _ ->
+        False
     }
   }
 }

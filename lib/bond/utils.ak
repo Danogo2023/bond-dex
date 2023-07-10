@@ -70,8 +70,8 @@ pub fn get_escrow_info(
     
       end_epoch - current_epoch
     } else {
-      interest_level_epoch - escrow_datum.buffer + 1
-    }
+      interest_level_epoch - escrow_datum.buffer
+    } + 1
   if list.or([current_epoch > end_epoch, closable_in <= 0]) {
     Error("Escrow closable")
   } else {
