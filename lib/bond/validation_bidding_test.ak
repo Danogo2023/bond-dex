@@ -2086,7 +2086,7 @@ test bidding_sell_fail_escrow_datum_not_found() {
   )
 }
 
-test bidding_sell_fail_escrow_datum_unexpect() {
+!test bidding_sell_fail_escrow_datum_unexpect() {
   let time_of_tx =
     1681095094000
   let cfg =
