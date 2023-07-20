@@ -10,7 +10,7 @@ use bond/types.{
   EscrowDatum, EscrowInfo, OK,
 }
 use bond/utils.{
-  collect_biz_tx_info, get_escrow_info, get_price_of_bond,
+  collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
 }
 use common/utils.{get_data} as common_utils
@@ -24,15 +24,11 @@ fn sell_correct(
   escrow_info: EscrowInfo,
   sm_output_utxo: Option<Output>,
 ) -> Bool {
-  let buyer_receive_bonds_qty =
-    biz_output_obj.owner.bond_qty
-  let buyer_receive_lovelace =
-    biz_output_obj.owner.lovelace
-  let buyer_bidding_bonds_qty =
-    bidding_datum.quantity
+  let buyer_receive_bonds_qty = biz_output_obj.owner.bond_qty
+  let buyer_receive_lovelace = biz_output_obj.owner.lovelace
+  let buyer_bidding_bonds_qty = bidding_datum.quantity
 
-  let seller_input_lovelace =
-    biz_input_obj.other.lovelace
+  let seller_input_lovelace = biz_input_obj.other.lovelace
 
   let price_of_one_bond =
     get_price_of_bond(
@@ -45,21 +41,17 @@ fn sell_correct(
   let received_at_maturity =
     escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
   // Tong tien buyer(owner of bidding) phai tra/seller nhan duoc chua tru phi
-  let received_with_yield =
-    price_of_one_bond * buyer_receive_bonds_qty
+  let received_with_yield = price_of_one_bond * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
-  let received_diff =
-    received_at_maturity - received_with_yield
+  let received_diff = received_at_maturity - received_with_yield
   // phi seller phai tra cho san theo ti le trong config
   let market_fee_seller =
     received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
   // phi buyer(owner of bidding) phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  let market_fee_total =
-    market_fee_buyer + market_fee_seller
-  let seller_receive_total =
-    received_with_yield - market_fee_seller
+  let market_fee_total = market_fee_buyer + market_fee_seller
+  let seller_receive_total = received_with_yield - market_fee_seller
 
   // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
   let market_fee_receive_valid =
@@ -77,8 +69,7 @@ fn sell_correct(
     Some(utxo) ->
       when get_data(tx.datums, utxo.datum) is {
         Some(datum) -> {
-          expect sm_output_bidding_datum: BiddingDatum =
-            datum
+          expect sm_output_bidding_datum: BiddingDatum = datum
           let sm_output_bidding_datum_pk_valid =
             sm_output_bidding_datum.owner_payment_key == bidding_datum.owner_payment_key
           let sm_output_bidding_datum_sk_valid =
@@ -97,8 +88,7 @@ fn sell_correct(
           // trace @"not found output bidding datum"
           False
       }
-    None ->
-      True
+    None -> True
   }
 }
 
@@ -111,35 +101,23 @@ pub fn sell(
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
-      Finite(x) ->
-        x
-      _ ->
-        0
+      Finite(x) -> x
+      _ -> 0
     }
   let owner_vk =
     when owner.payment_credential is {
-      VerificationKeyCredential(x) ->
-        x
-      _ ->
-        #""
+      VerificationKeyCredential(x) -> x
+      _ -> #""
     }
   let bidding_datum_valid =
     (bidding_datum.quantity > 0)? && (bidding_datum.to_epoch >= bidding_datum.from_epoch)?
   bidding_datum_valid && (validity_after_must_set > 0)? && not(
     bytearray.is_empty(owner_vk),
-  )? && when
-    list.find(
-      tx.reference_inputs,
-      fn(input) {
-        dict.size(value.tokens(input.output.value, conf.bond.escrow_policy_id)) > 0
-      },
-    )
-  is {
+  )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
     Some(ref_input_escrow) ->
       when get_data(tx.datums, ref_input_escrow.output.datum) is {
         Some(d) -> {
-          expect escrow_datum: EscrowDatum =
-            d
+          expect escrow_datum: EscrowDatum = d
           let current_epoch =
             posix_time_to_relative_epoch(
               validity_after_must_set,
@@ -147,8 +125,7 @@ pub fn sell(
             )
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-          let end_epoch =
-            start_epoch + escrow_datum.duration
+          let end_epoch = start_epoch + escrow_datum.duration
           (end_epoch >= current_epoch)? && (end_epoch >= bidding_datum.from_epoch)? && (end_epoch <= bidding_datum.to_epoch)? && when
             get_escrow_info(
               conf.bond,
@@ -190,8 +167,7 @@ pub fn sell(
                       biz_output.owner.bond_assets,
                       escrow_info.token_name,
                     )
-                  let seller_must_not_owner =
-                    biz_input_obj.owner.lovelace <= 0
+                  let seller_must_not_owner = biz_input_obj.owner.lovelace <= 0
                   let seller_must_not_market =
                     biz_input_obj.market.lovelace <= 0
                   let sell_bond_policy_id_match_escrow =
@@ -229,7 +205,7 @@ pub fn sell(
         }
       }
     _ -> {
-      trace @"not found reference_inputs with escrow_policy_id"
+      trace @"not found escrow info in reference_inputs"
       False
     }
   }

@@ -20,11 +20,27 @@ pub fn must_be_signed_by(
   address: Address,
 ) -> Bool {
   when address.payment_credential is {
-    VerificationKeyCredential(vhk) ->
-      list.has(extra_signatories, vhk)
-    ScriptCredential(_) ->
-      False
+    VerificationKeyCredential(vhk) -> list.has(extra_signatories, vhk)
+    ScriptCredential(_) -> False
   }
+}
+
+pub fn get_escrow_ref_inputs(
+  ref_inputs: List<Input>,
+  bond_config: BondConfig,
+) -> Option<Input> {
+  list.find(
+    ref_inputs,
+    fn(i) {
+      when i.output.address.payment_credential is {
+        VerificationKeyCredential(_) -> False
+        ScriptCredential(k) ->
+          k == bond_config.escrow_payment_key && dict.size(
+            value.tokens(i.output.value, bond_config.escrow_policy_id),
+          ) > 0
+      }
+    },
+  )
 }
 
 pub fn get_escrow_info(
@@ -37,14 +53,12 @@ pub fn get_escrow_info(
   end_epoch: Int,
 ) -> EscrowInfoResult<EscrowInfo, ByteArray> {
   // Tong tien lai moi epoch Borrower phai tra
-  let epoch_rewards_lovelace =
-    value.lovelace_of(escrow_datum.epo_rewards)
+  let epoch_rewards_lovelace = value.lovelace_of(escrow_datum.epo_rewards)
   // Tien goc cua toan bo bond phat hanh
   let principal_lovelace =
     escrow_datum.bond_amount * bond_config.bond_face_value
   // Tong tien lai tich luy hien tai cho toan bo bond phat hanh
-  let premium_paid_lovelace =
-    escrow_lovelace - principal_lovelace
+  let premium_paid_lovelace = escrow_lovelace - principal_lovelace
   // Tong tien lai tich luy hien tai tinh theo epoch cho toan bo bond phat hanh
   // let premium_paid_epoch =
   //   premium_paid_lovelace / epoch_rewards_lovelace
@@ -61,8 +75,7 @@ pub fn get_escrow_info(
   // Tong so epoch ma Borrower tra du tinh tu epoch hien tai
   let interest_level_epoch =
     ( premium_paid_lovelace - interest_due_paid_lovelace ) / epoch_rewards_lovelace
-  let interest_lovelace_max =
-    escrow_datum.duration * epoch_rewards_lovelace
+  let interest_lovelace_max = escrow_datum.duration * epoch_rewards_lovelace
   // So epoch con lai cho den khi bond se duoc phep dong
   let closable_in =
     if
@@ -125,12 +138,9 @@ pub fn get_day_to_maturity(
   if tx_time > maturity_time {
     0
   } else {
-    let time_of_day =
-      get_milliseconds_of_day(epoch_config)
-    let diff_time =
-      maturity_time - tx_time
-    let maturity_day =
-      diff_time / time_of_day
+    let time_of_day = get_milliseconds_of_day(epoch_config)
+    let diff_time = maturity_time - tx_time
+    let maturity_day = diff_time / time_of_day
     if diff_time % time_of_day == 0 {
       maturity_day
     } else {
@@ -184,8 +194,7 @@ fn datum_is_valid(
 ) -> Bool {
   when datum_type is {
     DatumTypeListing -> {
-      expect listing_datum: ListingDatum =
-        datum
+      expect listing_datum: ListingDatum = datum
       let owner_is_valid =
         list.has(extra_signatories, listing_datum.owner_payment_key)
       let requested_yield_is_valid =
@@ -197,8 +206,7 @@ fn datum_is_valid(
       owner_is_valid? && requested_yield_is_valid?
     }
     DatumTypeBidding -> {
-      expect bidding_datum: BiddingDatum =
-        datum
+      expect bidding_datum: BiddingDatum = datum
       let owner_is_valid =
         list.has(extra_signatories, bidding_datum.owner_payment_key)
       let requested_yield_is_valid =
@@ -209,12 +217,10 @@ fn datum_is_valid(
         ) == bidding_datum.requested_yield
       let datum_epoch_is_valid =
         bidding_datum.to_epoch >= bidding_datum.from_epoch
-      let datum_quantity_is_valid =
-        bidding_datum.quantity > 0
+      let datum_quantity_is_valid = bidding_datum.quantity > 0
       owner_is_valid? && requested_yield_is_valid? && datum_epoch_is_valid? && datum_quantity_is_valid?
     }
-    _ ->
-      False
+    _ -> False
   }
 }
 
@@ -279,8 +285,7 @@ fn build_biz_data(
   datum_type: DatumType,
   bond_policy_id: ByteArray,
 ) -> BizOutput {
-  let bond_values =
-    value.tokens(output.value, bond_policy_id)
+  let bond_values = value.tokens(output.value, bond_policy_id)
   let biz_output_info =
     build_biz_output_info(
       if output.address == smart_contract {
@@ -308,30 +313,22 @@ fn build_biz_data(
     valid: biz_output_info.bond_datum_valid,
     unique_bonds: bond_assets(data.unique_bonds, bond_values),
     smart_contract: when (output.address, smart_contract) is {
-      (a, b) if a == b ->
-        biz_output_info
-      _ ->
-        data.smart_contract
+      (a, b) if a == b -> biz_output_info
+      _ -> data.smart_contract
     },
     owner: when (output.address, owner) is {
-      (a, b) if a == b ->
-        biz_output_info
-      _ ->
-        data.owner
+      (a, b) if a == b -> biz_output_info
+      _ -> data.owner
     },
     market: when (output.address, conf.market.address) is {
-      (a, b) if a == b ->
-        biz_output_info
-      _ ->
-        data.market
+      (a, b) if a == b -> biz_output_info
+      _ -> data.market
     },
     other: when
       (output.address, smart_contract, owner, conf.market.address)
     is {
-      (a, b, c, d) if a != b && a != c && a != d ->
-        biz_output_info
-      _ ->
-        data.other
+      (a, b, c, d) if a != b && a != c && a != d -> biz_output_info
+      _ -> data.other
     },
   }
 }
@@ -348,8 +345,7 @@ fn get_biz_output(
   bond_policy_id: ByteArray,
 ) -> BizOutput {
   when outputs is {
-    [] ->
-      recursive
+    [] -> recursive
     [x, ..xs] -> {
       let biz_data: BizOutput =
         build_biz_data(
@@ -394,8 +390,7 @@ fn get_biz_input(
   bond_policy_id: ByteArray,
 ) -> BizOutput {
   when outputs is {
-    [] ->
-      recursive
+    [] -> recursive
     [x, ..xs] -> {
       let biz_data: BizOutput =
         build_biz_data(
