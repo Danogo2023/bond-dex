@@ -6,12 +6,9 @@ use bond/utils.{
 }
 
 test get_day_to_maturity_1() {
-  let epoch_config =
-    get_epoch_config_preview()
-  let tx_time: Int =
-    1682576167903
-  let end_epoch: Int =
-    19593
+  let epoch_config = get_epoch_config_preview()
+  let tx_time: Int = 1682576167903
+  let end_epoch: Int = 19593
   // let maturity_time: Int = relative_epoch_to_posix_time_end(end_epoch, epoch_config)
   // let diff_time = maturity_time - tx_time
   // let time_of_day = get_milliseconds_of_day(epoch_config)
@@ -26,12 +23,9 @@ test get_day_to_maturity_1() {
 }
 
 test get_day_to_maturity_5() {
-  let epoch_config =
-    get_epoch_config_preview()
-  let tx_time: Int =
-    1682576167903 - ( 360000 - 283097 )
-  let end_epoch: Int =
-    19593
+  let epoch_config = get_epoch_config_preview()
+  let tx_time: Int = 1682576167903 - ( 360000 - 283097 )
+  let end_epoch: Int = 19593
   // let maturity_time: Int = relative_epoch_to_posix_time_end(end_epoch, epoch_config)
   // let time_of_day = get_milliseconds_of_day(epoch_config)
   // ( maturity_time - tx_time ) % time_of_day == 0
@@ -40,12 +34,9 @@ test get_day_to_maturity_5() {
 }
 
 test get_day_to_maturity_6() {
-  let epoch_config =
-    get_epoch_config_preview()
-  let tx_time: Int =
-    1682576167903 + 283097
-  let end_epoch: Int =
-    19593
+  let epoch_config = get_epoch_config_preview()
+  let tx_time: Int = 1682576167903 + 283097
+  let end_epoch: Int = 19593
   // let maturity_time: Int = relative_epoch_to_posix_time_end(end_epoch, epoch_config)
   // let time_of_day = get_milliseconds_of_day(epoch_config)
   // ( maturity_time - tx_time ) % time_of_day == 0

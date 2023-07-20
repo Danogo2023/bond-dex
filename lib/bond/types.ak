@@ -22,7 +22,7 @@ pub type EpochConfig {
 }
 
 pub type BondConfig {
-  bond_policy_id: ByteArray,
+  escrow_payment_key: ByteArray,
   escrow_policy_id: ByteArray,
   // basis_points reference value, default: 10_000
   basis_points_ref_unit: Int,

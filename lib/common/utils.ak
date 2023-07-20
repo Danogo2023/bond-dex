@@ -6,8 +6,7 @@ use aiken/transaction.{
 use common/types.{Datums, POSIXTime, SlotConfigNetwork}
 
 pub fn get_spending_input(ctx: ScriptContext) -> Input {
-  expect Spend(output_reference) =
-    ctx.purpose
+  expect Spend(output_reference) = ctx.purpose
   expect Some(input) =
     list.find(
       ctx.transaction.inputs,
@@ -18,12 +17,9 @@ pub fn get_spending_input(ctx: ScriptContext) -> Input {
 
 pub fn get_data(datums: Datums, datum: Datum) -> Option<Data> {
   when datum is {
-    NoDatum ->
-      None
-    DatumHash(h) ->
-      dict.get(datums, h)
-    InlineDatum(d) ->
-      Some(d)
+    NoDatum -> None
+    DatumHash(h) -> dict.get(datums, h)
+    InlineDatum(d) -> Some(d)
   }
 }
 
