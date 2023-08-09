@@ -7,7 +7,7 @@ For now you'll need:
 
 Run command:
 ```
-cargo install aiken --version v1.0.11-alpha --root ./
+cargo install aiken --version 1.0.13-alpha --root ./
 or
 cargo install --git https://github.com/aiken-lang/aiken.git --root ./
 ```

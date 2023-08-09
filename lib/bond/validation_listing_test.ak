@@ -606,7 +606,7 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
   )
 }
 
-!test listing_buy_fail_partial_escrow_datum_unexpect() {
+test listing_buy_fail_partial_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
@@ -1192,7 +1192,7 @@ test listing_buy_fail_escrow_datum_not_found() {
   )
 }
 
-!test listing_buy_fail_escrow_datum_unexpect() {
+test listing_buy_fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()

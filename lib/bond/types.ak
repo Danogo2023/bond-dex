@@ -130,10 +130,21 @@ pub type PaymentDatum {
   output_reference: OutputReference,
 }
 
+pub type OrderType {
+  // LimitOrder
+  MarketMaking(MarketInfo)
+}
+
+pub type MarketInfo {
+  reverse_sc: Address,
+  margin: Int,
+}
+
 pub type ListingDatum {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
   requested_yield: Int,
+  order_type: Option<OrderType>,
 }
 
 pub type BiddingDatum {
@@ -143,6 +154,7 @@ pub type BiddingDatum {
   to_epoch: Int,
   quantity: Int,
   requested_yield: Int,
+  order_type: Option<OrderType>,
 }
 
 pub type TradeAction {

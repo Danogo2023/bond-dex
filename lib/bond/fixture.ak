@@ -399,6 +399,7 @@ pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
       _ -> None
     },
     requested_yield,
+    order_type: None,
   }
 }
 
@@ -422,6 +423,7 @@ pub fn gen_bidding_datum(
     to_epoch,
     quantity,
     requested_yield,
+    order_type: None,
   }
 }
 
