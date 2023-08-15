@@ -58,7 +58,7 @@ fn sell_correct(
     biz_output_obj.market.lovelace >= market_fee_total
   // So tien seller nhan duoc sau khi tru phi
   let seller_receive_valid =
-    biz_output_obj.other.lovelace <= seller_input_lovelace + seller_receive_total
+    biz_output_obj.other.lovelace <= seller_input_lovelace + seller_receive_total - value.lovelace_of(tx.fee)
   // So tien smart contract phai thu lai sau khi da tru tien phi, tien tra cho seller va tien so du toi thieu gui bond cho buyer(owner of bidding)
   let sm_receive_valid =
     biz_output_obj.smart_contract.lovelace >= biz_input_obj.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace

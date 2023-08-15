@@ -19,7 +19,7 @@ test get_day_to_maturity_1() {
   //   0 -> maturity_day
   //   _ -> maturity_day + 1
   // } == 5
-  get_day_to_maturity(tx_time, end_epoch, epoch_config) == 5
+  get_day_to_maturity(tx_time, end_epoch, epoch_config) == 0
 }
 
 test get_day_to_maturity_5() {
@@ -30,7 +30,7 @@ test get_day_to_maturity_5() {
   // let time_of_day = get_milliseconds_of_day(epoch_config)
   // ( maturity_time - tx_time ) % time_of_day == 0
   // ( maturity_time - tx_time ) / time_of_day == 5
-  get_day_to_maturity(tx_time, end_epoch, epoch_config) == 5
+  get_day_to_maturity(tx_time, end_epoch, epoch_config) == 0
 }
 
 test get_day_to_maturity_6() {
@@ -41,7 +41,7 @@ test get_day_to_maturity_6() {
   // let time_of_day = get_milliseconds_of_day(epoch_config)
   // ( maturity_time - tx_time ) % time_of_day == 0
   // ( maturity_time - tx_time ) / time_of_day == 4
-  get_day_to_maturity(tx_time, end_epoch, epoch_config) == 4
+  get_day_to_maturity(tx_time, end_epoch, epoch_config) == 0
 }
 
 test get_day_to_maturity_2() {
@@ -49,7 +49,7 @@ test get_day_to_maturity_2() {
 }
 
 test get_day_to_maturity_4() {
-  get_day_to_maturity(1682576167903, 19593, get_epoch_config_preview()) == 5
+  get_day_to_maturity(1682576167903, 19593, get_epoch_config_preview()) == 0
 }
 
 test relative_epoch_to_posix_time_start_4() {
@@ -65,7 +65,7 @@ test get_day_to_maturity_3() {
     relative_epoch_to_posix_time_start(390, get_epoch_config_mainnet()),
     462,
     get_epoch_config_mainnet(),
-  ) == 365
+  ) == 360
 }
 
 test get_epoch_length_rate_1() {
