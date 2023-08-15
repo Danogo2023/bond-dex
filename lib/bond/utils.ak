@@ -134,7 +134,7 @@ pub fn get_day_to_maturity(
   epoch_config: EpochConfig,
 ) -> Int {
   let maturity_time: Int =
-    relative_epoch_to_posix_time_end(end_epoch, epoch_config)
+    relative_epoch_to_posix_time_start(end_epoch, epoch_config)
   if tx_time > maturity_time {
     0
   } else {

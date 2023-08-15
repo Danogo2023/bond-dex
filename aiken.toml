@@ -1,11 +1,11 @@
-name = 'teko/optim-bond'
-version = '0.0.0'
+name = 'Danogo2023/bonds-dex'
+version = '1.0.0'
 license = 'Apache-2.0'
-description = "Aiken contracts for project 'teko/optim-bond'"
+description = "Aiken contracts for project Danogo2023/bonds-dex"
 
 [repository]
-user = 'teko'
-project = 'optim-bond'
+user = 'Danogo2023'
+project = 'bonds-dex'
 platform = 'github'
 
 [[dependencies]]
