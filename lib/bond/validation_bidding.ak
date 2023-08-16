@@ -53,7 +53,7 @@ fn sell_correct(
 
   (biz_output_obj.market.lovelace >= market_fee_total)? && (biz_output_obj.other.lovelace <= seller_input_lovelace + seller_receive_total - value.lovelace_of(
     tx.fee,
-  ))? && (biz_output_obj.smart_contract.lovelace = biz_input_obj.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
+  ))? && (biz_output_obj.smart_contract.lovelace == biz_input_obj.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
     sm_output_utxo
   is {
     Some(utxo) ->
