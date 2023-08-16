@@ -37,16 +37,7 @@ fn buy_is_valid(
   // phi buyer phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  // So tien fee + min ada cua listing toi thieu ma san phai nhan duoc
-  let market_fee_receive_valid =
-    biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market
-  // So tien seller(owner of listing) listing nhan duoc sau khi tru phi
-  let seller_receive_valid =
-    biz_output_obj.owner.lovelace >= received_with_yield - market_fee_seller
-  // So bond cua giao dich chuyen ve cho owner
-  let buyer_receive_bond_valid =
-    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty
-  market_fee_receive_valid? && seller_receive_valid? && buyer_receive_bond_valid?
+  (biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (biz_output_obj.owner.lovelace = received_with_yield - market_fee_seller)? && (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty)?
 }
 
 fn buy_correct(
@@ -56,13 +47,6 @@ fn buy_correct(
   biz_output_obj: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
-  let price_of_one_bond =
-    get_price_of_bond(
-      escrow_info.received_at_maturity_one_bond,
-      escrow_info.day_to_maturity,
-      requested_yield,
-      conf.bond.basis_points_ref_unit,
-    )
   let (
     qty_owner_2_buyer,
     min_ada_to_sm,
@@ -120,7 +104,12 @@ fn buy_correct(
         biz_output_obj,
         escrow_info,
         qty_owner_2_buyer,
-        price_of_one_bond,
+        get_price_of_bond(
+          escrow_info.received_at_maturity_one_bond,
+          escrow_info.day_to_maturity,
+          requested_yield,
+          conf.bond.basis_points_ref_unit,
+        ),
         min_ada_to_market,
       )?
   }
