@@ -93,12 +93,10 @@ fn buy_correct(
           True,
         )
     }
-  let buyer_output_bond_same_escrow =
-    qty_owner_2_buyer == 0 || dict.has_key(
-      biz_output_obj.other.bond_assets,
-      escrow_info.token_name,
-    )
-  sm_output_must_only_one_bond_name? && sm_output_bond_same_escrow? && buyer_output_bond_same_escrow? && when
+  sm_output_must_only_one_bond_name? && sm_output_bond_same_escrow? && (qty_owner_2_buyer == 0 || dict.has_key(
+    biz_output_obj.other.bond_assets,
+    escrow_info.token_name,
+  ))? && when
     list.find(
       dict.keys(biz_output_obj.smart_contract.bond_assets),
       fn(sm_bond_name_output) {
@@ -113,10 +111,10 @@ fn buy_correct(
       trace @"output to smart contract contain bond name invalid!"
       False
     }
-    _ -> {
-      let buy_partial_return_sm_matchs =
+    _ ->
+      (
         min_ada_to_sm <= 0 || (biz_output_obj.smart_contract.lovelace >= min_ada_to_sm)? && biz_output_obj.smart_contract.bond_datum_valid?
-      buy_partial_return_sm_matchs && buy_is_valid(
+      ) && buy_is_valid(
         conf,
         biz_input_obj,
         biz_output_obj,
@@ -125,7 +123,6 @@ fn buy_correct(
         price_of_one_bond,
         min_ada_to_market,
       )?
-    }
   }
 }
 
@@ -151,39 +148,32 @@ pub fn buy(
       VerificationKeyCredential(x) -> x
       _ -> #""
     }
-  let sell_valid_slot =
-    when conf.market.sell_valid_slot is {
-      Some(x) -> x
-      None -> 3 * 60 * 60
-    }
-  let validity_range =
-    validity_end_must_set - validity_after_must_set <= sell_valid_slot * conf.slot_config_network.slot_length
-  let validity_range_sell_valid =
-    (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && validity_range?
-  validity_range_sell_valid && not(bytearray.is_empty(owner_vk))? && when
-    get_escrow_ref_inputs(tx.reference_inputs, conf.bond)
+  (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
+    conf.market.sell_valid_slot
   is {
+    Some(x) -> x
+    None -> 3 * 60 * 60
+  } * conf.slot_config_network.slot_length)? && not(
+    bytearray.is_empty(owner_vk),
+  )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
     Some(ref_input_escrow) ->
       when get_data(tx.datums, ref_input_escrow.output.datum) is {
         Some(d) -> {
           expect escrow_datum: EscrowDatum = d
-          let current_epoch =
-            posix_time_to_relative_epoch(
-              validity_after_must_set,
-              conf.bond.epoch_config,
-            )
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-          let end_epoch = start_epoch + escrow_datum.duration
           when
             get_escrow_info(
               conf.bond,
               value.lovelace_of(ref_input_escrow.output.value),
               escrow_datum,
               validity_after_must_set,
-              current_epoch,
+              posix_time_to_relative_epoch(
+                validity_after_must_set,
+                conf.bond.epoch_config,
+              ),
               start_epoch,
-              end_epoch,
+              start_epoch + escrow_datum.duration,
             )
           is {
             OK(escrow_info) -> {
@@ -203,35 +193,24 @@ pub fn buy(
                   DatumTypeListing,
                   escrow_datum.bond_symbol,
                 )
-              let buy_bond_policy_id_match_escrow =
-                dict.size(biz_input_obj.smart_contract.bond_assets) > 0
-              let sm_input_must_only_one_bond_name =
-                dict.size(biz_input_obj.smart_contract.bond_assets) <= 1
-              let sm_input_bond_same_escrow =
-                dict.has_key(
-                  biz_input_obj.smart_contract.bond_assets,
-                  escrow_info.token_name,
-                )
-              biz_tx_info_valid && buy_bond_policy_id_match_escrow? && sm_input_must_only_one_bond_name? && sm_input_bond_same_escrow? && when
-                biz_output_obj
-              is {
+              biz_tx_info_valid && (dict.size(
+                biz_input_obj.smart_contract.bond_assets,
+              ) > 0)? && (dict.size(biz_input_obj.smart_contract.bond_assets) <= 1)? && dict.has_key(
+                biz_input_obj.smart_contract.bond_assets,
+                escrow_info.token_name,
+              )? && when biz_output_obj is {
                 None -> {
                   trace @"biz_output_obj is None"
                   False
                 }
-                Some(biz_output) -> {
-                  let miss_balance_qty_bond =
-                    biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty
-                  let buyer_must_not_owner = biz_input_obj.owner.bond_qty <= 0
-                  let buyer_must_not_market = biz_input_obj.market.bond_qty <= 0
-                  buyer_must_not_market? && buyer_must_not_owner? && miss_balance_qty_bond? && buy_correct(
+                Some(biz_output) ->
+                  (biz_input_obj.market.bond_qty <= 0)? && (biz_input_obj.owner.bond_qty <= 0)? && (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty)? && buy_correct(
                     conf,
                     requested_yield,
                     biz_input_obj,
                     biz_output,
                     escrow_info,
                   )
-                }
               }
             }
             Error(_) -> {

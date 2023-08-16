@@ -1386,7 +1386,7 @@ test bidding_sell_fail_escrow_datum_not_found() {
   )
 }
 
-!test bidding_sell_fail_escrow_datum_unexpect() {
+test bidding_sell_fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
