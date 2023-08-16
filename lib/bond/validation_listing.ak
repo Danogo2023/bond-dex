@@ -37,7 +37,7 @@ fn buy_is_valid(
   // phi buyer phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  (biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (biz_output_obj.owner.lovelace = received_with_yield - market_fee_seller)? && (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty)?
+  (biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (biz_output_obj.owner.lovelace == received_with_yield - market_fee_seller)? && (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty)?
 }
 
 fn buy_correct(
