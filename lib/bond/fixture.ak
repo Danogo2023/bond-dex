@@ -47,7 +47,9 @@ pub fn tx(
       reference_inputs,
       outputs,
       fee: value.zero(),
-      mint: value.from_asset(#"000000", #"000020e05363726970744f776e6572", -1),
+      mint: value.to_minted_value(
+        value.from_asset(#"000000", #"000020e05363726970744f776e6572", -1),
+      ),
       certificates: [],
       withdrawals: dict.new(),
       validity_range: Interval {
@@ -378,10 +380,7 @@ pub fn get_input_escrow(
     },
     output: Output {
       address,
-      value: value.add(
-        value.from_lovelace(lovelace),
-        value.from_asset(policy_id, asset_name, 1),
-      ),
+      value: value.add(value.from_lovelace(lovelace), policy_id, asset_name, 1),
       datum,
       reference_script: None,
     },
@@ -436,7 +435,7 @@ pub fn gen_input(
     output: Output {
       address,
       value: when assets is {
-        Some(x) -> value.add(value.from_lovelace(lovelace), x)
+        Some(x) -> value.merge(value.from_lovelace(lovelace), x)
         _ -> value.from_lovelace(lovelace)
       },
       datum,
@@ -465,7 +464,7 @@ pub fn gen_output(
   Output {
     address,
     value: when assets is {
-      Some(x) -> value.add(value.from_lovelace(lovelace), x)
+      Some(x) -> value.merge(value.from_lovelace(lovelace), x)
       _ -> value.from_lovelace(lovelace)
     },
     datum,

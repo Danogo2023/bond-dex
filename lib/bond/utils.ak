@@ -83,7 +83,7 @@ pub fn get_escrow_info(
     } else {
       interest_level_epoch - escrow_datum.buffer + 1
     }
-  if list.or([current_epoch > end_epoch, closable_in <= 0]) {
+  if current_epoch > end_epoch || closable_in <= 0 {
     Error("Escrow closable")
   } else {
     // Tien phi Optim thu cua Borrower 3%
@@ -180,10 +180,6 @@ pub fn bond_assets(
   )
 }
 
-pub fn accumulation(self: Dict<AssetName, Int>, zero: Int) -> Int {
-  dict.fold(self, fn(_, v, c) { v + c }, zero)
-}
-
 fn out_datum_owner_valid(
   conf: Config,
   extra_signatories: List<PublicKeyHash>,
@@ -197,11 +193,7 @@ fn out_datum_owner_valid(
   ) == requested_yield)?
 }
 
-fn out_datum_epoch_valid(
-  from_epoch: Int,
-  to_epoch: Int,
-  quantity: Int,
-) -> Bool {
+fn out_datum_epoch_valid(from_epoch: Int, to_epoch: Int, quantity: Int) -> Bool {
   (to_epoch >= from_epoch)? && (quantity > 0)?
 }
 
@@ -346,7 +338,7 @@ fn build_biz_output_info(
         bond_datum_valid,
         bond_outputs: [output, ..self.bond_outputs],
         bond_assets: bond_assets(self.bond_assets, bond_values),
-        bond_qty: accumulation(bond_values, self.bond_qty),
+        bond_qty: dict.foldl(bond_values, self.bond_qty, fn(_, v, z) { v + z }),
         lovelace: self.lovelace + value.lovelace_of(output.value),
         other_outputs: self.other_outputs,
       }

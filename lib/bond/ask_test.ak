@@ -60,7 +60,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
             bond_name_ask_1,
             sm_in_bond_qty,
           ),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3),
+          get_bond_policy_id(), bond_name_ask_2, 3,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -128,7 +128,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 6),
+          get_bond_policy_id(), bond_name_ask_1, 6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -278,7 +278,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 6),
+          get_bond_policy_id(), bond_name_ask_1, 6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -572,7 +572,7 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -715,7 +715,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -865,7 +865,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 6),
+          get_bond_policy_id(), bond_name_ask_1, 6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1015,7 +1015,7 @@ test buy_limit_fail_escrow_address_unexpect() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 6),
+          get_bond_policy_id(), bond_name_ask_1, 6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1158,7 +1158,7 @@ test buy_limit_fail_escrow_datum_not_found() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_1, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3),
+          get_bond_policy_id(), bond_name_ask_2, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1301,7 +1301,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_1, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3),
+          get_bond_policy_id(), bond_name_ask_2, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1473,7 +1473,7 @@ test buy_limit_fail_escrow_closable() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_1, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3),
+          get_bond_policy_id(), bond_name_ask_2, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1616,7 +1616,7 @@ test buy_limit_fail_buyer_must_not_owner() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1759,7 +1759,7 @@ test buy_limit_fail_buyer_must_not_market() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1902,7 +1902,7 @@ test buy_limit_succ_partial() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2045,7 +2045,7 @@ test buy_limit_succ_full_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2330,7 +2330,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2473,7 +2473,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2758,7 +2758,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2901,7 +2901,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -3186,7 +3186,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -3329,7 +3329,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -3614,7 +3614,7 @@ test buy_limit_succ_bond_policy_id_valid() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          value.from_asset(get_bond_policy_id(), bond_name_ask_1, 3),
+          get_bond_policy_id(), bond_name_ask_1, 3,
         ),
       ),
       DatumHash(payment_datum_hash),
