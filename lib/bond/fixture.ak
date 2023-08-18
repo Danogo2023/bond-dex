@@ -148,7 +148,7 @@ fn get_market_config() -> MarketConfig {
     address: get_market_address(),
     buyer_fee: 100,
     seller_fee: 100,
-    sell_valid_slot: Some(6 * 60),
+    tx_buy_valid_slot: Some(3 * 60),
   }
 }
 

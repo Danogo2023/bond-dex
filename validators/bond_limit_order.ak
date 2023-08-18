@@ -1,9 +1,11 @@
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
-use bond/types.{AskLimit, BidLimit, Buy, Config, Sell, TradeAction, Update}
-use bond/utils.{must_be_signed_by}
 use bond/ask
 use bond/bid
+use bond/types.{
+  AskLimit, BidLimit, BondDatum, Buy, Config, Sell, TradeAction, Update,
+}
+use bond/utils.{must_be_signed_by}
 use common/utils.{get_spending_input} as common_utils
 
 validator(conf: Config) {
@@ -30,7 +32,7 @@ validator(conf: Config) {
         ask.buy(
           tx,
           conf,
-          datum,
+          BondDatum(Some(datum), None),
           owner_address,
           get_spending_input(ctx).output.address,
         )
@@ -63,7 +65,7 @@ validator(conf: Config) {
         bid.sell(
           tx,
           conf,
-          datum,
+          BondDatum(Some(datum), None),
           owner_address,
           get_spending_input(ctx).output.address,
         )

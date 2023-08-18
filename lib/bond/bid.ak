@@ -6,8 +6,8 @@ use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
-  BidLimit, BizOutput, BizTxInfo, Config, DatumTypeBidLimit, Error, EscrowDatum,
-  EscrowInfo, OK,
+  BidLimit, BidMaking, BizOutput, BizTxInfo, BondDatum, Config,
+  DatumTypeBidLimit, DatumTypeBidMaking, Error, EscrowDatum, EscrowInfo, OK,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -18,26 +18,57 @@ use common/utils.{get_data} as common_utils
 fn sell_correct(
   tx: Transaction,
   conf: Config,
-  bid_limit_datum: BidLimit,
-  biz_input_obj: BizOutput,
-  biz_output_obj: BizOutput,
+  spending_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
+  in: BizOutput,
+  out: BizOutput,
   escrow_info: EscrowInfo,
-  sm_output_utxo: Option<Output>,
+  sc_out_utxo: Option<Output>,
 ) -> Bool {
-  let buyer_receive_bonds_qty = biz_output_obj.owner.bond_qty
-  let buyer_receive_lovelace = biz_output_obj.owner.lovelace
-  let buyer_bidding_bonds_qty = bid_limit_datum.quantity
+  let buyer_receive_bonds_qty = out.owner.bond_qty
+  let buyer_receive_lovelace = out.owner.lovelace
+  let (
+    spending_quantity,
+    spending_to_epoch,
+    spending_from_epoch,
+    spending_requested_yield,
+    spending_owner_payment_key,
+    spending_owner_stake_key,
+  ) =
+    when spending_datum.making is {
+      Some(m) ->
+        (
+          m.quantity,
+          m.to_epoch,
+          m.from_epoch,
+          m.requested_yield,
+          m.owner_payment_key,
+          m.owner_stake_key,
+        )
+      _ ->
+        when spending_datum.limit is {
+          Some(l) ->
+            (
+              l.quantity,
+              l.to_epoch,
+              l.from_epoch,
+              l.requested_yield,
+              l.owner_payment_key,
+              l.owner_stake_key,
+            )
+          _ -> (-1, -1, -1, -1, #"", None)
+        }
+    }
 
-  let seller_input_lovelace = biz_input_obj.other.lovelace
+  let seller_in_lovelace = in.other.lovelace
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
     escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
-  // Tong tien buyer(owner of bidding) phai tra/seller nhan duoc chua tru phi
+  // Tong tien buyer(owner of bid) phai tra/seller nhan duoc chua tru phi
   let received_with_yield =
     get_price_of_bond(
       escrow_info.received_at_maturity_one_bond,
       escrow_info.day_to_maturity,
-      bid_limit_datum.requested_yield,
+      spending_requested_yield,
       conf.bond.basis_points_ref_unit,
     ) * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
@@ -45,25 +76,25 @@ fn sell_correct(
   // phi seller phai tra cho san theo ti le trong config
   let market_fee_seller =
     received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
-  // phi buyer(owner of bidding) phai tra cho san theo ti le trong config
+  // phi buyer(owner of bid) phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
   let market_fee_total = market_fee_buyer + market_fee_seller
   let seller_receive_total = received_with_yield - market_fee_seller
 
-  (biz_output_obj.market.lovelace >= market_fee_total)? && (biz_output_obj.other.lovelace <= seller_input_lovelace + seller_receive_total - value.lovelace_of(
+  (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
     tx.fee,
-  ))? && (biz_output_obj.smart_contract.lovelace == biz_input_obj.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
-    sm_output_utxo
+  ))? && (out.smart_contract.lovelace == in.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
+    sc_out_utxo
   is {
     Some(utxo) ->
       when get_data(tx.datums, utxo.datum) is {
         Some(datum) -> {
-          expect sm_output_bid_limit_datum: BidLimit = datum
-          (sm_output_bid_limit_datum.owner_payment_key == bid_limit_datum.owner_payment_key)? && (sm_output_bid_limit_datum.owner_stake_key == bid_limit_datum.owner_stake_key)? && (sm_output_bid_limit_datum.to_epoch == bid_limit_datum.to_epoch)? && (sm_output_bid_limit_datum.from_epoch == bid_limit_datum.from_epoch)? && (sm_output_bid_limit_datum.requested_yield == bid_limit_datum.requested_yield)? && (sm_output_bid_limit_datum.quantity == buyer_bidding_bonds_qty - buyer_receive_bonds_qty)?
+          expect sc_out_datum: BidLimit = datum
+          (sc_out_datum.owner_payment_key == spending_owner_payment_key)? && (sc_out_datum.owner_stake_key == spending_owner_stake_key)? && (sc_out_datum.to_epoch == spending_to_epoch)? && (sc_out_datum.from_epoch == spending_from_epoch)? && (sc_out_datum.requested_yield == spending_requested_yield)? && (sc_out_datum.quantity == spending_quantity - buyer_receive_bonds_qty)?
         }
         None ->
-          // trace @"not found output bidding datum"
+          // trace @"not found output bid datum"
           False
       }
     None -> True
@@ -73,7 +104,7 @@ fn sell_correct(
 pub fn sell(
   tx: Transaction,
   conf: Config,
-  bid_limit_datum: BidLimit,
+  spending_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
   owner: Address,
   smart_contract: Address,
 ) -> Bool {
@@ -87,11 +118,20 @@ pub fn sell(
       VerificationKeyCredential(x) -> x
       _ -> #""
     }
-  (bid_limit_datum.quantity > 0)? && (bid_limit_datum.to_epoch >= bid_limit_datum.from_epoch)? && (validity_after_must_set > 0)? && not(
+  let (spending_quantity, spending_to_epoch, spending_from_epoch) =
+    when spending_datum.making is {
+      Some(m) -> (m.quantity, m.to_epoch, m.from_epoch)
+      _ ->
+        when spending_datum.limit is {
+          Some(l) -> (l.quantity, l.to_epoch, l.from_epoch)
+          _ -> (-1, -1, -1)
+        }
+    }
+  (spending_quantity > 0)? && (spending_to_epoch >= spending_from_epoch)? && (validity_after_must_set > 0)? && not(
     bytearray.is_empty(owner_vk),
   )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
-    Some(ref_input_escrow) ->
-      when get_data(tx.datums, ref_input_escrow.output.datum) is {
+    Some(ref_in_escrow) ->
+      when get_data(tx.datums, ref_in_escrow.output.datum) is {
         Some(d) -> {
           expect escrow_datum: EscrowDatum = d
           let current_epoch =
@@ -102,10 +142,10 @@ pub fn sell(
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
           let end_epoch = start_epoch + escrow_datum.duration
-          (end_epoch >= current_epoch)? && (end_epoch >= bid_limit_datum.from_epoch)? && (end_epoch <= bid_limit_datum.to_epoch)? && when
+          (end_epoch >= current_epoch)? && (end_epoch >= spending_from_epoch)? && (end_epoch <= spending_to_epoch)? && when
             get_escrow_info(
               conf.bond,
-              value.lovelace_of(ref_input_escrow.output.value),
+              value.lovelace_of(ref_in_escrow.output.value),
               escrow_datum,
               validity_after_must_set,
               current_epoch,
@@ -116,8 +156,8 @@ pub fn sell(
             OK(escrow_info) -> {
               let BizTxInfo {
                 valid: biz_tx_info_valid,
-                biz_input_obj,
-                biz_output_obj,
+                biz_in_obj: in,
+                biz_out_obj: out,
               } =
                 collect_biz_tx_info(
                   conf,
@@ -127,36 +167,42 @@ pub fn sell(
                   smart_contract,
                   [owner_vk],
                   tx.datums,
-                  DatumTypeBidLimit,
+                  when spending_datum.making is {
+                    Some(_) -> DatumTypeBidMaking
+                    _ -> DatumTypeBidLimit
+                  },
                   escrow_datum.bond_symbol,
-                  None,
+                  when spending_datum.making is {
+                    Some(m) -> Some(m.margin)
+                    _ -> None
+                  },
                 )
-              biz_tx_info_valid && when biz_output_obj is {
+              biz_tx_info_valid && when out is {
                 None -> {
-                  trace @"biz_output_obj is None"
+                  trace @"out is None"
                   False
                 }
-                Some(biz_output) -> {
-                  let sm_output_utxos =
+                Some(biz_out) -> {
+                  let sc_out_utxos =
                     list.concat(
-                      biz_output.smart_contract.bond_outputs,
-                      biz_output.smart_contract.other_outputs,
+                      biz_out.smart_contract.bond_outputs,
+                      biz_out.smart_contract.other_outputs,
                     )
-                  (biz_input_obj.owner.lovelace <= 0)? && (biz_input_obj.market.lovelace <= 0)? && (dict.size(
-                    biz_output.owner.bond_assets,
-                  ) > 0)? && (dict.size(biz_output.owner.bond_assets) <= 1)? && dict.has_key(
-                    biz_output.owner.bond_assets,
+                  (in.owner.lovelace <= 0)? && (in.market.lovelace <= 0)? && (dict.size(
+                    biz_out.owner.bond_assets,
+                  ) > 0)? && (dict.size(biz_out.owner.bond_assets) <= 1)? && dict.has_key(
+                    biz_out.owner.bond_assets,
                     escrow_info.token_name,
-                  )? && (list.length(sm_output_utxos) <= 1)? && (
-                    (biz_output.owner.bond_qty > 0)? && (biz_output.owner.bond_qty <= bid_limit_datum.quantity)?
+                  )? && (list.length(sc_out_utxos) <= 1)? && (
+                    (biz_out.owner.bond_qty > 0)? && (biz_out.owner.bond_qty <= in.other.bond_qty)? && (biz_out.owner.bond_qty <= spending_quantity)?
                   ) && sell_correct(
                     tx,
                     conf,
-                    bid_limit_datum,
-                    biz_input_obj,
-                    biz_output,
+                    spending_datum,
+                    in,
+                    biz_out,
                     escrow_info,
-                    list.at(sm_output_utxos, 0),
+                    list.at(sc_out_utxos, 0),
                   )
                 }
               }

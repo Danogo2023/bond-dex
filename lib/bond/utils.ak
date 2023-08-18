@@ -14,14 +14,7 @@ use bond/types.{
   EscrowInfo, EscrowInfoResult, OK,
 }
 use common/types.{Datums, PublicKeyHash} as common_types
-use common/utils.{get_data}
-
-pub fn get_payment_key(address: Address) -> ByteArray {
-  when address.payment_credential is {
-    VerificationKeyCredential(v) -> v
-    ScriptCredential(s) -> s
-  }
-}
+use common/utils.{get_data, get_payment_key}
 
 pub fn must_be_signed_by(
   extra_signatories: List<PublicKeyHash>,
@@ -191,7 +184,7 @@ pub fn accumulation(self: Dict<AssetName, Int>, zero: Int) -> Int {
   dict.fold(self, fn(_, v, c) { v + c }, zero)
 }
 
-fn check_output_sc_datum_owner(
+fn out_datum_owner_valid(
   conf: Config,
   extra_signatories: List<PublicKeyHash>,
   owner_payment_key: ByteArray,
@@ -204,7 +197,7 @@ fn check_output_sc_datum_owner(
   ) == requested_yield)?
 }
 
-fn check_output_sc_datum_epoch(
+fn out_datum_epoch_valid(
   from_epoch: Int,
   to_epoch: Int,
   quantity: Int,
@@ -212,20 +205,21 @@ fn check_output_sc_datum_epoch(
   (to_epoch >= from_epoch)? && (quantity > 0)?
 }
 
-fn check_output_sc_datum_making(
+fn out_datum_making_valid(
   conf: Config,
-  spending_sc_payment_key: ByteArray,
+  spending_payment_key: ByteArray,
   payment_key: ByteArray,
-  spending_sc_margin: Int,
+  spending_margin: Int,
   margin: Option<Int>,
+  requested_yield: Int,
 ) -> Bool {
-  (payment_key == spending_sc_payment_key)? && when margin is {
+  (payment_key == spending_payment_key)? && when margin is {
     Some(m) ->
-      (m == spending_sc_margin)? && (math.clamp(
-        m,
+      (m == spending_margin)? && (math.clamp(
+        m + requested_yield,
         conf.bond.basis_points_min,
         conf.bond.basis_points_max,
-      ) == m)?
+      ) == m + requested_yield)?
     None -> False
   }?
 }
@@ -234,14 +228,14 @@ fn datum_is_valid(
   conf: Config,
   extra_signatories: List<PublicKeyHash>,
   datum_type: DatumType,
-  output_datum: Data,
-  spending_sc_payment_key: ByteArray,
-  spending_sc_margin: Option<Int>,
+  out_datum: Data,
+  spending_payment_key: ByteArray,
+  spending_margin: Option<Int>,
 ) -> Bool {
   when datum_type is {
     DatumTypeAskLimit -> {
-      expect ask_limit_datum: AskLimit = output_datum
-      check_output_sc_datum_owner(
+      expect ask_limit_datum: AskLimit = out_datum
+      out_datum_owner_valid(
         conf,
         extra_signatories,
         ask_limit_datum.owner_payment_key,
@@ -249,50 +243,52 @@ fn datum_is_valid(
       )
     }
     DatumTypeAskMaking -> {
-      expect ask_making_datum: AskMaking = output_datum
-      check_output_sc_datum_owner(
+      expect ask_making_datum: AskMaking = out_datum
+      out_datum_owner_valid(
         conf,
         extra_signatories,
         ask_making_datum.owner_payment_key,
         ask_making_datum.requested_yield,
-      ) && check_output_sc_datum_making(
+      ) && out_datum_making_valid(
         conf,
         ask_making_datum.bid_smart_contract,
-        spending_sc_payment_key,
+        spending_payment_key,
         ask_making_datum.margin,
-        spending_sc_margin,
+        spending_margin,
+        ask_making_datum.requested_yield,
       )
     }
     DatumTypeBidLimit -> {
-      expect bid_limit_datum: BidLimit = output_datum
-      check_output_sc_datum_owner(
+      expect bid_limit_datum: BidLimit = out_datum
+      out_datum_owner_valid(
         conf,
         extra_signatories,
         bid_limit_datum.owner_payment_key,
         bid_limit_datum.requested_yield,
-      ) && check_output_sc_datum_epoch(
+      ) && out_datum_epoch_valid(
         bid_limit_datum.from_epoch,
         bid_limit_datum.to_epoch,
         bid_limit_datum.quantity,
       )
     }
     DatumTypeBidMaking -> {
-      expect bid_making_datum: BidMaking = output_datum
-      check_output_sc_datum_owner(
+      expect bid_making_datum: BidMaking = out_datum
+      out_datum_owner_valid(
         conf,
         extra_signatories,
         bid_making_datum.owner_payment_key,
         bid_making_datum.requested_yield,
-      ) && check_output_sc_datum_epoch(
+      ) && out_datum_epoch_valid(
         bid_making_datum.from_epoch,
         bid_making_datum.to_epoch,
         bid_making_datum.quantity,
-      ) && check_output_sc_datum_making(
+      ) && out_datum_making_valid(
         conf,
         bid_making_datum.ask_smart_contract,
-        spending_sc_payment_key,
+        spending_payment_key,
         bid_making_datum.margin,
-        spending_sc_margin,
+        spending_margin,
+        0 - bid_making_datum.requested_yield,
       )
     }
     _ -> False
@@ -308,8 +304,8 @@ fn build_biz_output_info(
   datums: Datums,
   conf: Config,
   datum_type: DatumType,
-  spending_sc_payment_key: ByteArray,
-  spending_sc_margin: Option<Int>,
+  spending_payment_key: ByteArray,
+  spending_margin: Option<Int>,
 ) -> BizOutputInfo {
   let addresses =
     if list.has(self.addresses, output.address) {
@@ -337,8 +333,8 @@ fn build_biz_output_info(
               extra_signatories,
               datum_type,
               d,
-              spending_sc_payment_key,
-              spending_sc_margin,
+              spending_payment_key,
+              spending_margin,
             )
           None -> {
             trace @"not found datum"
@@ -368,10 +364,10 @@ fn build_biz_data(
   data: BizOutput,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spending_sc_margin: Option<Int>,
+  spending_margin: Option<Int>,
 ) -> BizOutput {
   let bond_values = value.tokens(output.value, bond_policy_id)
-  let biz_output_info =
+  let biz_out_info =
     build_biz_output_info(
       if output.address == smart_contract {
         data.smart_contract
@@ -394,27 +390,27 @@ fn build_biz_data(
       conf,
       datum_type,
       get_payment_key(smart_contract),
-      spending_sc_margin,
+      spending_margin,
     )
   BizOutput {
-    valid: biz_output_info.bond_datum_valid,
+    valid: biz_out_info.bond_datum_valid,
     unique_bonds: bond_assets(data.unique_bonds, bond_values),
     smart_contract: when (output.address, smart_contract) is {
-      (a, b) if a == b -> biz_output_info
+      (a, b) if a == b -> biz_out_info
       _ -> data.smart_contract
     },
     owner: when (output.address, owner) is {
-      (a, b) if a == b -> biz_output_info
+      (a, b) if a == b -> biz_out_info
       _ -> data.owner
     },
     market: when (output.address, conf.market.address) is {
-      (a, b) if a == b -> biz_output_info
+      (a, b) if a == b -> biz_out_info
       _ -> data.market
     },
     other: when
       (output.address, smart_contract, owner, conf.market.address)
     is {
-      (a, b, c, d) if a != b && a != c && a != d -> biz_output_info
+      (a, b, c, d) if a != b && a != c && a != d -> biz_out_info
       _ -> data.other
     },
   }
@@ -430,7 +426,7 @@ fn get_biz_output(
   recursive: BizOutput,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spending_sc_margin: Option<Int>,
+  spending_margin: Option<Int>,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -446,7 +442,7 @@ fn get_biz_output(
           recursive,
           datum_type,
           bond_policy_id,
-          spending_sc_margin,
+          spending_margin,
         )
       if !biz_data.valid {
         biz_data
@@ -461,7 +457,7 @@ fn get_biz_output(
           biz_data,
           datum_type,
           bond_policy_id,
-          spending_sc_margin,
+          spending_margin,
         )
       }
     }
@@ -478,7 +474,7 @@ fn get_biz_input(
   recursive: BizOutput,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spending_sc_margin: Option<Int>,
+  spending_margin: Option<Int>,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -494,7 +490,7 @@ fn get_biz_input(
           recursive,
           datum_type,
           bond_policy_id,
-          spending_sc_margin,
+          spending_margin,
         )
       if !biz_data.valid {
         biz_data
@@ -509,7 +505,7 @@ fn get_biz_input(
           biz_data,
           datum_type,
           bond_policy_id,
-          spending_sc_margin,
+          spending_margin,
         )
       }
     }
@@ -526,9 +522,9 @@ pub fn collect_biz_tx_info(
   datums: Datums,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spending_sc_margin: Option<Int>,
+  spending_margin: Option<Int>,
 ) -> BizTxInfo {
-  let biz_output_info_init =
+  let biz_out_info_init =
     BizOutputInfo {
       addresses: [],
       bond_datum_valid: True,
@@ -538,16 +534,16 @@ pub fn collect_biz_tx_info(
       lovelace: 0,
       other_outputs: [],
     }
-  let biz_output_init =
+  let biz_out_init =
     BizOutput {
       valid: True,
       unique_bonds: dict.new(),
-      smart_contract: biz_output_info_init,
-      market: biz_output_info_init,
-      owner: biz_output_info_init,
-      other: biz_output_info_init,
+      smart_contract: biz_out_info_init,
+      market: biz_out_info_init,
+      owner: biz_out_info_init,
+      other: biz_out_info_init,
     }
-  let biz_input_obj: BizOutput =
+  let biz_in_obj: BizOutput =
     get_biz_input(
       conf,
       inputs,
@@ -555,13 +551,13 @@ pub fn collect_biz_tx_info(
       smart_contract,
       extra_signatories,
       datums,
-      biz_output_init,
+      biz_out_init,
       datum_type,
       bond_policy_id,
-      spending_sc_margin,
+      spending_margin,
     )
-  if biz_input_obj.valid {
-    let biz_output_obj: BizOutput =
+  if biz_in_obj.valid {
+    let biz_out_obj: BizOutput =
       get_biz_output(
         conf,
         outputs,
@@ -569,17 +565,17 @@ pub fn collect_biz_tx_info(
         smart_contract,
         extra_signatories,
         datums,
-        biz_output_init,
+        biz_out_init,
         datum_type,
         bond_policy_id,
-        spending_sc_margin,
+        spending_margin,
       )
     BizTxInfo {
-      valid: biz_output_obj.valid,
-      biz_input_obj,
-      biz_output_obj: Some(biz_output_obj),
+      valid: biz_out_obj.valid,
+      biz_in_obj,
+      biz_out_obj: Some(biz_out_obj),
     }
   } else {
-    BizTxInfo { valid: False, biz_input_obj, biz_output_obj: None }
+    BizTxInfo { valid: False, biz_in_obj, biz_out_obj: None }
   }
 }

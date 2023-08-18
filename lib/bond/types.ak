@@ -42,7 +42,7 @@ pub type MarketConfig {
   // value in range 0001 -> 9999 default: 1% per yield == 100
   seller_fee: Int,
   // Khoảng thời gian giao dịch sell hợp lệ, giá trị tính theo slot
-  sell_valid_slot: Option<Int>,
+  tx_buy_valid_slot: Option<Int>,
 }
 
 pub type Config {
@@ -116,8 +116,8 @@ pub type BizOutput {
 
 pub type BizTxInfo {
   valid: Bool,
-  biz_input_obj: BizOutput,
-  biz_output_obj: Option<BizOutput>,
+  biz_in_obj: BizOutput,
+  biz_out_obj: Option<BizOutput>,
 }
 
 pub type DatumType {
@@ -167,8 +167,8 @@ pub type BidMaking {
 }
 
 pub type BondDatum<a, b> {
-  Limit(a)
-  Making(b)
+  limit: a,
+  making: b,
 }
 
 pub type TradeAction {

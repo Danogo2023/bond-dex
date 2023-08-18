@@ -6,8 +6,8 @@ use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
-  AskLimit, BizOutput, BizTxInfo, Config, DatumTypeAskLimit, Error, EscrowDatum,
-  EscrowInfo, OK,
+  AskLimit, AskMaking, BizOutput, BizTxInfo, BondDatum, Config,
+  DatumTypeAskLimit, DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo, OK,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -17,8 +17,8 @@ use common/utils.{get_data} as common_utils
 
 fn buy_is_valid(
   conf: Config,
-  biz_input_obj: BizOutput,
-  biz_output_obj: BizOutput,
+  in: BizOutput,
+  out: BizOutput,
   escrow_info: EscrowInfo,
   buyer_qty: Int,
   price_of_one_bond: Int,
@@ -37,57 +37,45 @@ fn buy_is_valid(
   // phi buyer phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  (biz_output_obj.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (biz_output_obj.owner.lovelace == received_with_yield - market_fee_seller)? && (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty - biz_output_obj.smart_contract.bond_qty == biz_output_obj.other.bond_qty)?
+  (out.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (out.owner.lovelace == received_with_yield - market_fee_seller)? && (in.smart_contract.bond_qty + in.other.bond_qty - out.smart_contract.bond_qty == out.other.bond_qty)?
 }
 
 fn buy_correct(
   conf: Config,
   requested_yield: Int,
-  biz_input_obj: BizOutput,
-  biz_output_obj: BizOutput,
+  in: BizOutput,
+  out: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
   let (
     qty_owner_2_buyer,
     min_ada_to_sm,
     min_ada_to_market,
-    sm_output_must_only_one_bond_name,
-    sm_output_bond_same_escrow,
+    sm_out_must_only_one_bond_name,
+    sm_out_bond_same_escrow,
   ) =
-    when biz_output_obj.smart_contract.bond_outputs is {
+    when out.smart_contract.bond_outputs is {
       [_, ..] ->
         // trace @"buy partial"
         (
-          biz_input_obj.smart_contract.bond_qty - biz_output_obj.smart_contract.bond_qty,
-          biz_input_obj.smart_contract.lovelace,
+          in.smart_contract.bond_qty - out.smart_contract.bond_qty,
+          in.smart_contract.lovelace,
           0,
-          dict.size(biz_output_obj.smart_contract.bond_assets) <= 1,
-          dict.has_key(
-            biz_output_obj.smart_contract.bond_assets,
-            escrow_info.token_name,
-          ),
+          dict.size(out.smart_contract.bond_assets) <= 1,
+          dict.has_key(out.smart_contract.bond_assets, escrow_info.token_name),
         )
       [] ->
         // trace @"buy all"
-        (
-          biz_input_obj.smart_contract.bond_qty,
-          0,
-          biz_input_obj.smart_contract.lovelace,
-          True,
-          True,
-        )
+        (in.smart_contract.bond_qty, 0, in.smart_contract.lovelace, True, True)
     }
-  sm_output_must_only_one_bond_name? && sm_output_bond_same_escrow? && (qty_owner_2_buyer == 0 || dict.has_key(
-    biz_output_obj.other.bond_assets,
+  sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer == 0 || dict.has_key(
+    out.other.bond_assets,
     escrow_info.token_name,
   ))? && when
     list.find(
-      dict.keys(biz_output_obj.smart_contract.bond_assets),
+      dict.keys(out.smart_contract.bond_assets),
       fn(sm_bond_name_output) {
-        !list.has(
-          dict.keys(biz_input_obj.smart_contract.bond_assets),
-          sm_bond_name_output,
-        )
+        !list.has(dict.keys(in.smart_contract.bond_assets), sm_bond_name_output)
       },
     )
   is {
@@ -97,11 +85,11 @@ fn buy_correct(
     }
     _ ->
       (
-        min_ada_to_sm <= 0 || (biz_output_obj.smart_contract.lovelace >= min_ada_to_sm)? && biz_output_obj.smart_contract.bond_datum_valid?
+        min_ada_to_sm <= 0 || (out.smart_contract.lovelace >= min_ada_to_sm)? && out.smart_contract.bond_datum_valid?
       ) && buy_is_valid(
         conf,
-        biz_input_obj,
-        biz_output_obj,
+        in,
+        out,
         escrow_info,
         qty_owner_2_buyer,
         get_price_of_bond(
@@ -118,7 +106,7 @@ fn buy_correct(
 pub fn buy(
   tx: Transaction,
   conf: Config,
-  ask_limit_datum: AskLimit,
+  ask_datum: BondDatum<Option<AskLimit>, Option<AskMaking>>,
   owner: Address,
   smart_contract: Address,
 ) -> Bool {
@@ -138,15 +126,15 @@ pub fn buy(
       _ -> #""
     }
   (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
-    conf.market.sell_valid_slot
+    conf.market.tx_buy_valid_slot
   is {
     Some(x) -> x
-    None -> 3 * 60 * 60
+    None -> 3 * 60
   } * conf.slot_config_network.slot_length)? && not(
     bytearray.is_empty(owner_vk),
   )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
-    Some(ref_input_escrow) ->
-      when get_data(tx.datums, ref_input_escrow.output.datum) is {
+    Some(ref_in_escrow) ->
+      when get_data(tx.datums, ref_in_escrow.output.datum) is {
         Some(d) -> {
           expect escrow_datum: EscrowDatum = d
           let start_epoch =
@@ -154,7 +142,7 @@ pub fn buy(
           when
             get_escrow_info(
               conf.bond,
-              value.lovelace_of(ref_input_escrow.output.value),
+              value.lovelace_of(ref_in_escrow.output.value),
               escrow_datum,
               validity_after_must_set,
               posix_time_to_relative_epoch(
@@ -168,8 +156,8 @@ pub fn buy(
             OK(escrow_info) -> {
               let BizTxInfo {
                 valid: biz_tx_info_valid,
-                biz_input_obj,
-                biz_output_obj,
+                biz_in_obj: in,
+                biz_out_obj: out,
               } =
                 collect_biz_tx_info(
                   conf,
@@ -179,25 +167,36 @@ pub fn buy(
                   smart_contract,
                   [owner_vk],
                   tx.datums,
-                  DatumTypeAskLimit,
+                  when ask_datum.making is {
+                    Some(_) -> DatumTypeAskMaking
+                    _ -> DatumTypeAskLimit
+                  },
                   escrow_datum.bond_symbol,
-                  None,
+                  when ask_datum.making is {
+                    Some(m) -> Some(m.margin)
+                    _ -> None
+                  },
                 )
-              biz_tx_info_valid && (dict.size(
-                biz_input_obj.smart_contract.bond_assets,
-              ) == 1)? && dict.has_key(
-                biz_input_obj.smart_contract.bond_assets,
+              biz_tx_info_valid && (dict.size(in.smart_contract.bond_assets) == 1)? && dict.has_key(
+                in.smart_contract.bond_assets,
                 escrow_info.token_name,
-              )? && when biz_output_obj is {
+              )? && when out is {
                 None -> {
-                  trace @"biz_output_obj is None"
+                  trace @"out is None"
                   False
                 }
                 Some(biz_output) ->
-                  (biz_input_obj.market.bond_qty <= 0)? && (biz_input_obj.owner.bond_qty <= 0)? && (biz_input_obj.smart_contract.bond_qty + biz_input_obj.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty)? && buy_correct(
+                  (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.smart_contract.bond_qty + in.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty)? && buy_correct(
                     conf,
-                    ask_limit_datum.requested_yield,
-                    biz_input_obj,
+                    when ask_datum.making is {
+                      Some(m) -> m.requested_yield
+                      _ ->
+                        when ask_datum.limit is {
+                          Some(l) -> l.requested_yield
+                          _ -> -1
+                        }
+                    },
+                    in,
                     biz_output,
                     escrow_info,
                   )
