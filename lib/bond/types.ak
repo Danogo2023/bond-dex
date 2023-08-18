@@ -122,27 +122,53 @@ pub type BizTxInfo {
 
 pub type DatumType {
   DatumTypePayment
-  DatumTypeListing
-  DatumTypeBidding
+  DatumTypeAskLimit
+  DatumTypeBidLimit
+  DatumTypeAskMaking
+  DatumTypeBidMaking
 }
 
 pub type PaymentDatum {
   output_reference: OutputReference,
 }
 
-pub type ListingDatum {
+pub type AskLimit {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
   requested_yield: Int,
 }
 
-pub type BiddingDatum {
+pub type AskMaking {
+  owner_payment_key: ByteArray,
+  owner_stake_key: Option<ByteArray>,
+  requested_yield: Int,
+  bid_smart_contract: ByteArray,
+  margin: Int,
+}
+
+pub type BidLimit {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
   from_epoch: Int,
   to_epoch: Int,
   quantity: Int,
   requested_yield: Int,
+}
+
+pub type BidMaking {
+  owner_payment_key: ByteArray,
+  owner_stake_key: Option<ByteArray>,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
+  requested_yield: Int,
+  ask_smart_contract: ByteArray,
+  margin: Int,
+}
+
+pub type BondDatum<a, b> {
+  Limit(a)
+  Making(b)
 }
 
 pub type TradeAction {
