@@ -1,22 +1,23 @@
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
-  calc_escrow_full_info, gen_bidding_datum, gen_input, gen_output, get_bond_id_1,
-  get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
+  calc_escrow_full_info, gen_bid_limit_datum, gen_input, gen_output,
+  get_bond_id_1, get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
   get_buyer_address_scripthash, get_config_mainnet, get_escrow_address,
   get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
   get_input_escrow, get_market_address, get_not_bond_policy_id,
   get_not_escrow_policy_id, get_seller_address, get_smart_contract_address,
 }
 use bond/utils.{get_price_of_bond}
-use bond/validation_bidding
+use bond/bid
 
 test bidding_sell_succ_full() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -27,7 +28,7 @@ test bidding_sell_succ_full() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -50,7 +51,7 @@ test bidding_sell_succ_full() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -78,12 +79,12 @@ test bidding_sell_succ_full() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -91,9 +92,9 @@ test bidding_sell_succ_full() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  validation_bidding.sell(
+  bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -109,7 +110,7 @@ test bidding_sell_succ_full() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -120,7 +121,8 @@ test bidding_sell_succ_partial() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -131,7 +133,7 @@ test bidding_sell_succ_partial() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -154,7 +156,7 @@ test bidding_sell_succ_partial() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -182,12 +184,12 @@ test bidding_sell_succ_partial() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -195,9 +197,9 @@ test bidding_sell_succ_partial() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  validation_bidding.sell(
+  bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -213,7 +215,7 @@ test bidding_sell_succ_partial() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -224,7 +226,8 @@ test bidding_sell_fail_input_epoch_1() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 480, 390, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 480, 390, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -235,7 +238,7 @@ test bidding_sell_fail_input_epoch_1() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -258,7 +261,7 @@ test bidding_sell_fail_input_epoch_1() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -286,12 +289,12 @@ test bidding_sell_fail_input_epoch_1() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -299,9 +302,9 @@ test bidding_sell_fail_input_epoch_1() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -317,7 +320,7 @@ test bidding_sell_fail_input_epoch_1() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -328,7 +331,8 @@ test bidding_sell_fail_input_epoch_2() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 464, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 464, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -339,7 +343,7 @@ test bidding_sell_fail_input_epoch_2() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -362,7 +366,7 @@ test bidding_sell_fail_input_epoch_2() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -390,12 +394,12 @@ test bidding_sell_fail_input_epoch_2() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -403,9 +407,9 @@ test bidding_sell_fail_input_epoch_2() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -421,7 +425,7 @@ test bidding_sell_fail_input_epoch_2() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -434,9 +438,9 @@ test bidding_sell_fail_input_epoch_2() {
   // let end_epoch =
   //   escrow_datum.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_datum.duration
   // end_epoch = 463
-  // input_bidding_datum.from_epoch = 390
-  // bidding_datum.to_epoch = 480
-  // end_epoch == input_bidding_datum.from_epoch
+  // input_bid_limit_datum.from_epoch = 390
+  // bid_limit_datum.to_epoch = 480
+  // end_epoch == input_bid_limit_datum.from_epoch
   // end_epoch == current_epoch
 }
 
@@ -445,7 +449,8 @@ test bidding_sell_fail_input_epoch_3() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 462, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 462, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -456,7 +461,7 @@ test bidding_sell_fail_input_epoch_3() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -479,7 +484,7 @@ test bidding_sell_fail_input_epoch_3() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -507,12 +512,12 @@ test bidding_sell_fail_input_epoch_3() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -520,9 +525,9 @@ test bidding_sell_fail_input_epoch_3() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -538,7 +543,7 @@ test bidding_sell_fail_input_epoch_3() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -549,7 +554,8 @@ test bidding_sell_fail_input_epoch_4() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 462, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 462, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -560,7 +566,7 @@ test bidding_sell_fail_input_epoch_4() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -583,7 +589,7 @@ test bidding_sell_fail_input_epoch_4() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -611,12 +617,12 @@ test bidding_sell_fail_input_epoch_4() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -624,9 +630,9 @@ test bidding_sell_fail_input_epoch_4() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -642,7 +648,7 @@ test bidding_sell_fail_input_epoch_4() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -663,7 +669,8 @@ test bidding_sell_fail_input_qty() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 0, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 0, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -674,7 +681,7 @@ test bidding_sell_fail_input_qty() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -697,7 +704,7 @@ test bidding_sell_fail_input_qty() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -725,12 +732,12 @@ test bidding_sell_fail_input_qty() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -738,9 +745,9 @@ test bidding_sell_fail_input_qty() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -756,7 +763,7 @@ test bidding_sell_fail_input_qty() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -767,7 +774,8 @@ test bidding_sell_fail_output_qty() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 1, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 1, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -778,7 +786,7 @@ test bidding_sell_fail_output_qty() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -801,7 +809,7 @@ test bidding_sell_fail_output_qty() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -829,12 +837,12 @@ test bidding_sell_fail_output_qty() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -842,9 +850,9 @@ test bidding_sell_fail_output_qty() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -860,7 +868,7 @@ test bidding_sell_fail_output_qty() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -871,7 +879,8 @@ test bidding_sell_fail_validity_after_not_set() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -882,7 +891,7 @@ test bidding_sell_fail_validity_after_not_set() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -905,7 +914,7 @@ test bidding_sell_fail_validity_after_not_set() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -933,12 +942,12 @@ test bidding_sell_fail_validity_after_not_set() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -946,9 +955,9 @@ test bidding_sell_fail_validity_after_not_set() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -964,7 +973,7 @@ test bidding_sell_fail_validity_after_not_set() {
       None,
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -975,7 +984,8 @@ test bidding_sell_fail_owner_address_format() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -986,7 +996,7 @@ test bidding_sell_fail_owner_address_format() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1009,7 +1019,7 @@ test bidding_sell_fail_owner_address_format() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1037,12 +1047,12 @@ test bidding_sell_fail_owner_address_format() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1050,9 +1060,9 @@ test bidding_sell_fail_owner_address_format() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1068,7 +1078,7 @@ test bidding_sell_fail_owner_address_format() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     get_buyer_address_scripthash(),
     sm_address,
   )
@@ -1079,7 +1089,8 @@ test bidding_sell_fail_escrow_policy_id_unexpect() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -1090,7 +1101,7 @@ test bidding_sell_fail_escrow_policy_id_unexpect() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1113,7 +1124,7 @@ test bidding_sell_fail_escrow_policy_id_unexpect() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1141,12 +1152,12 @@ test bidding_sell_fail_escrow_policy_id_unexpect() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1154,9 +1165,9 @@ test bidding_sell_fail_escrow_policy_id_unexpect() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1172,7 +1183,7 @@ test bidding_sell_fail_escrow_policy_id_unexpect() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1183,7 +1194,8 @@ test bidding_sell_fail_escrow_address_unexpect() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -1194,7 +1206,7 @@ test bidding_sell_fail_escrow_address_unexpect() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1217,7 +1229,7 @@ test bidding_sell_fail_escrow_address_unexpect() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1245,12 +1257,12 @@ test bidding_sell_fail_escrow_address_unexpect() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1258,9 +1270,9 @@ test bidding_sell_fail_escrow_address_unexpect() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1276,7 +1288,7 @@ test bidding_sell_fail_escrow_address_unexpect() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1287,7 +1299,8 @@ test bidding_sell_fail_escrow_datum_not_found() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -1298,7 +1311,7 @@ test bidding_sell_fail_escrow_datum_not_found() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1321,7 +1334,7 @@ test bidding_sell_fail_escrow_datum_not_found() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1349,12 +1362,12 @@ test bidding_sell_fail_escrow_datum_not_found() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1362,9 +1375,9 @@ test bidding_sell_fail_escrow_datum_not_found() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1380,7 +1393,7 @@ test bidding_sell_fail_escrow_datum_not_found() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1391,7 +1404,8 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -1402,7 +1416,7 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1425,7 +1439,7 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1438,7 +1452,7 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
       get_escrow_policy_id(),
       bond_name_1,
       escrow_lovelace,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   //
   let market_address = get_market_address()
@@ -1453,12 +1467,12 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1466,9 +1480,9 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1484,7 +1498,7 @@ test bidding_sell_fail_escrow_datum_unexpect() fail {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1495,7 +1509,8 @@ test bidding_sell_succ_bond_policy_id_valid() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -1506,7 +1521,7 @@ test bidding_sell_succ_bond_policy_id_valid() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1529,7 +1544,7 @@ test bidding_sell_succ_bond_policy_id_valid() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1557,12 +1572,12 @@ test bidding_sell_succ_bond_policy_id_valid() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1570,9 +1585,9 @@ test bidding_sell_succ_bond_policy_id_valid() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  validation_bidding.sell(
+  bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1588,7 +1603,7 @@ test bidding_sell_succ_bond_policy_id_valid() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1599,7 +1614,8 @@ test bidding_sell_fail_bond_policy_id_invalid() {
   let cfg = get_config_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let input_bidding_datum = gen_bidding_datum(owner_address, 390, 480, 5, 500)
+  let input_bid_limit_datum =
+    gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
   let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
@@ -1610,7 +1626,7 @@ test bidding_sell_fail_bond_policy_id_invalid() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      input_bidding_datum.requested_yield,
+      input_bid_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
@@ -1633,7 +1649,7 @@ test bidding_sell_fail_bond_policy_id_invalid() {
       sm_address,
       sm_input_lovelace,
       None,
-      InlineDatum(input_bidding_datum),
+      InlineDatum(input_bid_limit_datum),
     )
   let input_seller_lovelace = 1310316
   let asset_sell =
@@ -1661,12 +1677,12 @@ test bidding_sell_fail_bond_policy_id_invalid() {
     gen_output(owner_address, output_buyer_lovelace, Some(asset_sell), NoDatum)
   let output_sm_lovelace =
     sm_input_lovelace - received_with_yield - market_fee_buyer - output_buyer_lovelace
-  let output_bidding_datum =
-    gen_bidding_datum(
+  let output_bid_limit_datum =
+    gen_bid_limit_datum(
       owner_address,
       390,
       480,
-      input_bidding_datum.quantity - bond_sell_qty,
+      input_bid_limit_datum.quantity - bond_sell_qty,
       500,
     )
   let output_sm_utxo =
@@ -1674,9 +1690,9 @@ test bidding_sell_fail_bond_policy_id_invalid() {
       sm_address,
       output_sm_lovelace,
       None,
-      InlineDatum(output_bidding_datum),
+      InlineDatum(output_bid_limit_datum),
     )
-  !validation_bidding.sell(
+  !bid.sell(
     fixture.tx(
       [input_sm_1, input_seller_1],
       [reference_input_1],
@@ -1692,7 +1708,7 @@ test bidding_sell_fail_bond_policy_id_invalid() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    input_bidding_datum,
+    input_bid_limit_datum,
     owner_address,
     sm_address,
   )

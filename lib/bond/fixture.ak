@@ -12,8 +12,8 @@ use aiken/transaction/credential.{
 }
 use aiken/transaction/value.{AssetName, PolicyId, Value}
 use bond/types.{
-  BiddingDatum, BondConfig, Config, EpochConfig, EscrowDatum, ListingDatum,
-  MarketConfig, PaymentDatum,
+  AskLimit, BidLimit, BondConfig, Config, EpochConfig, EscrowDatum, MarketConfig,
+  PaymentDatum,
 }
 use bond/utils.{get_day_to_maturity, posix_time_to_relative_epoch}
 use common/types.{PublicKeyHash, SlotConfigNetwork} as common_types
@@ -388,8 +388,8 @@ pub fn get_input_escrow(
   }
 }
 
-pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
-  ListingDatum {
+pub fn gen_ask_limit_datum(owner: Address, requested_yield: Int) -> AskLimit {
+  AskLimit {
     owner_payment_key: when owner.payment_credential is {
       VerificationKeyCredential(vk) -> vk
       ScriptCredential(sh) -> sh
@@ -399,18 +399,17 @@ pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
       _ -> None
     },
     requested_yield,
-    order_type: None,
   }
 }
 
-pub fn gen_bidding_datum(
+pub fn gen_bid_limit_datum(
   owner: Address,
   from_epoch: Int,
   to_epoch: Int,
   quantity: Int,
   requested_yield: Int,
-) -> BiddingDatum {
-  BiddingDatum {
+) -> BidLimit {
+  BidLimit {
     owner_payment_key: when owner.payment_credential is {
       VerificationKeyCredential(vk) -> vk
       ScriptCredential(sh) -> sh
@@ -423,7 +422,6 @@ pub fn gen_bidding_datum(
     to_epoch,
     quantity,
     requested_yield,
-    order_type: None,
   }
 }
 

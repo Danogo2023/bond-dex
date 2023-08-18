@@ -1,7 +1,7 @@
-name = 'danogo bonds exchange'
-version = '0.0.0'
+name = 'Danogo2023/bonds-dex'
+version = '1.0.0'
 license = 'Apache-2.0'
-description = "Aiken contracts for project danogo bonds exchange"
+description = "Aiken contracts for project Danogo2023/bonds-dex"
 
 [repository]
 user = 'Danogo2023'

@@ -5,22 +5,22 @@ use aiken/hash.{blake2b_256}
 use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/fixture.{
-  calc_escrow_full_info, gen_input, gen_listing_datum, gen_output, get_bond_id_1,
-  get_bond_id_2, get_bond_policy_id, get_buyer_address, get_config_mainnet,
-  get_config_preview, get_escrow_address, get_escrow_address_unexpect,
-  get_escrow_datum, get_escrow_policy_id, get_input_escrow, get_market_address,
-  get_not_bond_policy_id, get_not_escrow_policy_id, get_payment_datum,
-  get_seller_address, get_seller_address_hash, get_smart_contract_address,
-  scripthash_address,
+  calc_escrow_full_info, gen_ask_limit_datum, gen_input, gen_output,
+  get_bond_id_1, get_bond_id_2, get_bond_policy_id, get_buyer_address,
+  get_config_mainnet, get_config_preview, get_escrow_address,
+  get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
+  get_input_escrow, get_market_address, get_not_bond_policy_id,
+  get_not_escrow_policy_id, get_payment_datum, get_seller_address,
+  get_seller_address_hash, get_smart_contract_address, scripthash_address,
 }
 use bond/utils.{get_price_of_bond, posix_time_to_relative_epoch}
-use bond/validation_listing
+use bond/ask
 
 test listing_buy_fail_partial_must_only_one_bond_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -32,7 +32,7 @@ test listing_buy_fail_partial_must_only_one_bond_1() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -62,7 +62,7 @@ test listing_buy_fail_partial_must_only_one_bond_1() {
           value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3),
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -143,9 +143,9 @@ test listing_buy_fail_partial_must_only_one_bond_1() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -156,7 +156,7 @@ test listing_buy_fail_partial_must_only_one_bond_1() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -166,7 +166,7 @@ test listing_buy_fail_partial_must_only_one_bond_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -178,7 +178,7 @@ test listing_buy_fail_partial_must_only_one_bond_2() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -205,14 +205,14 @@ test listing_buy_fail_partial_must_only_one_bond_2() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let input_sm_bond_spending_2 =
     gen_input(
       sm_address,
       sm_input_lovelace,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -293,9 +293,9 @@ test listing_buy_fail_partial_must_only_one_bond_2() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_sm_bond_spending_2, input_buyer_1],
       [reference_input_1],
@@ -306,7 +306,7 @@ test listing_buy_fail_partial_must_only_one_bond_2() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -316,7 +316,7 @@ test listing_buy_fail_partial_change_bond_name() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -328,7 +328,7 @@ test listing_buy_fail_partial_change_bond_name() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -355,7 +355,7 @@ test listing_buy_fail_partial_change_bond_name() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -443,9 +443,9 @@ test listing_buy_fail_partial_change_bond_name() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -456,18 +456,18 @@ test listing_buy_fail_partial_change_bond_name() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
 }
 
-test listing_buy_fail_partial_listing_datum_owner_invalid() {
+test listing_buy_fail_partial_ask_limit_datum_owner_invalid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum =
-    gen_listing_datum(scripthash_address(#"010203040506"), 515)
+  let ask_limit_datum =
+    gen_ask_limit_datum(scripthash_address(#"010203040506"), 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -479,7 +479,7 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -506,7 +506,7 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -587,9 +587,9 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -600,7 +600,7 @@ test listing_buy_fail_partial_listing_datum_owner_invalid() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -610,7 +610,7 @@ test listing_buy_fail_partial_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -622,7 +622,7 @@ test listing_buy_fail_partial_escrow_datum_unexpect() fail {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -632,7 +632,7 @@ test listing_buy_fail_partial_escrow_datum_unexpect() fail {
       get_escrow_policy_id(),
       bond_name_listing_1,
       escrow_lovelace,
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   //
   let sm_input_bond_qty = 5
@@ -649,7 +649,7 @@ test listing_buy_fail_partial_escrow_datum_unexpect() fail {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -730,9 +730,9 @@ test listing_buy_fail_partial_escrow_datum_unexpect() fail {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -743,7 +743,7 @@ test listing_buy_fail_partial_escrow_datum_unexpect() fail {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -753,7 +753,7 @@ test listing_buy_fail_escrow_policy_id_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -765,7 +765,7 @@ test listing_buy_fail_escrow_policy_id_unexpect() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -792,14 +792,14 @@ test listing_buy_fail_escrow_policy_id_unexpect() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let input_sm_bond_spending_2 =
     gen_input(
       sm_address,
       sm_input_lovelace,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -880,9 +880,9 @@ test listing_buy_fail_escrow_policy_id_unexpect() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_sm_bond_spending_2, input_buyer_1],
       [reference_input_1],
@@ -893,7 +893,7 @@ test listing_buy_fail_escrow_policy_id_unexpect() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -903,7 +903,7 @@ test listing_buy_fail_escrow_address_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -915,7 +915,7 @@ test listing_buy_fail_escrow_address_unexpect() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -942,14 +942,14 @@ test listing_buy_fail_escrow_address_unexpect() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let input_sm_bond_spending_2 =
     gen_input(
       sm_address,
       sm_input_lovelace,
       Some(value.from_asset(get_bond_policy_id(), bond_name_listing_2, 3)),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -1030,9 +1030,9 @@ test listing_buy_fail_escrow_address_unexpect() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_sm_bond_spending_2, input_buyer_1],
       [reference_input_1],
@@ -1043,7 +1043,7 @@ test listing_buy_fail_escrow_address_unexpect() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1053,7 +1053,7 @@ test listing_buy_fail_escrow_datum_not_found() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -1065,7 +1065,7 @@ test listing_buy_fail_escrow_datum_not_found() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1092,7 +1092,7 @@ test listing_buy_fail_escrow_datum_not_found() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -1173,9 +1173,9 @@ test listing_buy_fail_escrow_datum_not_found() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1186,7 +1186,7 @@ test listing_buy_fail_escrow_datum_not_found() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1196,7 +1196,7 @@ test listing_buy_fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -1208,7 +1208,7 @@ test listing_buy_fail_escrow_datum_unexpect() fail {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1218,7 +1218,7 @@ test listing_buy_fail_escrow_datum_unexpect() fail {
       get_escrow_policy_id(),
       bond_name_listing_1,
       escrow_lovelace,
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   //
   let sm_input_bond_qty = 5
@@ -1235,7 +1235,7 @@ test listing_buy_fail_escrow_datum_unexpect() fail {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -1316,9 +1316,9 @@ test listing_buy_fail_escrow_datum_unexpect() fail {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1329,7 +1329,7 @@ test listing_buy_fail_escrow_datum_unexpect() fail {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1339,7 +1339,7 @@ test listing_buy_fail_escrow_closable() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum_start = 63
@@ -1380,7 +1380,7 @@ test listing_buy_fail_escrow_closable() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1407,7 +1407,7 @@ test listing_buy_fail_escrow_closable() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -1488,9 +1488,9 @@ test listing_buy_fail_escrow_closable() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1501,7 +1501,7 @@ test listing_buy_fail_escrow_closable() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1511,7 +1511,7 @@ test listing_buy_fail_buyer_must_not_owner() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -1523,7 +1523,7 @@ test listing_buy_fail_buyer_must_not_owner() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1550,7 +1550,7 @@ test listing_buy_fail_buyer_must_not_owner() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = owner_address
@@ -1631,9 +1631,9 @@ test listing_buy_fail_buyer_must_not_owner() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1644,7 +1644,7 @@ test listing_buy_fail_buyer_must_not_owner() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1655,7 +1655,7 @@ test listing_buy_fail_buyer_must_not_market() {
   let cfg = get_config_mainnet()
   let market_address = get_market_address()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -1667,7 +1667,7 @@ test listing_buy_fail_buyer_must_not_market() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1694,7 +1694,7 @@ test listing_buy_fail_buyer_must_not_market() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = market_address
@@ -1774,9 +1774,9 @@ test listing_buy_fail_buyer_must_not_market() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1787,7 +1787,7 @@ test listing_buy_fail_buyer_must_not_market() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1797,7 +1797,7 @@ test listing_buy_succ_partial() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -1809,7 +1809,7 @@ test listing_buy_succ_partial() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1836,7 +1836,7 @@ test listing_buy_succ_partial() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -1917,9 +1917,9 @@ test listing_buy_succ_partial() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  validation_listing.buy(
+  ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -1930,7 +1930,7 @@ test listing_buy_succ_partial() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -1940,7 +1940,7 @@ test listing_buy_succ_full_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -1952,7 +1952,7 @@ test listing_buy_succ_full_1() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -1979,7 +1979,7 @@ test listing_buy_succ_full_1() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -2060,9 +2060,9 @@ test listing_buy_succ_full_1() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  validation_listing.buy(
+  ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2073,7 +2073,7 @@ test listing_buy_succ_full_1() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2085,7 +2085,7 @@ test listing_buy_succ_full_2() {
   // => current_epoch = 22241
   let cfg = get_config_preview()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 7)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 7)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
@@ -2099,7 +2099,7 @@ test listing_buy_succ_full_2() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2127,7 +2127,7 @@ test listing_buy_succ_full_2() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 18704383567
   let buyer_address = get_buyer_address()
@@ -2202,9 +2202,9 @@ test listing_buy_succ_full_2() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  validation_listing.buy(
+  ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2215,7 +2215,7 @@ test listing_buy_succ_full_2() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2225,7 +2225,7 @@ test listing_buy_fail_partial_validity_end_not_set() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -2237,7 +2237,7 @@ test listing_buy_fail_partial_validity_end_not_set() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2264,7 +2264,7 @@ test listing_buy_fail_partial_validity_end_not_set() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -2345,9 +2345,9 @@ test listing_buy_fail_partial_validity_end_not_set() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2358,7 +2358,7 @@ test listing_buy_fail_partial_validity_end_not_set() {
       None,
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2368,7 +2368,7 @@ test listing_buy_fail_full_validity_end_not_set_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -2380,7 +2380,7 @@ test listing_buy_fail_full_validity_end_not_set_1() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2407,7 +2407,7 @@ test listing_buy_fail_full_validity_end_not_set_1() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -2488,9 +2488,9 @@ test listing_buy_fail_full_validity_end_not_set_1() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2501,7 +2501,7 @@ test listing_buy_fail_full_validity_end_not_set_1() {
       None,
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2513,7 +2513,7 @@ test listing_buy_fail_full_validity_end_not_set_2() {
   // => current_epoch = 22241
   let cfg = get_config_preview()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 7)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 7)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
@@ -2527,7 +2527,7 @@ test listing_buy_fail_full_validity_end_not_set_2() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2555,7 +2555,7 @@ test listing_buy_fail_full_validity_end_not_set_2() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 18704383567
   let buyer_address = get_buyer_address()
@@ -2630,9 +2630,9 @@ test listing_buy_fail_full_validity_end_not_set_2() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2643,7 +2643,7 @@ test listing_buy_fail_full_validity_end_not_set_2() {
       None,
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2653,7 +2653,7 @@ test listing_buy_fail_partial_validity_end_invalid_aft() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -2665,7 +2665,7 @@ test listing_buy_fail_partial_validity_end_invalid_aft() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2692,7 +2692,7 @@ test listing_buy_fail_partial_validity_end_invalid_aft() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -2773,9 +2773,9 @@ test listing_buy_fail_partial_validity_end_invalid_aft() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2786,7 +2786,7 @@ test listing_buy_fail_partial_validity_end_invalid_aft() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2796,7 +2796,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -2808,7 +2808,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_1() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2835,7 +2835,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_1() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -2916,9 +2916,9 @@ test listing_buy_fail_full_validity_end_invalid_aft_1() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -2929,7 +2929,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_1() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -2941,7 +2941,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_2() {
   // => current_epoch = 22241
   let cfg = get_config_preview()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 7)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 7)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
@@ -2955,7 +2955,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_2() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -2983,7 +2983,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_2() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 18704383567
   let buyer_address = get_buyer_address()
@@ -3058,9 +3058,9 @@ test listing_buy_fail_full_validity_end_invalid_aft_2() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -3071,7 +3071,7 @@ test listing_buy_fail_full_validity_end_invalid_aft_2() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -3081,7 +3081,7 @@ test listing_buy_fail_partial_validity_end_invalid_pre() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -3093,7 +3093,7 @@ test listing_buy_fail_partial_validity_end_invalid_pre() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -3120,7 +3120,7 @@ test listing_buy_fail_partial_validity_end_invalid_pre() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -3201,9 +3201,9 @@ test listing_buy_fail_partial_validity_end_invalid_pre() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -3214,7 +3214,7 @@ test listing_buy_fail_partial_validity_end_invalid_pre() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -3224,7 +3224,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -3236,7 +3236,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_1() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -3263,7 +3263,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_1() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -3344,9 +3344,9 @@ test listing_buy_fail_full_validity_end_invalid_pre_1() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -3357,7 +3357,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_1() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -3369,7 +3369,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_2() {
   // => current_epoch = 22241
   let cfg = get_config_preview()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 7)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 7)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
@@ -3383,7 +3383,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_2() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -3411,7 +3411,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_2() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 18704383567
   let buyer_address = get_buyer_address()
@@ -3486,9 +3486,9 @@ test listing_buy_fail_full_validity_end_invalid_pre_2() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -3499,7 +3499,7 @@ test listing_buy_fail_full_validity_end_invalid_pre_2() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -3509,7 +3509,7 @@ test listing_buy_succ_bond_policy_id_valid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 515)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 515)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   let escrow_datum =
@@ -3521,7 +3521,7 @@ test listing_buy_succ_bond_policy_id_valid() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -3548,7 +3548,7 @@ test listing_buy_succ_bond_policy_id_valid() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -3629,9 +3629,9 @@ test listing_buy_succ_bond_policy_id_valid() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  validation_listing.buy(
+  ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -3642,7 +3642,7 @@ test listing_buy_succ_bond_policy_id_valid() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
@@ -3654,7 +3654,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
   // => current_epoch = 22241
   let cfg = get_config_preview()
   let owner_address = get_seller_address()
-  let listing_datum = gen_listing_datum(owner_address, 7)
+  let ask_limit_datum = gen_ask_limit_datum(owner_address, 7)
   let bond_name_listing_1 = get_bond_id_1()
   let bond_name_listing_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
@@ -3668,7 +3668,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      listing_datum.requested_yield,
+      ask_limit_datum.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -3696,7 +3696,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
           sm_input_bond_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
   let buyer_fee_ada = 18704383567
   let buyer_address = get_buyer_address()
@@ -3771,9 +3771,9 @@ test listing_buy_fail_bond_policy_id_invalid() {
           sm_input_bond_qty - buyer_qty,
         ),
       ),
-      InlineDatum(listing_datum),
+      InlineDatum(ask_limit_datum),
     )
-  !validation_listing.buy(
+  !ask.buy(
     fixture.tx(
       [input_sm_bond_spending_1, input_buyer_1],
       [reference_input_1],
@@ -3784,7 +3784,7 @@ test listing_buy_fail_bond_policy_id_invalid() {
       Some(time_of_tx + 5 * 60 * 1000),
     ),
     cfg,
-    listing_datum.requested_yield,
+    ask_limit_datum,
     owner_address,
     sm_address,
   )
