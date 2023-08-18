@@ -9,7 +9,7 @@ use bond/utils.{must_be_signed_by}
 use common/utils.{get_spending_input} as common_utils
 
 validator(conf: Config) {
-  fn ask_20230816(
+  fn ask_20230818(
     datum: AskLimit,
     action: TradeAction,
     ctx: ScriptContext,
@@ -42,7 +42,7 @@ validator(conf: Config) {
 }
 
 validator(conf: Config) {
-  fn bid_20230816(
+  fn bid_20230818(
     datum: BidLimit,
     action: TradeAction,
     ctx: ScriptContext,
