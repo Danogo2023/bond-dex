@@ -84,7 +84,7 @@ fn sell_correct(
 
   (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
     tx.fee,
-  ))? && (out.smart_contract.lovelace == in.smart_contract.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
+  ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
     sc_out_utxo
   is {
     Some(utxo) ->
@@ -106,7 +106,7 @@ pub fn sell(
   conf: Config,
   spending_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
   owner: Address,
-  smart_contract: Address,
+  sc: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -156,15 +156,15 @@ pub fn sell(
             OK(escrow_info) -> {
               let BizTxInfo {
                 valid: biz_tx_info_valid,
-                biz_in_obj: in,
-                biz_out_obj: out,
+                biz_tx_in: in,
+                biz_tx_out: out,
               } =
                 collect_biz_tx_info(
                   conf,
                   tx.inputs,
                   tx.outputs,
                   owner,
-                  smart_contract,
+                  sc,
                   [owner_vk],
                   tx.datums,
                   when spending_datum.making is {
@@ -182,25 +182,25 @@ pub fn sell(
                   trace @"out is None"
                   False
                 }
-                Some(biz_out) -> {
+                Some(ou) -> {
                   let sc_out_utxos =
                     list.concat(
-                      biz_out.smart_contract.bond_outputs,
-                      biz_out.smart_contract.other_outputs,
+                      ou.sc.bond_outputs,
+                      ou.sc.other_outputs,
                     )
                   (in.owner.lovelace <= 0)? && (in.market.lovelace <= 0)? && (dict.size(
-                    biz_out.owner.bond_assets,
-                  ) > 0)? && (dict.size(biz_out.owner.bond_assets) <= 1)? && dict.has_key(
-                    biz_out.owner.bond_assets,
+                    ou.owner.bond_assets,
+                  ) > 0)? && (dict.size(ou.owner.bond_assets) <= 1)? && dict.has_key(
+                    ou.owner.bond_assets,
                     escrow_info.token_name,
                   )? && (list.length(sc_out_utxos) <= 1)? && (
-                    (biz_out.owner.bond_qty > 0)? && (biz_out.owner.bond_qty <= in.other.bond_qty)? && (biz_out.owner.bond_qty <= spending_quantity)?
+                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spending_quantity)?
                   ) && sell_correct(
                     tx,
                     conf,
                     spending_datum,
                     in,
-                    biz_out,
+                    ou,
                     escrow_info,
                     list.at(sc_out_utxos, 0),
                   )

@@ -8,7 +8,7 @@ use bond/fixture.{
   get_buyer_address_scripthash, get_config_mainnet, get_escrow_address,
   get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
   get_input_escrow, get_market_address, get_not_bond_policy_id,
-  get_not_escrow_policy_id, get_seller_address, get_smart_contract_address,
+  get_not_escrow_policy_id, get_seller_address, get_sc_address,
 }
 use bond/utils.{get_price_of_bond}
 
@@ -44,7 +44,7 @@ test sell_limit_succ_full() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -64,6 +64,7 @@ test sell_limit_succ_full() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -149,7 +150,7 @@ test sell_limit_succ_partial() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -169,6 +170,7 @@ test sell_limit_succ_partial() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -254,7 +256,7 @@ test sell_limit_fail_input_epoch_1() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -274,6 +276,7 @@ test sell_limit_fail_input_epoch_1() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -359,7 +362,7 @@ test sell_limit_fail_input_epoch_2() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -379,6 +382,7 @@ test sell_limit_fail_input_epoch_2() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -477,7 +481,7 @@ test sell_limit_fail_input_epoch_3() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -497,6 +501,7 @@ test sell_limit_fail_input_epoch_3() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -582,7 +587,7 @@ test sell_limit_fail_input_epoch_4() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -602,6 +607,7 @@ test sell_limit_fail_input_epoch_4() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -697,7 +703,7 @@ test sell_limit_fail_input_qty() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -717,6 +723,7 @@ test sell_limit_fail_input_qty() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -802,7 +809,7 @@ test sell_limit_fail_output_qty() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -822,6 +829,7 @@ test sell_limit_fail_output_qty() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -907,7 +915,7 @@ test sell_limit_fail_validity_after_not_set() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -927,6 +935,7 @@ test sell_limit_fail_validity_after_not_set() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -1012,7 +1021,7 @@ test sell_limit_fail_owner_address_format() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1032,6 +1041,7 @@ test sell_limit_fail_owner_address_format() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -1117,7 +1127,7 @@ test sell_limit_fail_escrow_policy_id_unexpect() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1137,6 +1147,7 @@ test sell_limit_fail_escrow_policy_id_unexpect() {
       get_escrow_address(),
       get_not_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -1222,7 +1233,7 @@ test sell_limit_fail_escrow_address_unexpect() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1242,6 +1253,7 @@ test sell_limit_fail_escrow_address_unexpect() {
       get_escrow_address_unexpect(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -1327,7 +1339,7 @@ test sell_limit_fail_escrow_datum_not_found() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1347,6 +1359,7 @@ test sell_limit_fail_escrow_datum_not_found() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       NoDatum,
     )
@@ -1432,7 +1445,7 @@ test sell_limit_fail_escrow_datum_unexpect() fail {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1452,6 +1465,7 @@ test sell_limit_fail_escrow_datum_unexpect() fail {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(sc_in_datum_1),
     )
@@ -1537,7 +1551,7 @@ test sell_limit_succ_bond_policy_id_valid() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1557,6 +1571,7 @@ test sell_limit_succ_bond_policy_id_valid() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
@@ -1642,7 +1657,7 @@ test sell_limit_fail_bond_policy_id_invalid() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let owner_out_lovelace = 1310316
-  let sc_address = get_smart_contract_address()
+  let sc_address = get_sc_address()
   let sc_in_lovelace =
     received_with_yield + market_fee_buyer + owner_out_lovelace
   let sc_in_1 =
@@ -1662,6 +1677,7 @@ test sell_limit_fail_bond_policy_id_invalid() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )

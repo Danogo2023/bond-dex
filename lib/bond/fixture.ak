@@ -214,7 +214,7 @@ pub fn get_buyer_address_hash() -> ByteArray {
   #"010204"
 }
 
-pub fn get_smart_contract_address() -> Address {
+pub fn get_sc_address() -> Address {
   keyhash_address(#"040506")
 }
 
@@ -368,8 +368,9 @@ pub fn get_escrow_address_unexpect() -> Address {
 
 pub fn get_input_escrow(
   address: Address,
-  policy_id: PolicyId,
-  asset_name: AssetName,
+  escrow_policy_id: PolicyId,
+  escrow_asset_name: AssetName,
+  escrow_qty: Int,
   lovelace: Int,
   datum: Datum,
 ) -> Input {
@@ -380,7 +381,12 @@ pub fn get_input_escrow(
     },
     output: Output {
       address,
-      value: value.add(value.from_lovelace(lovelace), policy_id, asset_name, 1),
+      value: value.add(
+        value.from_lovelace(lovelace),
+        escrow_policy_id,
+        escrow_asset_name,
+        escrow_qty,
+      ),
       datum,
       reference_script: None,
     },

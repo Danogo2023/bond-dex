@@ -108,7 +108,7 @@ pub type BizOutputInfo {
 pub type BizOutput {
   valid: Bool,
   unique_bonds: Dict<AssetName, Int>,
-  smart_contract: BizOutputInfo,
+  sc: BizOutputInfo,
   owner: BizOutputInfo,
   market: BizOutputInfo,
   other: BizOutputInfo,
@@ -116,8 +116,8 @@ pub type BizOutput {
 
 pub type BizTxInfo {
   valid: Bool,
-  biz_in_obj: BizOutput,
-  biz_out_obj: Option<BizOutput>,
+  biz_tx_in: BizOutput,
+  biz_tx_out: Option<BizOutput>,
 }
 
 pub type DatumType {
@@ -151,7 +151,7 @@ pub type AskMaking {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
   requested_yield: Int,
-  bid_smart_contract: ByteArray,
+  bid_sc: ByteArray,
   margin: Int,
 }
 
@@ -162,7 +162,7 @@ pub type BidMaking {
   to_epoch: Int,
   quantity: Int,
   requested_yield: Int,
-  ask_smart_contract: ByteArray,
+  ask_sc: ByteArray,
   margin: Int,
 }
 

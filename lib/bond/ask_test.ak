@@ -12,7 +12,7 @@ use bond/fixture.{
   get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
   get_input_escrow, get_market_address, get_not_bond_policy_id,
   get_not_escrow_policy_id, get_payment_datum, get_seller_address,
-  get_seller_address_hash, get_smart_contract_address, scripthash_address,
+  get_seller_address_hash, get_sc_address, scripthash_address,
 }
 use bond/types.{BondDatum}
 use bond/utils.{get_price_of_bond, posix_time_to_relative_epoch}
@@ -42,23 +42,24 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.add(
           value.from_asset(
             get_bond_policy_id(),
             bond_name_ask_1,
-            sm_in_bond_qty,
+            sc_in_bond_qty,
           ),
           get_bond_policy_id(), bond_name_ask_2, 3,
         ),
@@ -86,8 +87,8 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -120,7 +121,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -133,24 +134,24 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -159,7 +160,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -188,30 +189,31 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
-  let sm_in_2 =
+  let sc_in_2 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
       InlineDatum(sc_out_datum_1),
     )
@@ -236,8 +238,8 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -270,7 +272,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -283,24 +285,24 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, sm_in_2, buyer_in_1],
+      [sc_in_1, sc_in_2, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -309,7 +311,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -338,22 +340,23 @@ test buy_limit_fail_partial_change_bond_name() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -368,7 +371,7 @@ test buy_limit_fail_partial_change_bond_name() {
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_2,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       NoDatum,
@@ -385,8 +388,8 @@ test buy_limit_fail_partial_change_bond_name() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -419,7 +422,7 @@ test buy_limit_fail_partial_change_bond_name() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -428,29 +431,29 @@ test buy_limit_fail_partial_change_bond_name() {
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_2,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -459,7 +462,7 @@ test buy_limit_fail_partial_change_bond_name() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -489,22 +492,23 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -530,8 +534,8 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -564,7 +568,7 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -577,24 +581,24 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -603,7 +607,7 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -632,22 +636,23 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(sc_out_datum_1),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -673,8 +678,8 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -707,7 +712,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -720,24 +725,24 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -746,7 +751,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -775,30 +780,31 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       get_escrow_address(),
       get_not_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
-  let sm_in_2 =
+  let sc_in_2 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
       InlineDatum(sc_out_datum_1),
     )
@@ -823,8 +829,8 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -857,7 +863,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -870,24 +876,24 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, sm_in_2, buyer_in_1],
+      [sc_in_1, sc_in_2, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -896,7 +902,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -925,30 +931,31 @@ test buy_limit_fail_escrow_address_unexpect() {
       get_escrow_address_unexpect(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
-  let sm_in_2 =
+  let sc_in_2 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
       InlineDatum(sc_out_datum_1),
     )
@@ -973,8 +980,8 @@ test buy_limit_fail_escrow_address_unexpect() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1007,7 +1014,7 @@ test buy_limit_fail_escrow_address_unexpect() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1020,24 +1027,24 @@ test buy_limit_fail_escrow_address_unexpect() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, sm_in_2, buyer_in_1],
+      [sc_in_1, sc_in_2, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1046,7 +1053,7 @@ test buy_limit_fail_escrow_address_unexpect() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1075,22 +1082,23 @@ test buy_limit_fail_escrow_datum_not_found() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       NoDatum,
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -1116,8 +1124,8 @@ test buy_limit_fail_escrow_datum_not_found() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1150,7 +1158,7 @@ test buy_limit_fail_escrow_datum_not_found() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1163,24 +1171,24 @@ test buy_limit_fail_escrow_datum_not_found() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1189,7 +1197,7 @@ test buy_limit_fail_escrow_datum_not_found() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1218,22 +1226,23 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(sc_out_datum_1),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -1259,8 +1268,8 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1293,7 +1302,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1306,24 +1315,24 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1332,7 +1341,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1390,22 +1399,23 @@ test buy_limit_fail_escrow_closable() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -1431,8 +1441,8 @@ test buy_limit_fail_escrow_closable() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1465,7 +1475,7 @@ test buy_limit_fail_escrow_closable() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1478,24 +1488,24 @@ test buy_limit_fail_escrow_closable() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1504,7 +1514,7 @@ test buy_limit_fail_escrow_closable() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1533,22 +1543,23 @@ test buy_limit_fail_buyer_must_not_owner() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -1574,8 +1585,8 @@ test buy_limit_fail_buyer_must_not_owner() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1608,7 +1619,7 @@ test buy_limit_fail_buyer_must_not_owner() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1621,24 +1632,24 @@ test buy_limit_fail_buyer_must_not_owner() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1647,7 +1658,7 @@ test buy_limit_fail_buyer_must_not_owner() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1677,22 +1688,23 @@ test buy_limit_fail_buyer_must_not_market() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -1718,8 +1730,8 @@ test buy_limit_fail_buyer_must_not_market() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1751,7 +1763,7 @@ test buy_limit_fail_buyer_must_not_market() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1764,24 +1776,24 @@ test buy_limit_fail_buyer_must_not_market() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1790,7 +1802,7 @@ test buy_limit_fail_buyer_must_not_market() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1819,22 +1831,23 @@ test buy_limit_succ_partial() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -1860,8 +1873,8 @@ test buy_limit_succ_partial() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -1894,7 +1907,7 @@ test buy_limit_succ_partial() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -1907,24 +1920,24 @@ test buy_limit_succ_partial() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -1933,7 +1946,7 @@ test buy_limit_succ_partial() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -1962,22 +1975,23 @@ test buy_limit_succ_full_1() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2003,8 +2017,8 @@ test buy_limit_succ_full_1() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2037,7 +2051,7 @@ test buy_limit_succ_full_1() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2050,24 +2064,24 @@ test buy_limit_succ_full_1() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2076,7 +2090,7 @@ test buy_limit_succ_full_1() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2109,23 +2123,24 @@ test buy_limit_succ_full_2() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 1
+  let sc_in_bond_qty = 1
   let buyer_qty = 0
-  let sm_in_lovelace = 1599010
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_lovelace = 1599010
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2150,8 +2165,8 @@ test buy_limit_succ_full_2() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2184,7 +2199,7 @@ test buy_limit_succ_full_2() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2192,24 +2207,24 @@ test buy_limit_succ_full_2() {
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2218,7 +2233,7 @@ test buy_limit_succ_full_2() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2247,22 +2262,23 @@ test buy_limit_fail_partial_validity_end_not_set() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2288,8 +2304,8 @@ test buy_limit_fail_partial_validity_end_not_set() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2322,7 +2338,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2335,24 +2351,24 @@ test buy_limit_fail_partial_validity_end_not_set() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2361,7 +2377,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2390,22 +2406,23 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2431,8 +2448,8 @@ test buy_limit_fail_full_validity_end_not_set_1() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2465,7 +2482,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2478,24 +2495,24 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2504,7 +2521,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2537,23 +2554,24 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 1
+  let sc_in_bond_qty = 1
   let buyer_qty = 0
-  let sm_in_lovelace = 1599010
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_lovelace = 1599010
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2578,8 +2596,8 @@ test buy_limit_fail_full_validity_end_not_set_2() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2612,7 +2630,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2620,24 +2638,24 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2646,7 +2664,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2675,22 +2693,23 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2716,8 +2735,8 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2750,7 +2769,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2763,24 +2782,24 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2789,7 +2808,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2818,22 +2837,23 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -2859,8 +2879,8 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -2893,7 +2913,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -2906,24 +2926,24 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -2932,7 +2952,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -2965,23 +2985,24 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 1
+  let sc_in_bond_qty = 1
   let buyer_qty = 0
-  let sm_in_lovelace = 1599010
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_lovelace = 1599010
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -3006,8 +3027,8 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -3040,7 +3061,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -3048,24 +3069,24 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -3074,7 +3095,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -3103,22 +3124,23 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -3144,8 +3166,8 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -3178,7 +3200,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -3191,24 +3213,24 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -3217,7 +3239,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -3246,22 +3268,23 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -3287,8 +3310,8 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -3321,7 +3344,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -3334,24 +3357,24 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -3360,7 +3383,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -3393,23 +3416,24 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 1
+  let sc_in_bond_qty = 1
   let buyer_qty = 0
-  let sm_in_lovelace = 1599010
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_lovelace = 1599010
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -3434,8 +3458,8 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -3468,7 +3492,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -3476,24 +3500,24 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -3502,7 +3526,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -3531,22 +3555,23 @@ test buy_limit_succ_bond_policy_id_valid() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 5
-  let sm_in_lovelace = 2068800
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -3572,8 +3597,8 @@ test buy_limit_succ_bond_policy_id_valid() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -3606,7 +3631,7 @@ test buy_limit_succ_bond_policy_id_valid() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -3619,24 +3644,24 @@ test buy_limit_succ_bond_policy_id_valid() {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -3645,7 +3670,7 @@ test buy_limit_succ_bond_policy_id_valid() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }
 
@@ -3678,23 +3703,24 @@ test buy_limit_fail_bond_policy_id_invalid() {
       get_escrow_address(),
       get_escrow_policy_id(),
       bond_name_ask_1,
+      1,
       escrow_lovelace,
       InlineDatum(escrow_datum),
     )
   //
-  let sm_in_bond_qty = 1
+  let sc_in_bond_qty = 1
   let buyer_qty = 0
-  let sm_in_lovelace = 1599010
-  let sm_address = get_smart_contract_address()
-  let sm_in_1 =
+  let sc_in_lovelace = 1599010
+  let sc_address = get_sc_address()
+  let sc_in_1 =
     gen_input(
-      sm_address,
-      sm_in_lovelace,
+      sc_address,
+      sc_in_lovelace,
       Some(
         value.from_asset(
           get_not_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty,
+          sc_in_bond_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -3719,8 +3745,8 @@ test buy_limit_fail_bond_policy_id_invalid() {
     received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
   //
   let min_ada_to_market =
-    when sm_in_bond_qty - buyer_qty is {
-      0 -> sm_in_lovelace
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
       _ -> 0
     }
   let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
@@ -3753,7 +3779,7 @@ test buy_limit_fail_bond_policy_id_invalid() {
       DatumHash(payment_datum_hash),
     )
   let buyer_received =
-    buyer_fee_ada + sm_in_lovelace - market_received - owner_received
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
   let buyer_out_1 =
     gen_output(
       buyer_address,
@@ -3761,24 +3787,24 @@ test buy_limit_fail_bond_policy_id_invalid() {
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
       DatumHash(payment_datum_hash),
     )
-  let sm_out_1 =
+  let sc_out_1 =
     gen_output(
-      sm_address,
-      sm_in_lovelace - min_ada_to_market,
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
       Some(
         value.from_asset(
           get_bond_policy_id(),
           bond_name_ask_1,
-          sm_in_bond_qty - buyer_qty,
+          sc_in_bond_qty - buyer_qty,
         ),
       ),
       InlineDatum(sc_out_datum_1),
     )
   !ask.buy(
     fixture.tx(
-      [sm_in_1, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
-      [market_out_1, owner_out_1, buyer_out_1, sm_out_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
       Some(tx_datums),
       Some(time_of_tx),
@@ -3787,6 +3813,6 @@ test buy_limit_fail_bond_policy_id_invalid() {
     cfg,
     BondDatum(Some(sc_out_datum_1), None),
     owner_address,
-    sm_address,
+    sc_address,
   )
 }

@@ -37,7 +37,7 @@ fn buy_is_valid(
   // phi buyer phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  (out.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (out.owner.lovelace == received_with_yield - market_fee_seller)? && (in.smart_contract.bond_qty + in.other.bond_qty - out.smart_contract.bond_qty == out.other.bond_qty)?
+  (out.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (out.owner.lovelace == received_with_yield - market_fee_seller)? && (in.sc.bond_qty + in.other.bond_qty - out.sc.bond_qty == out.other.bond_qty)?
 }
 
 fn buy_correct(
@@ -54,28 +54,28 @@ fn buy_correct(
     sm_out_must_only_one_bond_name,
     sm_out_bond_same_escrow,
   ) =
-    when out.smart_contract.bond_outputs is {
+    when out.sc.bond_outputs is {
       [_, ..] ->
         // trace @"buy partial"
         (
-          in.smart_contract.bond_qty - out.smart_contract.bond_qty,
-          in.smart_contract.lovelace,
+          in.sc.bond_qty - out.sc.bond_qty,
+          in.sc.lovelace,
           0,
-          dict.size(out.smart_contract.bond_assets) <= 1,
-          dict.has_key(out.smart_contract.bond_assets, escrow_info.token_name),
+          dict.size(out.sc.bond_assets) <= 1,
+          dict.has_key(out.sc.bond_assets, escrow_info.token_name),
         )
       [] ->
         // trace @"buy all"
-        (in.smart_contract.bond_qty, 0, in.smart_contract.lovelace, True, True)
+        (in.sc.bond_qty, 0, in.sc.lovelace, True, True)
     }
   sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer == 0 || dict.has_key(
     out.other.bond_assets,
     escrow_info.token_name,
   ))? && when
     list.find(
-      dict.keys(out.smart_contract.bond_assets),
+      dict.keys(out.sc.bond_assets),
       fn(sm_bond_name_output) {
-        !list.has(dict.keys(in.smart_contract.bond_assets), sm_bond_name_output)
+        !list.has(dict.keys(in.sc.bond_assets), sm_bond_name_output)
       },
     )
   is {
@@ -85,7 +85,7 @@ fn buy_correct(
     }
     _ ->
       (
-        min_ada_to_sm <= 0 || (out.smart_contract.lovelace >= min_ada_to_sm)? && out.smart_contract.bond_datum_valid?
+        min_ada_to_sm <= 0 || (out.sc.lovelace >= min_ada_to_sm)? && out.sc.bond_datum_valid?
       ) && buy_is_valid(
         conf,
         in,
@@ -108,7 +108,7 @@ pub fn buy(
   conf: Config,
   ask_datum: BondDatum<Option<AskLimit>, Option<AskMaking>>,
   owner: Address,
-  smart_contract: Address,
+  sc: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -156,15 +156,15 @@ pub fn buy(
             OK(escrow_info) -> {
               let BizTxInfo {
                 valid: biz_tx_info_valid,
-                biz_in_obj: in,
-                biz_out_obj: out,
+                biz_tx_in: in,
+                biz_tx_out: out,
               } =
                 collect_biz_tx_info(
                   conf,
                   tx.inputs,
                   tx.outputs,
                   owner,
-                  smart_contract,
+                  sc,
                   [owner_vk],
                   tx.datums,
                   when ask_datum.making is {
@@ -177,8 +177,8 @@ pub fn buy(
                     _ -> None
                   },
                 )
-              biz_tx_info_valid && (dict.size(in.smart_contract.bond_assets) == 1)? && dict.has_key(
-                in.smart_contract.bond_assets,
+              biz_tx_info_valid && (dict.size(in.sc.bond_assets) == 1)? && dict.has_key(
+                in.sc.bond_assets,
                 escrow_info.token_name,
               )? && when out is {
                 None -> {
@@ -186,7 +186,7 @@ pub fn buy(
                   False
                 }
                 Some(biz_output) ->
-                  (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.smart_contract.bond_qty + in.other.bond_qty == biz_output.smart_contract.bond_qty + biz_output.other.bond_qty)? && buy_correct(
+                  (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.sc.bond_qty + in.other.bond_qty == biz_output.sc.bond_qty + biz_output.other.bond_qty)? && buy_correct(
                     conf,
                     when ask_datum.making is {
                       Some(m) -> m.requested_yield
