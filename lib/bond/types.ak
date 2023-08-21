@@ -90,7 +90,10 @@ pub type EscrowInfoResult<a, b> {
 }
 
 pub type EscrowInfo {
+  bond_symbol: ByteArray,
   token_name: ByteArray,
+  start_epoch: Int,
+  end_epoch: Int,
   received_at_maturity_one_bond: Int,
   day_to_maturity: Int,
 }
@@ -176,7 +179,7 @@ pub type OrderDatum<a, b> {
   bid: b,
 }
 
-pub DatumOf {
+pub type DatumOf {
   OtherDatum
   ScDatum
   OwnerDatum

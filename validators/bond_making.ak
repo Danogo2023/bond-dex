@@ -5,14 +5,13 @@ use aiken/transaction/credential.{
 use bond/ask
 use bond/bid
 use bond/types.{
-  AskMaking, BidMaking, OrderTypeDatum, Buy, Config, Sell,
-  TradeAction, Update,
+  AskMaking, BidMaking, Buy, Config, OrderTypeDatum, Sell, TradeAction, Update,
 }
 use bond/utils.{must_be_signed_by}
 use common/utils.{get_spending_input} as common_utils
 
 validator(conf: Config) {
-  fn ask_20230818(
+  fn ask_20230822(
     datum: AskMaking,
     action: TradeAction,
     ctx: ScriptContext,
@@ -52,7 +51,7 @@ validator(conf: Config) {
 }
 
 validator(conf: Config) {
-  fn bid_20230818(
+  fn bid_20230822(
     datum: BidMaking,
     action: TradeAction,
     ctx: ScriptContext,

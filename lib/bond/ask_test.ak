@@ -3,6 +3,7 @@ use aiken/bytearray
 use aiken/dict
 use aiken/hash.{blake2b_256}
 use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
+use aiken/transaction/credential.{with_delegation_key, with_delegation_script}
 use aiken/transaction/value
 use bond/ask
 use bond/fixture.{
@@ -449,13 +450,597 @@ test buy_limit_fail_partial_change_bond_name() {
   )
 }
 
-test buy_limit_fail_partial_datum_owner_invalid() {
+test buy_limit_fail_partial_datum_owner_payment_key_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let sc_out_datum_1 =
     gen_ask_limit_datum(scripthash_address(#"010203040506"), 515)
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = get_buyer_address()
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let market_fee_seller =
+    received_diff * cfg.market.seller_fee / cfg.bond.basis_points_ref_unit
+  let market_fee_buyer =
+    received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
+  //
+  let min_ada_to_market =
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
+
+  // market_received == 82755 * 2
+  let payment_datum = get_payment_datum()
+  let payment_datum_data = builtin.serialise_data(payment_datum)
+  let payment_datum_hash = blake2b_256(payment_datum_data)
+  let tx_datums =
+    dict.new()
+      |> dict.insert(
+           payment_datum_hash,
+           builtin.b_data(payment_datum_data),
+           bytearray.compare,
+         )
+  let market_address = get_market_address()
+  let market_out_1 =
+    gen_output(
+      market_address,
+      market_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let owner_received = received_with_yield - market_fee_seller
+  let owner_out_1 =
+    gen_output(
+      owner_address,
+      owner_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      DatumHash(payment_datum_hash),
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_in_bond_qty - buyer_qty,
+        ),
+      ),
+      InlineDatum(sc_out_datum_1),
+    )
+  !ask.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      Some(tx_datums),
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    OrderTypeDatum(Some(sc_out_datum_1), None),
+    owner_address,
+    sc_address,
+  )
+}
+
+test buy_limit_fail_partial_datum_owner_payment_key_invalid_2() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_mainnet()
+  let owner_address = get_seller_address()
+  let buyer_address = get_buyer_address()
+  let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
+  let sc_out_datum_1 = gen_ask_limit_datum(buyer_address, 515)
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let market_fee_seller =
+    received_diff * cfg.market.seller_fee / cfg.bond.basis_points_ref_unit
+  let market_fee_buyer =
+    received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
+  //
+  let min_ada_to_market =
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
+
+  // market_received == 82755 * 2
+  let payment_datum = get_payment_datum()
+  let payment_datum_data = builtin.serialise_data(payment_datum)
+  let payment_datum_hash = blake2b_256(payment_datum_data)
+  let tx_datums =
+    dict.new()
+      |> dict.insert(
+           payment_datum_hash,
+           builtin.b_data(payment_datum_data),
+           bytearray.compare,
+         )
+  let market_address = get_market_address()
+  let market_out_1 =
+    gen_output(
+      market_address,
+      market_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let owner_received = received_with_yield - market_fee_seller
+  let owner_out_1 =
+    gen_output(
+      owner_address,
+      owner_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      DatumHash(payment_datum_hash),
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_in_bond_qty - buyer_qty,
+        ),
+      ),
+      InlineDatum(sc_out_datum_1),
+    )
+  !ask.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      Some(tx_datums),
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    OrderTypeDatum(Some(sc_out_datum_1), None),
+    owner_address,
+    sc_address,
+  )
+}
+
+test buy_limit_fail_partial_datum_owner_stake_key_invalid_1() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_mainnet()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 =
+    gen_ask_limit_datum(
+      with_delegation_key(owner_address, #"010203040506"),
+      515,
+    )
+  let sc_out_datum_1 =
+    gen_ask_limit_datum(
+      with_delegation_key(owner_address, #"010203040507"),
+      515,
+    )
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = get_buyer_address()
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let market_fee_seller =
+    received_diff * cfg.market.seller_fee / cfg.bond.basis_points_ref_unit
+  let market_fee_buyer =
+    received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
+  //
+  let min_ada_to_market =
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
+
+  // market_received == 82755 * 2
+  let payment_datum = get_payment_datum()
+  let payment_datum_data = builtin.serialise_data(payment_datum)
+  let payment_datum_hash = blake2b_256(payment_datum_data)
+  let tx_datums =
+    dict.new()
+      |> dict.insert(
+           payment_datum_hash,
+           builtin.b_data(payment_datum_data),
+           bytearray.compare,
+         )
+  let market_address = get_market_address()
+  let market_out_1 =
+    gen_output(
+      market_address,
+      market_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let owner_received = received_with_yield - market_fee_seller
+  let owner_out_1 =
+    gen_output(
+      owner_address,
+      owner_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      DatumHash(payment_datum_hash),
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_in_bond_qty - buyer_qty,
+        ),
+      ),
+      InlineDatum(sc_out_datum_1),
+    )
+  !ask.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      Some(tx_datums),
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    OrderTypeDatum(Some(sc_out_datum_1), None),
+    owner_address,
+    sc_address,
+  )
+}
+
+test buy_limit_fail_partial_datum_owner_stake_key_invalid_2() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_mainnet()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 =
+    gen_ask_limit_datum(
+      with_delegation_key(owner_address, #"010203040506"),
+      515,
+    )
+  let sc_out_datum_1 =
+    gen_ask_limit_datum(
+      with_delegation_script(owner_address, #"010203040506"),
+      515,
+    )
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = get_buyer_address()
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let market_fee_seller =
+    received_diff * cfg.market.seller_fee / cfg.bond.basis_points_ref_unit
+  let market_fee_buyer =
+    received_diff * cfg.market.buyer_fee / cfg.bond.basis_points_ref_unit
+  //
+  let min_ada_to_market =
+    when sc_in_bond_qty - buyer_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let market_received = market_fee_buyer + market_fee_seller + min_ada_to_market
+
+  // market_received == 82755 * 2
+  let payment_datum = get_payment_datum()
+  let payment_datum_data = builtin.serialise_data(payment_datum)
+  let payment_datum_hash = blake2b_256(payment_datum_data)
+  let tx_datums =
+    dict.new()
+      |> dict.insert(
+           payment_datum_hash,
+           builtin.b_data(payment_datum_data),
+           bytearray.compare,
+         )
+  let market_address = get_market_address()
+  let market_out_1 =
+    gen_output(
+      market_address,
+      market_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let owner_received = received_with_yield - market_fee_seller
+  let owner_out_1 =
+    gen_output(
+      owner_address,
+      owner_received,
+      None,
+      DatumHash(payment_datum_hash),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - market_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      DatumHash(payment_datum_hash),
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_market,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_in_bond_qty - buyer_qty,
+        ),
+      ),
+      InlineDatum(sc_out_datum_1),
+    )
+  !ask.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [market_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      Some(tx_datums),
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    OrderTypeDatum(Some(sc_out_datum_1), None),
+    owner_address,
+    sc_address,
+  )
+}
+
+test buy_limit_fail_partial_datum_requested_yield_invalid() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_mainnet()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
+  let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 785)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)

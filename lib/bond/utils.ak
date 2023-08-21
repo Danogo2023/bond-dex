@@ -101,7 +101,10 @@ pub fn get_escrow_info(
       lender_interest / cfg.basis_points_ref_unit / escrow_datum.bond_amount
     OK(
       EscrowInfo {
+        bond_symbol: escrow_datum.bond_symbol,
         token_name: escrow_datum.token_name,
+        start_epoch,
+        end_epoch,
         // Tong tien goc + lai cua 1 bond theo lai suat Optim ma lender nhan duoc 
         received_at_maturity_one_bond: interest_at_maturity_one_bond_lovelace + cfg.bond_face_value,
         // So ngay den ky dao han cua bond
@@ -184,17 +187,8 @@ pub fn bond_assets(
   )
 }
 
-fn datum_owner_valid(
-  conf: Config,
-  pkh_valid: List<PublicKeyHash>,
-  out_payment_key: ByteArray,
-  out_requested_yield: Int,
-) -> Bool {
-  list.has(pkh_valid, out_payment_key)? && (math.clamp(
-    out_requested_yield,
-    conf.bond.basis_points_min,
-    conf.bond.basis_points_max,
-  ) == out_requested_yield)?
+fn datum_yield_valid(conf: Config, val: Int) -> Bool {
+  (math.clamp(val, conf.bond.basis_points_min, conf.bond.basis_points_max) == val)?
 }
 
 fn datum_epoch_valid(
@@ -205,101 +199,136 @@ fn datum_epoch_valid(
   (out_to_epoch >= out_from_epoch)? && (out_quantity > 0)?
 }
 
-fn datum_making_valid(
-  conf: Config,
-  spd_sc_payment_key: ByteArray,
-  out_sc_payment_key: ByteArray,
-  spd_margin: Int,
-  out_margin: Int,
-  out_requested_yield: Int,
-) -> Bool {
-  (out_sc_payment_key == spd_sc_payment_key)? && (out_margin == spd_margin)? && (math.clamp(
-    out_margin + out_requested_yield,
-    conf.bond.basis_points_min,
-    conf.bond.basis_points_max,
-  ) == out_margin + out_requested_yield)?
+fn datum_ask_limit_compare(all: AskLimit, alr: AskLimit) {
+  (all.owner_payment_key == alr.owner_payment_key)? && (all.owner_stake_key == alr.owner_stake_key)? && (all.requested_yield == alr.requested_yield)?
+}
+
+fn datum_bid_limit_compare(bll: BidLimit, blr: BidLimit) {
+  (bll.owner_payment_key == blr.owner_payment_key)? && (bll.owner_stake_key == blr.owner_stake_key)? && (bll.from_epoch == blr.from_epoch)? && (bll.to_epoch == blr.to_epoch)? && (bll.requested_yield == blr.requested_yield)?
+}
+
+fn datum_ask_making_compare(aml: AskMaking, amr: AskMaking) {
+  (aml.owner_payment_key == amr.owner_payment_key)? && (aml.owner_stake_key == amr.owner_stake_key)? && (aml.requested_yield == amr.requested_yield)? && (aml.bid_sc == amr.bid_sc)? && (aml.margin == amr.margin)?
+}
+
+fn datum_bid_making_compare(bml: BidMaking, bmr: BidMaking) {
+  (bml.owner_payment_key == bmr.owner_payment_key)? && (bml.owner_stake_key == bmr.owner_stake_key)? && (bml.from_epoch == bmr.from_epoch)? && (bml.to_epoch == bmr.to_epoch)? && (bml.requested_yield == bmr.requested_yield)? && (bml.ask_sc == bmr.ask_sc)? && (bml.margin == bmr.margin)?
 }
 
 fn datum_is_valid(
   conf: Config,
-  pkh_valid: List<PublicKeyHash>,
   spd_datum_type: DatumType,
   out_data: Data,
   spd_sc_payment_key: ByteArray,
-  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderTypeDatum<
+    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
+    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  >,
   datum_of: DatumOf,
+  escrow_info: EscrowInfo,
 ) -> Bool {
   when spd_datum_type is {
     DatumTypeAskLimit -> {
-      expect out_datum: AskLimit = out_data
-      datum_owner_valid(
-        conf,
-        pkh_valid,
-        out_datum.owner_payment_key,
-        out_datum.requested_yield,
-      )
-    }
-    DatumTypeAskMaking -> {
-      if datum_of == OwnerDatum {
-        expect out_datum: BidMaking = out_data
-        out_datum.requested_yield = 
-      } else if datum_of == ScDatum {
-        expect out_datum: AskMaking = out_data
-        datum_owner_valid(
-          conf,
-          pkh_valid,
-          out_datum.owner_payment_key,
-          out_datum.requested_yield,
-        ) && when spd_datum.bid is {
-          Some(d) ->
-            datum_making_valid(
-              conf,
-              spd_sc_payment_key,
-              out_datum.bid_sc,
-              d.margin,
-              out_datum.margin,
-              out_datum.requested_yield,
-            )
-          None -> False
+      let OrderDatum { ask: a, bid: _ } = spd_datum.limit
+      when a is {
+        Some(d) -> {
+          expect out_datum: AskLimit = out_data
+          datum_yield_valid(conf, out_datum.requested_yield) && datum_ask_limit_compare(
+            d,
+            out_datum,
+          )
         }
-      } else {
-        False
+        None -> False
       }
     }
     DatumTypeBidLimit -> {
-      expect out_datum: BidLimit = out_data
-      datum_owner_valid(
-        conf,
-        pkh_valid,
-        out_datum.owner_payment_key,
-        out_datum.requested_yield,
-      ) && datum_epoch_valid(
-        out_datum.from_epoch,
-        out_datum.to_epoch,
-        out_datum.quantity,
-      )
+      let OrderDatum { ask: _, bid: b } = spd_datum.limit
+      when b is {
+        Some(d) -> {
+          expect out_datum: BidLimit = out_data
+          datum_yield_valid(conf, out_datum.requested_yield) && datum_epoch_valid(
+            out_datum.from_epoch,
+            out_datum.to_epoch,
+            out_datum.quantity,
+          ) && datum_bid_limit_compare(d, out_datum)
+        }
+        None -> False
+      }
+    }
+    DatumTypeAskMaking -> {
+      let OrderDatum { ask: a, bid: _ } = spd_datum.making
+      when a is {
+        Some(d) ->
+          when datum_of is {
+            OwnerDatum -> {
+              expect out_datum: BidMaking = out_data
+              datum_yield_valid(
+                conf,
+                out_datum.requested_yield + out_datum.margin,
+              ) && datum_epoch_valid(
+                out_datum.from_epoch,
+                out_datum.to_epoch,
+                out_datum.quantity,
+              ) && datum_bid_making_compare(
+                BidMaking {
+                  owner_payment_key: d.owner_payment_key,
+                  owner_stake_key: d.owner_stake_key,
+                  from_epoch: escrow_info.end_epoch,
+                  to_epoch: escrow_info.end_epoch,
+                  quantity: 0,
+                  requested_yield: d.requested_yield + d.margin,
+                  ask_sc: spd_sc_payment_key,
+                  margin: d.margin,
+                },
+                out_datum,
+              )
+            }
+            ScDatum -> {
+              expect out_datum: AskMaking = out_data
+              datum_yield_valid(
+                conf,
+                out_datum.requested_yield + out_datum.margin,
+              ) && datum_ask_making_compare(d, out_datum)
+            }
+            _ -> False
+          }
+        None -> False
+      }
     }
     DatumTypeBidMaking -> {
-      expect out_datum: BidMaking = out_data
-      datum_owner_valid(
-        conf,
-        pkh_valid,
-        out_datum.owner_payment_key,
-        out_datum.requested_yield,
-      ) && datum_epoch_valid(
-        out_datum.from_epoch,
-        out_datum.to_epoch,
-        out_datum.quantity,
-      ) && when spd_datum.ask is {
+      let OrderDatum { ask: _, bid: b } = spd_datum.making
+      when b is {
         Some(d) ->
-          datum_making_valid(
-            conf,
-            spd_sc_payment_key,
-            out_datum.ask_sc,
-            d.margin,
-            out_datum.margin,
-            0 - out_datum.requested_yield,
-          )
+          when datum_of is {
+            OwnerDatum -> {
+              expect out_datum: AskMaking = out_data
+              datum_yield_valid(
+                conf,
+                out_datum.requested_yield + out_datum.margin,
+              ) && datum_ask_making_compare(
+                AskMaking {
+                  owner_payment_key: d.owner_payment_key,
+                  owner_stake_key: d.owner_stake_key,
+                  requested_yield: d.requested_yield - d.margin,
+                  bid_sc: spd_sc_payment_key,
+                  margin: d.margin,
+                },
+                out_datum,
+              )
+            }
+            ScDatum -> {
+              expect out_datum: BidMaking = out_data
+              datum_yield_valid(
+                conf,
+                out_datum.requested_yield + out_datum.margin,
+              ) && datum_epoch_valid(
+                out_datum.from_epoch,
+                out_datum.to_epoch,
+                out_datum.quantity,
+              ) && datum_bid_making_compare(d, out_datum)
+            }
+            _ -> False
+          }
         None -> False
       }
     }
@@ -312,7 +341,6 @@ fn build_biz_output_info(
   output: Output,
   bond_values: Dict<AssetName, Int>,
   datum_of: DatumOf,
-  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   conf: Config,
   spd_datum_type: DatumType,
@@ -321,6 +349,7 @@ fn build_biz_output_info(
     OrderDatum<Option<AskLimit>, Option<BidLimit>>,
     OrderDatum<Option<AskMaking>, Option<BidMaking>>,
   >,
+  escrow_info: EscrowInfo,
 ) -> BizOutputInfo {
   let addresses =
     if list.has(self.addresses, output.address) {
@@ -345,12 +374,12 @@ fn build_biz_output_info(
           Some(d) ->
             datum_is_valid(
               conf,
-              pkh_valid,
               spd_datum_type,
               d,
               spd_sc_payment_key,
               spd_datum,
               datum_of,
+              escrow_info,
             )
           None -> {
             trace @"not found datum"
@@ -375,17 +404,16 @@ fn build_biz_data(
   output: Output,
   owner: Address,
   sc: Address,
-  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   data: BizOutput,
   spd_datum_type: DatumType,
-  bond_policy_id: ByteArray,
+  escrow_info: EscrowInfo,
   spd_datum: OrderTypeDatum<
     OrderDatum<Option<AskLimit>, Option<BidLimit>>,
     OrderDatum<Option<AskMaking>, Option<BidMaking>>,
   >,
 ) -> BizOutput {
-  let bond_values = value.tokens(output.value, bond_policy_id)
+  let bond_values = value.tokens(output.value, escrow_info.bond_symbol)
   let biz_out_info =
     build_biz_output_info(
       if output.address == sc {
@@ -409,12 +437,12 @@ fn build_biz_data(
       } else {
         OtherDatum
       },
-      pkh_valid,
       datums,
       conf,
       spd_datum_type,
       get_payment_key(sc),
       spd_datum,
+      escrow_info,
     )
   BizOutput {
     valid: biz_out_info.bond_datum_valid,
@@ -443,11 +471,10 @@ fn get_biz_output(
   outputs: List<Output>,
   owner: Address,
   sc: Address,
-  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
   spd_datum_type: DatumType,
-  bond_policy_id: ByteArray,
+  escrow_info: EscrowInfo,
   spd_datum: OrderTypeDatum<
     OrderDatum<Option<AskLimit>, Option<BidLimit>>,
     OrderDatum<Option<AskMaking>, Option<BidMaking>>,
@@ -462,11 +489,10 @@ fn get_biz_output(
           x,
           owner,
           sc,
-          pkh_valid,
           datums,
           recursive,
           spd_datum_type,
-          bond_policy_id,
+          escrow_info,
           spd_datum,
         )
       if !biz_data.valid {
@@ -477,11 +503,10 @@ fn get_biz_output(
           xs,
           owner,
           sc,
-          pkh_valid,
           datums,
           biz_data,
           spd_datum_type,
-          bond_policy_id,
+          escrow_info,
           spd_datum,
         )
       }
@@ -494,11 +519,10 @@ fn get_biz_input(
   outputs: List<Input>,
   owner: Address,
   sc: Address,
-  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
   spd_datum_type: DatumType,
-  bond_policy_id: ByteArray,
+  escrow_info: EscrowInfo,
   spd_datum: OrderTypeDatum<
     OrderDatum<Option<AskLimit>, Option<BidLimit>>,
     OrderDatum<Option<AskMaking>, Option<BidMaking>>,
@@ -513,11 +537,10 @@ fn get_biz_input(
           x.output,
           owner,
           sc,
-          pkh_valid,
           datums,
           recursive,
           spd_datum_type,
-          bond_policy_id,
+          escrow_info,
           spd_datum,
         )
       if !biz_data.valid {
@@ -528,11 +551,10 @@ fn get_biz_input(
           xs,
           owner,
           sc,
-          pkh_valid,
           datums,
           biz_data,
           spd_datum_type,
-          bond_policy_id,
+          escrow_info,
           spd_datum,
         )
       }
@@ -546,10 +568,9 @@ pub fn collect_biz_tx_info(
   outputs: List<Output>,
   owner: Address,
   sc: Address,
-  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   spd_datum_type: DatumType,
-  bond_policy_id: ByteArray,
+  escrow_info: EscrowInfo,
   spd_datum: OrderTypeDatum<
     OrderDatum<Option<AskLimit>, Option<BidLimit>>,
     OrderDatum<Option<AskMaking>, Option<BidMaking>>,
@@ -580,11 +601,10 @@ pub fn collect_biz_tx_info(
       inputs,
       owner,
       sc,
-      pkh_valid,
       datums,
       biz_out_init,
       spd_datum_type,
-      bond_policy_id,
+      escrow_info,
       spd_datum,
     )
   if biz_tx_in.valid {
@@ -594,11 +614,10 @@ pub fn collect_biz_tx_info(
         outputs,
         owner,
         sc,
-        pkh_valid,
         datums,
         biz_out_init,
         spd_datum_type,
-        bond_policy_id,
+        escrow_info,
         spd_datum,
       )
     BizTxInfo {

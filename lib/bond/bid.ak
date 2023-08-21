@@ -114,7 +114,7 @@ pub fn sell(
       Finite(x) -> x
       _ -> 0
     }
-  let (owner_vk, spending_quantity, spending_to_epoch, spending_from_epoch) =
+  let (owner_vk, spd_quantity, spd_to_epoch, spd_from_epoch) =
     when spd_bid_datum.making is {
       Some(m) -> (m.owner_payment_key, m.quantity, m.to_epoch, m.from_epoch)
       _ ->
@@ -123,7 +123,7 @@ pub fn sell(
           _ -> (#"", -1, -1, -1)
         }
     }
-  (spending_quantity > 0)? && (spending_to_epoch >= spending_from_epoch)? && (validity_after_must_set > 0)? && not(
+  (spd_quantity > 0)? && (spd_to_epoch >= spd_from_epoch)? && (validity_after_must_set > 0)? && not(
     bytearray.is_empty(owner_vk),
   )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
     Some(ref_in_escrow) ->
@@ -138,7 +138,7 @@ pub fn sell(
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
           let end_epoch = start_epoch + escrow_datum.duration
-          (end_epoch >= current_epoch)? && (end_epoch >= spending_from_epoch)? && (end_epoch <= spending_to_epoch)? && when
+          (end_epoch >= current_epoch)? && (end_epoch >= spd_from_epoch)? && (end_epoch <= spd_to_epoch)? && when
             get_escrow_info(
               conf.bond,
               value.lovelace_of(ref_in_escrow.output.value),
@@ -161,23 +161,22 @@ pub fn sell(
                   tx.outputs,
                   owner,
                   sc,
-                  [owner_vk],
                   tx.datums,
                   when spd_bid_datum.making is {
                     Some(_) -> DatumTypeBidMaking
                     _ -> DatumTypeBidLimit
                   },
-                  escrow_datum.bond_symbol,
+                  escrow_info,
                   when spd_bid_datum.making is {
                     Some(_) ->
                       OrderTypeDatum(
-                        None,
+                        OrderDatum(None, None),
                         OrderDatum(None, spd_bid_datum.making),
                       )
                     _ ->
                       OrderTypeDatum(
                         OrderDatum(None, spd_bid_datum.limit),
-                        None,
+                        OrderDatum(None, None),
                       )
                   },
                 )
@@ -195,7 +194,7 @@ pub fn sell(
                     ou.owner.bond_assets,
                     escrow_info.token_name,
                   )? && (list.length(sc_out_utxos) <= 1)? && (
-                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spending_quantity)?
+                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_quantity)?
                   ) && sell_correct(
                     tx,
                     conf,

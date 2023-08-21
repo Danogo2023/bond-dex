@@ -6,9 +6,9 @@ use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/types.{
-  AskLimit, AskMaking, BizOutput, BizTxInfo, Config, DatumTypeAskLimit,
-  DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo, OK, OrderDatum,
-  OrderTypeDatum,
+  AskLimit, AskMaking, BidMaking, BizOutput, BizTxInfo, Config,
+  DatumTypeAskLimit, DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo, OK,
+  OrderDatum, OrderTypeDatum,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -17,6 +17,7 @@ use bond/utils.{
 use common/utils.{get_data} as common_utils
 
 fn buy_is_valid(
+  tx: Transaction,
   conf: Config,
   in: BizOutput,
   out: BizOutput,
@@ -24,6 +25,7 @@ fn buy_is_valid(
   buyer_qty: Int,
   price_of_one_bond: Int,
   min_ada_to_market: Int,
+  spd_ask_datum: OrderTypeDatum<Option<AskLimit>, Option<AskMaking>>,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
@@ -38,16 +40,64 @@ fn buy_is_valid(
   // phi buyer phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  (out.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (out.owner.lovelace == received_with_yield - market_fee_seller)? && (in.sc.bond_qty + in.other.bond_qty - out.sc.bond_qty == out.other.bond_qty)?
+  let owner_out_utxos =
+    list.concat(out.owner.bond_outputs, out.owner.other_outputs)
+  let owner_output_len = list.length(owner_out_utxos)
+  let sc_output_len =
+    list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
+
+  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && when
+    spd_ask_datum.making
+  is {
+    Some(_) ->
+      (out.market.lovelace >= market_fee_buyer + market_fee_seller)? && (
+        ((owner_output_len > 0)? && (out.owner.lovelace == min_ada_to_market + received_with_yield - market_fee_seller)? && when
+          list.at(owner_out_utxos, 0)
+        is {
+          Some(utxo) ->
+            when get_data(tx.datums, utxo.datum) is {
+              Some(d) -> {
+                expect owner_out_datum: BidMaking = d
+                (owner_out_datum.quantity == buyer_qty)?
+              }
+              None -> {
+                trace @"not found owner output bid making datum"
+                False
+              }
+            }
+          None -> {
+            trace @"not found owner output"
+            False
+          }
+        })? || ((sc_output_len > 0)? && (out.sc.lovelace == in.sc.lovelace + received_with_yield - market_fee_seller)? && (out.sc.bond_qty > 0)?)?
+      )
+    _ ->
+      when spd_ask_datum.limit is {
+        Some(_) ->
+          (out.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (owner_output_len > 0)? && (out.owner.lovelace == received_with_yield - market_fee_seller)?
+        _ -> False
+      }
+  }
 }
 
 fn buy_correct(
+  tx: Transaction,
   conf: Config,
-  requested_yield: Int,
+  spd_ask_datum: OrderTypeDatum<Option<AskLimit>, Option<AskMaking>>,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
+  let requested_yield =
+    when spd_ask_datum.making is {
+      Some(m) -> m.requested_yield
+      _ ->
+        when spd_ask_datum.limit is {
+          Some(l) -> l.requested_yield
+          _ -> -1
+        }
+    }
+
   let (
     qty_owner_2_buyer,
     min_ada_to_sm,
@@ -88,6 +138,7 @@ fn buy_correct(
       (
         min_ada_to_sm <= 0 || (out.sc.lovelace >= min_ada_to_sm)? && out.sc.bond_datum_valid?
       ) && buy_is_valid(
+        tx,
         conf,
         in,
         out,
@@ -100,6 +151,7 @@ fn buy_correct(
           conf.bond.basis_points_ref_unit,
         ),
         min_ada_to_market,
+        spd_ask_datum,
       )?
   }
 }
@@ -144,6 +196,7 @@ pub fn buy(
           expect escrow_datum: EscrowDatum = d
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+          let end_epoch = start_epoch + escrow_datum.duration
           when
             get_escrow_info(
               conf.bond,
@@ -155,7 +208,7 @@ pub fn buy(
                 conf.bond.epoch_config,
               ),
               start_epoch,
-              start_epoch + escrow_datum.duration,
+              end_epoch,
             )
           is {
             OK(escrow_info) -> {
@@ -170,23 +223,22 @@ pub fn buy(
                   tx.outputs,
                   owner,
                   sc,
-                  [owner_vk],
                   tx.datums,
                   when spd_ask_datum.making is {
                     Some(_) -> DatumTypeAskMaking
                     _ -> DatumTypeAskLimit
                   },
-                  escrow_datum.bond_symbol,
+                  escrow_info,
                   when spd_ask_datum.making is {
                     Some(_) ->
                       OrderTypeDatum(
-                        None,
+                        OrderDatum(None, None),
                         OrderDatum(spd_ask_datum.making, None),
                       )
                     _ ->
                       OrderTypeDatum(
                         OrderDatum(spd_ask_datum.limit, None),
-                        None,
+                        OrderDatum(None, None),
                       )
                   },
                 )
@@ -194,25 +246,19 @@ pub fn buy(
                 in.sc.bond_assets,
                 escrow_info.token_name,
               )? && when out is {
-                None -> {
-                  trace @"out is None"
-                  False
-                }
                 Some(ou) ->
                   (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.sc.bond_qty + in.other.bond_qty == ou.sc.bond_qty + ou.other.bond_qty)? && buy_correct(
+                    tx,
                     conf,
-                    when spd_ask_datum.making is {
-                      Some(m) -> m.requested_yield
-                      _ ->
-                        when spd_ask_datum.limit is {
-                          Some(l) -> l.requested_yield
-                          _ -> -1
-                        }
-                    },
+                    spd_ask_datum,
                     in,
                     ou,
                     escrow_info,
                   )
+                None -> {
+                  trace @"out is None"
+                  False
+                }
               }
             }
             Error(_) -> {
