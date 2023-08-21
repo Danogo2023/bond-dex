@@ -397,7 +397,7 @@ pub fn gen_ask_limit_datum(owner: Address, requested_yield: Int) -> AskLimit {
   AskLimit {
     owner_payment_key: when owner.payment_credential is {
       VerificationKeyCredential(vk) -> vk
-      ScriptCredential(sh) -> sh
+      ScriptCredential(sc) -> sc
     },
     owner_stake_key: when owner.stake_credential is {
       Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)

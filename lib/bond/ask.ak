@@ -3,7 +3,7 @@ use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
 use aiken/transaction.{Transaction}
-use aiken/transaction/credential.{Address, VerificationKeyCredential}
+use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/types.{
   AskLimit, AskMaking, BizOutput, BizTxInfo, BondDatum, Config,
@@ -123,11 +123,11 @@ pub fn buy(
     }
   let owner_vk =
     when spd_ask_datum.making is {
-      Some(d) -> d.owner_payment_key
-      _ ->
-        when owner.payment_credential is {
-          VerificationKeyCredential(x) -> x
-          _ -> #""
+      Some(m) -> m.owner_payment_key
+      None ->
+        when spd_ask_datum.limit is {
+          Some(l) -> l.owner_payment_key
+          None -> #""
         }
     }
   (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
@@ -187,8 +187,8 @@ pub fn buy(
                   trace @"out is None"
                   False
                 }
-                Some(biz_output) ->
-                  (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.sc.bond_qty + in.other.bond_qty == biz_output.sc.bond_qty + biz_output.other.bond_qty)? && buy_correct(
+                Some(ou) ->
+                  (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.sc.bond_qty + in.other.bond_qty == ou.sc.bond_qty + ou.other.bond_qty)? && buy_correct(
                     conf,
                     when spd_ask_datum.making is {
                       Some(m) -> m.requested_yield
@@ -199,7 +199,7 @@ pub fn buy(
                         }
                     },
                     in,
-                    biz_output,
+                    ou,
                     escrow_info,
                   )
               }

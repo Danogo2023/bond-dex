@@ -11,8 +11,8 @@ use bond/fixture.{
   get_config_mainnet, get_config_preview, get_escrow_address,
   get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
   get_input_escrow, get_market_address, get_not_bond_policy_id,
-  get_not_escrow_policy_id, get_payment_datum, get_seller_address,
-  get_seller_address_hash, get_sc_address, scripthash_address,
+  get_not_escrow_policy_id, get_payment_datum, get_sc_address,
+  get_seller_address, get_seller_address_hash, scripthash_address,
 }
 use bond/types.{BondDatum}
 use bond/utils.{get_price_of_bond, posix_time_to_relative_epoch}
@@ -24,8 +24,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -61,7 +60,9 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
             bond_name_ask_1,
             sc_in_bond_qty,
           ),
-          get_bond_policy_id(), bond_name_ask_2, 3,
+          get_bond_policy_id(),
+          bond_name_ask_2,
+          3,
         ),
       ),
       InlineDatum(sc_out_datum_1),
@@ -129,7 +130,9 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 6,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -171,8 +174,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -202,11 +204,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -280,7 +278,9 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 6,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -322,8 +322,7 @@ test buy_limit_fail_partial_change_bond_name() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -353,11 +352,7 @@ test buy_limit_fail_partial_change_bond_name() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -368,11 +363,7 @@ test buy_limit_fail_partial_change_bond_name() {
       buyer_address,
       buyer_fee_ada,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_2,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_2, sc_in_bond_qty),
       ),
       NoDatum,
     )
@@ -428,11 +419,7 @@ test buy_limit_fail_partial_change_bond_name() {
       buyer_address,
       buyer_received,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       DatumHash(payment_datum_hash),
     )
@@ -441,11 +428,7 @@ test buy_limit_fail_partial_change_bond_name() {
       sc_address,
       sc_in_lovelace - min_ada_to_market,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_2,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_2, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -466,16 +449,16 @@ test buy_limit_fail_partial_change_bond_name() {
   )
 }
 
-test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
+test buy_limit_fail_partial_datum_owner_invalid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let owner_address = get_seller_address()
+  let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let sc_out_datum_1 =
     gen_ask_limit_datum(scripthash_address(#"010203040506"), 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -483,7 +466,7 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
     get_price_of_bond(
       escrow_full_info.received_at_maturity_one_bond,
       escrow_full_info.day_to_maturity,
-      sc_out_datum_1.requested_yield,
+      sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //
@@ -505,13 +488,9 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
-      InlineDatum(sc_out_datum_1),
+      InlineDatum(sc_in_datum_1),
     )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
@@ -576,7 +555,9 @@ test buy_limit_fail_partial_ask_limit_datum_owner_invalid() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -618,8 +599,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -649,11 +629,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -720,7 +696,9 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -762,8 +740,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -793,11 +770,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -871,7 +844,9 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 6,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -913,8 +888,7 @@ test buy_limit_fail_escrow_address_unexpect() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -944,11 +918,7 @@ test buy_limit_fail_escrow_address_unexpect() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1022,7 +992,9 @@ test buy_limit_fail_escrow_address_unexpect() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 6,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          6,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1064,8 +1036,7 @@ test buy_limit_fail_escrow_datum_not_found() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -1095,11 +1066,7 @@ test buy_limit_fail_escrow_datum_not_found() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1166,7 +1133,9 @@ test buy_limit_fail_escrow_datum_not_found() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_1, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_2, 3,
+          get_bond_policy_id(),
+          bond_name_ask_2,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1208,8 +1177,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -1239,11 +1207,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1310,7 +1274,9 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_1, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_2, 3,
+          get_bond_policy_id(),
+          bond_name_ask_2,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1412,11 +1378,7 @@ test buy_limit_fail_escrow_closable() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1483,7 +1445,9 @@ test buy_limit_fail_escrow_closable() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_1, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_2, 3,
+          get_bond_policy_id(),
+          bond_name_ask_2,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1525,8 +1489,7 @@ test buy_limit_fail_buyer_must_not_owner() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -1556,11 +1519,7 @@ test buy_limit_fail_buyer_must_not_owner() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1627,7 +1586,9 @@ test buy_limit_fail_buyer_must_not_owner() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1670,8 +1631,7 @@ test buy_limit_fail_buyer_must_not_market() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -1701,11 +1661,7 @@ test buy_limit_fail_buyer_must_not_market() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1771,7 +1727,9 @@ test buy_limit_fail_buyer_must_not_market() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1813,8 +1771,7 @@ test buy_limit_succ_partial() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -1844,11 +1801,7 @@ test buy_limit_succ_partial() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -1915,7 +1868,9 @@ test buy_limit_succ_partial() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -1957,8 +1912,7 @@ test buy_limit_succ_full_1() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -1988,11 +1942,7 @@ test buy_limit_succ_full_1() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2059,7 +2009,9 @@ test buy_limit_succ_full_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2104,8 +2056,7 @@ test buy_limit_succ_full_2() {
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
@@ -2137,11 +2088,7 @@ test buy_limit_succ_full_2() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2244,8 +2191,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -2275,11 +2221,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2346,7 +2288,9 @@ test buy_limit_fail_partial_validity_end_not_set() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2388,8 +2332,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -2419,11 +2362,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2490,7 +2429,9 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2535,8 +2476,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
@@ -2568,11 +2508,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2675,8 +2611,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -2706,11 +2641,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2777,7 +2708,9 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2819,8 +2752,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -2850,11 +2782,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -2921,7 +2849,9 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -2966,8 +2896,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
@@ -2999,11 +2928,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -3106,8 +3031,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -3137,11 +3061,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -3208,7 +3128,9 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -3250,8 +3172,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -3281,11 +3202,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -3352,7 +3269,9 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -3397,8 +3316,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
@@ -3430,11 +3348,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -3537,8 +3451,7 @@ test buy_limit_succ_bond_policy_id_valid() {
   let sc_out_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
@@ -3568,11 +3481,7 @@ test buy_limit_succ_bond_policy_id_valid() {
       sc_address,
       sc_in_lovelace,
       Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_in_bond_qty,
-        ),
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
       InlineDatum(sc_out_datum_1),
     )
@@ -3639,7 +3548,9 @@ test buy_limit_succ_bond_policy_id_valid() {
       Some(
         value.add(
           value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(), bond_name_ask_1, 3,
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
         ),
       ),
       DatumHash(payment_datum_hash),
@@ -3684,8 +3595,7 @@ test buy_limit_fail_bond_policy_id_invalid() {
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum =
-    get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =

@@ -3,7 +3,7 @@ use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
 use aiken/transaction.{Output, Transaction}
-use aiken/transaction/credential.{Address, VerificationKeyCredential}
+use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/types.{
   BidLimit, BidMaking, BizOutput, BizTxInfo, BondDatum, Config,
@@ -114,18 +114,13 @@ pub fn sell(
       Finite(x) -> x
       _ -> 0
     }
-  let owner_vk =
-    when owner.payment_credential is {
-      VerificationKeyCredential(x) -> x
-      _ -> #""
-    }
-  let (spending_quantity, spending_to_epoch, spending_from_epoch) =
+  let (owner_vk, spending_quantity, spending_to_epoch, spending_from_epoch) =
     when spd_bid_datum.making is {
-      Some(m) -> (m.quantity, m.to_epoch, m.from_epoch)
+      Some(m) -> (m.owner_payment_key, m.quantity, m.to_epoch, m.from_epoch)
       _ ->
         when spd_bid_datum.limit is {
-          Some(l) -> (l.quantity, l.to_epoch, l.from_epoch)
-          _ -> (-1, -1, -1)
+          Some(l) -> (l.owner_payment_key, l.quantity, l.to_epoch, l.from_epoch)
+          _ -> (#"", -1, -1, -1)
         }
     }
   (spending_quantity > 0)? && (spending_to_epoch >= spending_from_epoch)? && (validity_after_must_set > 0)? && not(

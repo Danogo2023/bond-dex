@@ -17,10 +17,10 @@ use common/types.{Datums, PublicKeyHash} as common_types
 use common/utils.{get_data, get_payment_key}
 
 pub fn must_be_signed_by(
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   address: Address,
 ) -> Bool {
-  list.has(extra_signatories, get_payment_key(address))
+  list.has(pkh_valid, get_payment_key(address))
 }
 
 pub fn get_escrow_ref_inputs(
@@ -185,11 +185,11 @@ pub fn bond_assets(
 
 fn datum_owner_valid(
   conf: Config,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   out_payment_key: ByteArray,
   out_requested_yield: Int,
 ) -> Bool {
-  list.has(extra_signatories, out_payment_key)? && (math.clamp(
+  list.has(pkh_valid, out_payment_key)? && (math.clamp(
     out_requested_yield,
     conf.bond.basis_points_min,
     conf.bond.basis_points_max,
@@ -221,7 +221,7 @@ fn datum_making_valid(
 
 fn datum_is_valid(
   conf: Config,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   datum_type: DatumType,
   out_data: Data,
   spd_sc_payment_key: ByteArray,
@@ -232,7 +232,7 @@ fn datum_is_valid(
       expect out_datum: AskLimit = out_data
       datum_owner_valid(
         conf,
-        extra_signatories,
+        pkh_valid,
         out_datum.owner_payment_key,
         out_datum.requested_yield,
       )
@@ -241,7 +241,7 @@ fn datum_is_valid(
       expect out_datum: AskMaking = out_data
       datum_owner_valid(
         conf,
-        extra_signatories,
+        pkh_valid,
         out_datum.owner_payment_key,
         out_datum.requested_yield,
       ) && when spd_datum.bid is {
@@ -261,7 +261,7 @@ fn datum_is_valid(
       expect out_datum: BidLimit = out_data
       datum_owner_valid(
         conf,
-        extra_signatories,
+        pkh_valid,
         out_datum.owner_payment_key,
         out_datum.requested_yield,
       ) && datum_epoch_valid(
@@ -274,7 +274,7 @@ fn datum_is_valid(
       expect out_datum: BidMaking = out_data
       datum_owner_valid(
         conf,
-        extra_signatories,
+        pkh_valid,
         out_datum.owner_payment_key,
         out_datum.requested_yield,
       ) && datum_epoch_valid(
@@ -303,7 +303,7 @@ fn build_biz_output_info(
   output: Output,
   bond_values: Dict<AssetName, Int>,
   check_datum: Bool,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   conf: Config,
   datum_type: DatumType,
@@ -333,7 +333,7 @@ fn build_biz_output_info(
           Some(d) ->
             datum_is_valid(
               conf,
-              extra_signatories,
+              pkh_valid,
               datum_type,
               d,
               spd_sc_payment_key,
@@ -362,7 +362,7 @@ fn build_biz_data(
   output: Output,
   owner: Address,
   sc: Address,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   data: BizOutput,
   datum_type: DatumType,
@@ -388,7 +388,7 @@ fn build_biz_data(
       } else {
         False
       },
-      extra_signatories,
+      pkh_valid,
       datums,
       conf,
       datum_type,
@@ -422,7 +422,7 @@ fn get_biz_output(
   outputs: List<Output>,
   owner: Address,
   sc: Address,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
   datum_type: DatumType,
@@ -438,7 +438,7 @@ fn get_biz_output(
           x,
           owner,
           sc,
-          extra_signatories,
+          pkh_valid,
           datums,
           recursive,
           datum_type,
@@ -453,7 +453,7 @@ fn get_biz_output(
           xs,
           owner,
           sc,
-          extra_signatories,
+          pkh_valid,
           datums,
           biz_data,
           datum_type,
@@ -470,7 +470,7 @@ fn get_biz_input(
   outputs: List<Input>,
   owner: Address,
   sc: Address,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
   datum_type: DatumType,
@@ -486,7 +486,7 @@ fn get_biz_input(
           x.output,
           owner,
           sc,
-          extra_signatories,
+          pkh_valid,
           datums,
           recursive,
           datum_type,
@@ -501,7 +501,7 @@ fn get_biz_input(
           xs,
           owner,
           sc,
-          extra_signatories,
+          pkh_valid,
           datums,
           biz_data,
           datum_type,
@@ -519,7 +519,7 @@ pub fn collect_biz_tx_info(
   outputs: List<Output>,
   owner: Address,
   sc: Address,
-  extra_signatories: List<PublicKeyHash>,
+  pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
@@ -550,7 +550,7 @@ pub fn collect_biz_tx_info(
       inputs,
       owner,
       sc,
-      extra_signatories,
+      pkh_valid,
       datums,
       biz_out_init,
       datum_type,
@@ -564,7 +564,7 @@ pub fn collect_biz_tx_info(
         outputs,
         owner,
         sc,
-        extra_signatories,
+        pkh_valid,
         datums,
         biz_out_init,
         datum_type,
