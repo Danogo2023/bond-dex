@@ -73,23 +73,24 @@ test sell_limit_succ_full() {
     gen_output(seller_address, seller_out_lovelace, None, NoDatum)
   let owner_out_1 =
     gen_output(owner_address, owner_out_lovelace, Some(asset_sell), NoDatum)
-  let sc_out_lovelace =
-    sc_in_lovelace - received_with_yield - market_fee_buyer - owner_out_lovelace
-  let sc_out_datum_1 =
-    gen_bid_limit_datum(
-      owner_address,
-      390,
-      480,
-      sc_in_datum_1.quantity - bond_sell_qty,
-      500,
-    )
-  let sc_out_utxo =
-    gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
+  // let sc_out_lovelace =
+  //   sc_in_lovelace - received_with_yield - market_fee_buyer - owner_out_lovelace
+  // let sc_out_datum_1 =
+  //   gen_bid_limit_datum(
+  //     owner_address,
+  //     390,
+  //     480,
+  //     sc_in_datum_1.quantity - bond_sell_qty,
+  //     500,
+  //   )
+  // let sc_out_utxo =
+  //   gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
   bid.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
-      [market_out_1, seller_out_1, owner_out_1, sc_out_utxo],
+      [market_out_1, seller_out_1, owner_out_1],
+      // [market_out_1, seller_out_1, owner_out_1, sc_out_utxo],
       Some([get_buyer_address_hash()]),
       None,
       Some(time_of_tx),
@@ -1356,23 +1357,24 @@ test sell_limit_succ_bond_policy_id_valid() {
     gen_output(seller_address, seller_out_lovelace, None, NoDatum)
   let owner_out_1 =
     gen_output(owner_address, owner_out_lovelace, Some(asset_sell), NoDatum)
-  let sc_out_lovelace =
-    sc_in_lovelace - received_with_yield - market_fee_buyer - owner_out_lovelace
-  let sc_out_datum_1 =
-    gen_bid_limit_datum(
-      owner_address,
-      390,
-      480,
-      sc_in_datum_1.quantity - bond_sell_qty,
-      500,
-    )
-  let sc_out_utxo =
-    gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
+  // let sc_out_lovelace =
+  //   sc_in_lovelace - received_with_yield - market_fee_buyer - owner_out_lovelace
+  // let sc_out_datum_1 =
+  //   gen_bid_limit_datum(
+  //     owner_address,
+  //     390,
+  //     480,
+  //     sc_in_datum_1.quantity - bond_sell_qty,
+  //     500,
+  //   )
+  // let sc_out_utxo =
+  //   gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
   bid.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
-      [market_out_1, seller_out_1, owner_out_1, sc_out_utxo],
+      [market_out_1, seller_out_1, owner_out_1],
+      // [market_out_1, seller_out_1, owner_out_1, sc_out_utxo],
       Some([get_buyer_address_hash()]),
       None,
       Some(time_of_tx),

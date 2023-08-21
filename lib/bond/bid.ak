@@ -27,36 +27,13 @@ fn sell_correct(
 ) -> Bool {
   let buyer_receive_bonds_qty = out.owner.bond_qty
   let buyer_receive_lovelace = out.owner.lovelace
-  let (
-    spending_quantity,
-    spending_to_epoch,
-    spending_from_epoch,
-    spending_requested_yield,
-    spending_owner_payment_key,
-    spending_owner_stake_key,
-  ) =
+  let (spd_quantity, spd_requested_yield) =
     when spd_bid_datum.making is {
-      Some(m) ->
-        (
-          m.quantity,
-          m.to_epoch,
-          m.from_epoch,
-          m.requested_yield,
-          m.owner_payment_key,
-          m.owner_stake_key,
-        )
+      Some(m) -> (m.quantity, m.requested_yield)
       _ ->
         when spd_bid_datum.limit is {
-          Some(l) ->
-            (
-              l.quantity,
-              l.to_epoch,
-              l.from_epoch,
-              l.requested_yield,
-              l.owner_payment_key,
-              l.owner_stake_key,
-            )
-          _ -> (-1, -1, -1, -1, #"", None)
+          Some(l) -> (l.quantity, l.requested_yield)
+          _ -> (-1, -1)
         }
     }
 
@@ -69,7 +46,7 @@ fn sell_correct(
     get_price_of_bond(
       escrow_info.received_at_maturity_one_bond,
       escrow_info.day_to_maturity,
-      spending_requested_yield,
+      spd_requested_yield,
       conf.bond.basis_points_ref_unit,
     ) * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
@@ -82,24 +59,42 @@ fn sell_correct(
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
   let market_fee_total = market_fee_buyer + market_fee_seller
   let seller_receive_total = received_with_yield - market_fee_seller
-
+  let sc_out_remain = spd_quantity - buyer_receive_bonds_qty
   (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
     tx.fee,
-  ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && when
-    sc_out_utxo
-  is {
-    Some(utxo) ->
-      when get_data(tx.datums, utxo.datum) is {
-        Some(datum) -> {
-          expect sc_out_datum: BidLimit = datum
-          (sc_out_datum.owner_payment_key == spending_owner_payment_key)? && (sc_out_datum.owner_stake_key == spending_owner_stake_key)? && (sc_out_datum.to_epoch == spending_to_epoch)? && (sc_out_datum.from_epoch == spending_from_epoch)? && (sc_out_datum.requested_yield == spending_requested_yield)? && (sc_out_datum.quantity == spending_quantity - buyer_receive_bonds_qty)?
+  ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
+    (sc_out_remain == 0)? || when sc_out_utxo is {
+      Some(utxo) ->
+        (sc_out_remain > 0)? && when get_data(tx.datums, utxo.datum) is {
+          Some(d) -> {
+            let sc_out_datum_quantity =
+              when spd_bid_datum.making is {
+                Some(_) -> {
+                  expect sc_out_datum: BidMaking = d
+                  sc_out_datum.quantity
+                }
+                _ ->
+                  when spd_bid_datum.limit is {
+                    Some(_) -> {
+                      expect sc_out_datum: BidLimit = d
+                      sc_out_datum.quantity
+                    }
+                    _ -> {
+                      trace @"not found sc output datum"
+                      -1
+                    }
+                  }
+              }
+            (sc_out_datum_quantity > 0)? && (sc_out_datum_quantity == sc_out_remain)?
+          }
+          None -> {
+            trace @"not found output bid datum"
+            False
+          }
         }
-        None ->
-          // trace @"not found output bid datum"
-          False
-      }
-    None -> True
-  }
+      None -> True
+    }
+  )
 }
 
 pub fn sell(
@@ -190,12 +185,13 @@ pub fn sell(
                 Some(ou) -> {
                   let sc_out_utxos =
                     list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
+                  let owner_output_len = list.length(list.concat(ou.owner.bond_outputs, ou.owner.other_outputs))
                   (in.owner.lovelace <= 0)? && (in.market.lovelace <= 0)? && (dict.size(
                     ou.owner.bond_assets,
                   ) > 0)? && (dict.size(ou.owner.bond_assets) <= 1)? && dict.has_key(
                     ou.owner.bond_assets,
                     escrow_info.token_name,
-                  )? && (list.length(sc_out_utxos) <= 1)? && (
+                  )? && (list.length(sc_out_utxos) <= 1)? && (owner_output_len <= 1)? && (
                     (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)?
                   ) && sell_correct(
                     tx,
