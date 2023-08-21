@@ -112,7 +112,7 @@ validator(conf: Config) {
 }
 
 validator(conf: Config) {
-  fn bid_making_20230818(
+  fn bid_making_20230822(
     datum: BidMaking,
     action: TradeAction,
     ctx: ScriptContext,
