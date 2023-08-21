@@ -6,9 +6,9 @@ use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/types.{
-  BidLimit, BidMaking, BizOutput, BizTxInfo, BondDatum, Config,
-  DatumTypeBidLimit, DatumTypeBidMaking, Error, EscrowDatum, EscrowInfo,
-  MakingDatum, OK,
+  BidLimit, BidMaking, BizOutput, BizTxInfo, Config, DatumTypeBidLimit,
+  DatumTypeBidMaking, Error, EscrowDatum, EscrowInfo, OK, OrderDatum,
+  OrderTypeDatum,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -19,7 +19,7 @@ use common/utils.{get_data} as common_utils
 fn sell_correct(
   tx: Transaction,
   conf: Config,
-  spd_bid_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
+  spd_bid_datum: OrderTypeDatum<Option<BidLimit>, Option<BidMaking>>,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -105,7 +105,7 @@ fn sell_correct(
 pub fn sell(
   tx: Transaction,
   conf: Config,
-  spd_bid_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
+  spd_bid_datum: OrderTypeDatum<Option<BidLimit>, Option<BidMaking>>,
   owner: Address,
   sc: Address,
 ) -> Bool {
@@ -168,7 +168,18 @@ pub fn sell(
                     _ -> DatumTypeBidLimit
                   },
                   escrow_datum.bond_symbol,
-                  MakingDatum(None, spd_bid_datum.making),
+                  when spd_bid_datum.making is {
+                    Some(_) ->
+                      OrderTypeDatum(
+                        None,
+                        OrderDatum(None, spd_bid_datum.making),
+                      )
+                    _ ->
+                      OrderTypeDatum(
+                        OrderDatum(None, spd_bid_datum.limit),
+                        None,
+                      )
+                  },
                 )
               biz_tx_info_valid && when out is {
                 None -> {

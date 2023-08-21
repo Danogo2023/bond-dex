@@ -6,9 +6,9 @@ use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/types.{
-  AskLimit, AskMaking, BizOutput, BizTxInfo, BondDatum, Config,
-  DatumTypeAskLimit, DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo,
-  MakingDatum, OK,
+  AskLimit, AskMaking, BizOutput, BizTxInfo, Config, DatumTypeAskLimit,
+  DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo, OK, OrderDatum,
+  OrderTypeDatum,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -107,7 +107,7 @@ fn buy_correct(
 pub fn buy(
   tx: Transaction,
   conf: Config,
-  spd_ask_datum: BondDatum<Option<AskLimit>, Option<AskMaking>>,
+  spd_ask_datum: OrderTypeDatum<Option<AskLimit>, Option<AskMaking>>,
   owner: Address,
   sc: Address,
 ) -> Bool {
@@ -177,7 +177,18 @@ pub fn buy(
                     _ -> DatumTypeAskLimit
                   },
                   escrow_datum.bond_symbol,
-                  MakingDatum(spd_ask_datum.making, None),
+                  when spd_ask_datum.making is {
+                    Some(_) ->
+                      OrderTypeDatum(
+                        None,
+                        OrderDatum(spd_ask_datum.making, None),
+                      )
+                    _ ->
+                      OrderTypeDatum(
+                        OrderDatum(spd_ask_datum.limit, None),
+                        None,
+                      )
+                  },
                 )
               biz_tx_info_valid && (dict.size(in.sc.bond_assets) == 1)? && dict.has_key(
                 in.sc.bond_assets,

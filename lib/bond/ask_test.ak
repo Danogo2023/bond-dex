@@ -14,7 +14,7 @@ use bond/fixture.{
   get_not_escrow_policy_id, get_payment_datum, get_sc_address,
   get_seller_address, get_seller_address_hash, scripthash_address,
 }
-use bond/types.{BondDatum}
+use bond/types.{OrderTypeDatum}
 use bond/utils.{get_price_of_bond, posix_time_to_relative_epoch}
 
 test buy_limit_fail_partial_must_only_one_bond_1() {
@@ -161,7 +161,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -309,7 +309,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -443,7 +443,7 @@ test buy_limit_fail_partial_change_bond_name() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -586,7 +586,7 @@ test buy_limit_fail_partial_datum_owner_invalid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -727,7 +727,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -875,7 +875,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1023,7 +1023,7 @@ test buy_limit_fail_escrow_address_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1164,7 +1164,7 @@ test buy_limit_fail_escrow_datum_not_found() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1305,7 +1305,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1476,7 +1476,7 @@ test buy_limit_fail_escrow_closable() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1617,7 +1617,7 @@ test buy_limit_fail_buyer_must_not_owner() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1758,7 +1758,7 @@ test buy_limit_fail_buyer_must_not_market() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1899,7 +1899,7 @@ test buy_limit_succ_partial() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2040,7 +2040,7 @@ test buy_limit_succ_full_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2178,7 +2178,7 @@ test buy_limit_succ_full_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2319,7 +2319,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
       None,
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2460,7 +2460,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       None,
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2598,7 +2598,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       None,
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2739,7 +2739,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -2880,7 +2880,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -3018,7 +3018,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -3159,7 +3159,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -3300,7 +3300,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -3438,7 +3438,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -3579,7 +3579,7 @@ test buy_limit_succ_bond_policy_id_valid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -3721,7 +3721,7 @@ test buy_limit_fail_bond_policy_id_invalid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_out_datum_1), None),
+    OrderTypeDatum(Some(sc_out_datum_1), None),
     owner_address,
     sc_address,
   )

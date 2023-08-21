@@ -9,7 +9,7 @@ use bond/fixture.{
   get_input_escrow, get_market_address, get_not_bond_policy_id,
   get_not_escrow_policy_id, get_sc_address, get_seller_address,
 }
-use bond/types.{BondDatum}
+use bond/types.{OrderTypeDatum}
 use bond/utils.{get_price_of_bond}
 
 test sell_limit_succ_full() {
@@ -96,7 +96,7 @@ test sell_limit_succ_full() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -186,7 +186,7 @@ test sell_limit_succ_partial() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -276,7 +276,7 @@ test sell_limit_fail_input_epoch_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -366,7 +366,7 @@ test sell_limit_fail_input_epoch_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -469,7 +469,7 @@ test sell_limit_fail_input_epoch_3() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -559,7 +559,7 @@ test sell_limit_fail_input_epoch_4() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -659,7 +659,7 @@ test sell_limit_fail_input_qty() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -749,7 +749,7 @@ test sell_limit_fail_output_qty() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -839,7 +839,7 @@ test sell_limit_fail_validity_after_not_set() {
       None,
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -929,7 +929,7 @@ test sell_limit_fail_owner_address_format() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     get_buyer_address_scripthash(),
     sc_address,
   )
@@ -1019,7 +1019,7 @@ test sell_limit_fail_escrow_policy_id_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1109,7 +1109,7 @@ test sell_limit_fail_escrow_address_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1199,7 +1199,7 @@ test sell_limit_fail_escrow_datum_not_found() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1289,7 +1289,7 @@ test sell_limit_fail_escrow_datum_unexpect() fail {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1379,7 +1379,7 @@ test sell_limit_succ_bond_policy_id_valid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )
@@ -1469,7 +1469,7 @@ test sell_limit_fail_bond_policy_id_invalid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    BondDatum(Some(sc_in_datum_1), None),
+    OrderTypeDatum(Some(sc_in_datum_1), None),
     owner_address,
     sc_address,
   )

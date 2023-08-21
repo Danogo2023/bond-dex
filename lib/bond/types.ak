@@ -166,14 +166,20 @@ pub type BidMaking {
   margin: Int,
 }
 
-pub type BondDatum<a, b> {
+pub type OrderTypeDatum<a, b> {
   limit: a,
   making: b,
 }
 
-pub type MakingDatum<a, b> {
+pub type OrderDatum<a, b> {
   ask: a,
   bid: b,
+}
+
+pub DatumOf {
+  OtherDatum
+  ScDatum
+  OwnerDatum
 }
 
 pub type TradeAction {

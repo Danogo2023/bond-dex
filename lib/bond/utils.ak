@@ -9,9 +9,10 @@ use aiken/transaction/credential.{
 use aiken/transaction/value.{AssetName}
 use bond/types.{
   AskLimit, AskMaking, BidLimit, BidMaking, BizOutput, BizOutputInfo, BizTxInfo,
-  BondConfig, Config, DatumType, DatumTypeAskLimit, DatumTypeAskMaking,
+  BondConfig, Config, DatumOf, DatumType, DatumTypeAskLimit, DatumTypeAskMaking,
   DatumTypeBidLimit, DatumTypeBidMaking, EpochConfig, Error, EscrowDatum,
-  EscrowInfo, EscrowInfoResult, MakingDatum, OK,
+  EscrowInfo, EscrowInfoResult, OK, OrderDatum, OrderTypeDatum, OtherDatum,
+  OwnerDatum, ScDatum,
 }
 use common/types.{Datums, PublicKeyHash} as common_types
 use common/utils.{get_data, get_payment_key}
@@ -222,12 +223,13 @@ fn datum_making_valid(
 fn datum_is_valid(
   conf: Config,
   pkh_valid: List<PublicKeyHash>,
-  datum_type: DatumType,
+  spd_datum_type: DatumType,
   out_data: Data,
   spd_sc_payment_key: ByteArray,
-  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  datum_of: DatumOf,
 ) -> Bool {
-  when datum_type is {
+  when spd_datum_type is {
     DatumTypeAskLimit -> {
       expect out_datum: AskLimit = out_data
       datum_owner_valid(
@@ -238,23 +240,30 @@ fn datum_is_valid(
       )
     }
     DatumTypeAskMaking -> {
-      expect out_datum: AskMaking = out_data
-      datum_owner_valid(
-        conf,
-        pkh_valid,
-        out_datum.owner_payment_key,
-        out_datum.requested_yield,
-      ) && when spd_datum.bid is {
-        Some(d) ->
-          datum_making_valid(
-            conf,
-            spd_sc_payment_key,
-            out_datum.bid_sc,
-            d.margin,
-            out_datum.margin,
-            out_datum.requested_yield,
-          )
-        None -> False
+      if datum_of == OwnerDatum {
+        expect out_datum: BidMaking = out_data
+        out_datum.requested_yield = 
+      } else if datum_of == ScDatum {
+        expect out_datum: AskMaking = out_data
+        datum_owner_valid(
+          conf,
+          pkh_valid,
+          out_datum.owner_payment_key,
+          out_datum.requested_yield,
+        ) && when spd_datum.bid is {
+          Some(d) ->
+            datum_making_valid(
+              conf,
+              spd_sc_payment_key,
+              out_datum.bid_sc,
+              d.margin,
+              out_datum.margin,
+              out_datum.requested_yield,
+            )
+          None -> False
+        }
+      } else {
+        False
       }
     }
     DatumTypeBidLimit -> {
@@ -302,13 +311,16 @@ fn build_biz_output_info(
   self: BizOutputInfo,
   output: Output,
   bond_values: Dict<AssetName, Int>,
-  check_datum: Bool,
+  datum_of: DatumOf,
   pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   conf: Config,
-  datum_type: DatumType,
+  spd_datum_type: DatumType,
   spd_sc_payment_key: ByteArray,
-  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderTypeDatum<
+    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
+    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  >,
 ) -> BizOutputInfo {
   let addresses =
     if list.has(self.addresses, output.address) {
@@ -329,15 +341,16 @@ fn build_biz_output_info(
       }
     _ -> {
       let bond_datum_valid =
-        !check_datum || when get_data(datums, output.datum) is {
+        datum_of == OtherDatum || when get_data(datums, output.datum) is {
           Some(d) ->
             datum_is_valid(
               conf,
               pkh_valid,
-              datum_type,
+              spd_datum_type,
               d,
               spd_sc_payment_key,
               spd_datum,
+              datum_of,
             )
           None -> {
             trace @"not found datum"
@@ -365,9 +378,12 @@ fn build_biz_data(
   pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   data: BizOutput,
-  datum_type: DatumType,
+  spd_datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderTypeDatum<
+    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
+    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  >,
 ) -> BizOutput {
   let bond_values = value.tokens(output.value, bond_policy_id)
   let biz_out_info =
@@ -384,14 +400,19 @@ fn build_biz_data(
       output,
       bond_values,
       if output.address == sc {
-        True
+        ScDatum
+      } else if list.has(
+        [DatumTypeAskMaking, DatumTypeBidMaking],
+        spd_datum_type,
+      ) && output.address == owner {
+        OwnerDatum
       } else {
-        False
+        OtherDatum
       },
       pkh_valid,
       datums,
       conf,
-      datum_type,
+      spd_datum_type,
       get_payment_key(sc),
       spd_datum,
     )
@@ -425,9 +446,12 @@ fn get_biz_output(
   pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
-  datum_type: DatumType,
+  spd_datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderTypeDatum<
+    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
+    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  >,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -441,7 +465,7 @@ fn get_biz_output(
           pkh_valid,
           datums,
           recursive,
-          datum_type,
+          spd_datum_type,
           bond_policy_id,
           spd_datum,
         )
@@ -456,7 +480,7 @@ fn get_biz_output(
           pkh_valid,
           datums,
           biz_data,
-          datum_type,
+          spd_datum_type,
           bond_policy_id,
           spd_datum,
         )
@@ -473,9 +497,12 @@ fn get_biz_input(
   pkh_valid: List<PublicKeyHash>,
   datums: Datums,
   recursive: BizOutput,
-  datum_type: DatumType,
+  spd_datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderTypeDatum<
+    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
+    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  >,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -489,7 +516,7 @@ fn get_biz_input(
           pkh_valid,
           datums,
           recursive,
-          datum_type,
+          spd_datum_type,
           bond_policy_id,
           spd_datum,
         )
@@ -504,7 +531,7 @@ fn get_biz_input(
           pkh_valid,
           datums,
           biz_data,
-          datum_type,
+          spd_datum_type,
           bond_policy_id,
           spd_datum,
         )
@@ -521,9 +548,12 @@ pub fn collect_biz_tx_info(
   sc: Address,
   pkh_valid: List<PublicKeyHash>,
   datums: Datums,
-  datum_type: DatumType,
+  spd_datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
+  spd_datum: OrderTypeDatum<
+    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
+    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
+  >,
 ) -> BizTxInfo {
   let biz_out_info_init =
     BizOutputInfo {
@@ -553,7 +583,7 @@ pub fn collect_biz_tx_info(
       pkh_valid,
       datums,
       biz_out_init,
-      datum_type,
+      spd_datum_type,
       bond_policy_id,
       spd_datum,
     )
@@ -567,7 +597,7 @@ pub fn collect_biz_tx_info(
         pkh_valid,
         datums,
         biz_out_init,
-        datum_type,
+        spd_datum_type,
         bond_policy_id,
         spd_datum,
       )

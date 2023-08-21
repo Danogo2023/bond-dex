@@ -5,7 +5,7 @@ use aiken/transaction/credential.{
 use bond/ask
 use bond/bid
 use bond/types.{
-  AskMaking, BidMaking, BondDatum, Buy, Config, Sell,
+  AskMaking, BidMaking, OrderTypeDatum, Buy, Config, Sell,
   TradeAction, Update,
 }
 use bond/utils.{must_be_signed_by}
@@ -36,7 +36,7 @@ validator(conf: Config) {
         ask.buy(
           tx,
           conf,
-          BondDatum(None, Some(datum)),
+          OrderTypeDatum(None, Some(datum)),
           Address {
             payment_credential: ScriptCredential(datum.bid_sc),
             stake_credential: when datum.owner_stake_key is {
@@ -76,7 +76,7 @@ validator(conf: Config) {
         bid.sell(
           tx,
           conf,
-          BondDatum(None, Some(datum)),
+          OrderTypeDatum(None, Some(datum)),
           Address {
             payment_credential: ScriptCredential(datum.ask_sc),
             stake_credential: when datum.owner_stake_key is {
