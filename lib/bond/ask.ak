@@ -119,7 +119,7 @@ fn buy_correct(
         // trace @"buy all"
         (in.sc.bond_qty, 0, in.sc.lovelace, True, True)
     }
-  sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer == 0 || dict.has_key(
+  sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || dict.has_key(
     out.other.bond_assets,
     escrow_info.token_name,
   ))? && when
@@ -197,7 +197,9 @@ pub fn buy(
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
           let end_epoch = start_epoch + escrow_datum.duration
-          when
+          (escrow_datum.bond_amount > 0)? && (value.lovelace_of(
+            escrow_datum.epo_rewards,
+          ) > 0)? && (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)? && when
             get_escrow_info(
               conf.bond,
               value.lovelace_of(ref_in_escrow.output.value),

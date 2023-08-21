@@ -103,6 +103,7 @@ pub fn get_escrow_info(
       EscrowInfo {
         bond_symbol: escrow_datum.bond_symbol,
         token_name: escrow_datum.token_name,
+        bond_amount: escrow_datum.bond_amount,
         start_epoch,
         end_epoch,
         // Tong tien goc + lai cua 1 bond theo lai suat Optim ma lender nhan duoc 

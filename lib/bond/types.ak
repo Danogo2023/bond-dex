@@ -92,6 +92,7 @@ pub type EscrowInfoResult<a, b> {
 pub type EscrowInfo {
   bond_symbol: ByteArray,
   token_name: ByteArray,
+  bond_amount: Int,
   start_epoch: Int,
   end_epoch: Int,
   received_at_maturity_one_bond: Int,

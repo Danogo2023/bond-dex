@@ -2643,7 +2643,7 @@ test buy_limit_succ_full_2() {
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
   // => epoch_start = 22190 epoch_end = 22244
-  let escrow_lovelace = 701430920
+  let escrow_lovelace = 2001430920
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
   let price_of_one_bond =

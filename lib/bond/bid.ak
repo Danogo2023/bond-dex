@@ -138,7 +138,9 @@ pub fn sell(
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
           let end_epoch = start_epoch + escrow_datum.duration
-          (end_epoch >= current_epoch)? && (end_epoch >= spd_from_epoch)? && (end_epoch <= spd_to_epoch)? && when
+          (end_epoch >= current_epoch)? && (end_epoch >= spd_from_epoch)? && (end_epoch <= spd_to_epoch)? && (escrow_datum.bond_amount > 0)? && (value.lovelace_of(
+            escrow_datum.epo_rewards,
+          ) > 0)? && (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)? && when
             get_escrow_info(
               conf.bond,
               value.lovelace_of(ref_in_escrow.output.value),
@@ -194,7 +196,7 @@ pub fn sell(
                     ou.owner.bond_assets,
                     escrow_info.token_name,
                   )? && (list.length(sc_out_utxos) <= 1)? && (
-                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_quantity)?
+                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)?
                   ) && sell_correct(
                     tx,
                     conf,
