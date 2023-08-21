@@ -7,7 +7,8 @@ use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
   BidLimit, BidMaking, BizOutput, BizTxInfo, BondDatum, Config,
-  DatumTypeBidLimit, DatumTypeBidMaking, Error, EscrowDatum, EscrowInfo, OK,
+  DatumTypeBidLimit, DatumTypeBidMaking, Error, EscrowDatum, EscrowInfo,
+  MakingDatum, OK,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -18,7 +19,7 @@ use common/utils.{get_data} as common_utils
 fn sell_correct(
   tx: Transaction,
   conf: Config,
-  spending_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
+  spd_bid_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -34,7 +35,7 @@ fn sell_correct(
     spending_owner_payment_key,
     spending_owner_stake_key,
   ) =
-    when spending_datum.making is {
+    when spd_bid_datum.making is {
       Some(m) ->
         (
           m.quantity,
@@ -45,7 +46,7 @@ fn sell_correct(
           m.owner_stake_key,
         )
       _ ->
-        when spending_datum.limit is {
+        when spd_bid_datum.limit is {
           Some(l) ->
             (
               l.quantity,
@@ -104,7 +105,7 @@ fn sell_correct(
 pub fn sell(
   tx: Transaction,
   conf: Config,
-  spending_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
+  spd_bid_datum: BondDatum<Option<BidLimit>, Option<BidMaking>>,
   owner: Address,
   sc: Address,
 ) -> Bool {
@@ -119,10 +120,10 @@ pub fn sell(
       _ -> #""
     }
   let (spending_quantity, spending_to_epoch, spending_from_epoch) =
-    when spending_datum.making is {
+    when spd_bid_datum.making is {
       Some(m) -> (m.quantity, m.to_epoch, m.from_epoch)
       _ ->
-        when spending_datum.limit is {
+        when spd_bid_datum.limit is {
           Some(l) -> (l.quantity, l.to_epoch, l.from_epoch)
           _ -> (-1, -1, -1)
         }
@@ -167,15 +168,12 @@ pub fn sell(
                   sc,
                   [owner_vk],
                   tx.datums,
-                  when spending_datum.making is {
+                  when spd_bid_datum.making is {
                     Some(_) -> DatumTypeBidMaking
                     _ -> DatumTypeBidLimit
                   },
                   escrow_datum.bond_symbol,
-                  when spending_datum.making is {
-                    Some(m) -> Some(m.margin)
-                    _ -> None
-                  },
+                  MakingDatum(None, spd_bid_datum.making),
                 )
               biz_tx_info_valid && when out is {
                 None -> {
@@ -184,10 +182,7 @@ pub fn sell(
                 }
                 Some(ou) -> {
                   let sc_out_utxos =
-                    list.concat(
-                      ou.sc.bond_outputs,
-                      ou.sc.other_outputs,
-                    )
+                    list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
                   (in.owner.lovelace <= 0)? && (in.market.lovelace <= 0)? && (dict.size(
                     ou.owner.bond_assets,
                   ) > 0)? && (dict.size(ou.owner.bond_assets) <= 1)? && dict.has_key(
@@ -198,7 +193,7 @@ pub fn sell(
                   ) && sell_correct(
                     tx,
                     conf,
-                    spending_datum,
+                    spd_bid_datum,
                     in,
                     ou,
                     escrow_info,

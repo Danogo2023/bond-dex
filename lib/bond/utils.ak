@@ -11,7 +11,7 @@ use bond/types.{
   AskLimit, AskMaking, BidLimit, BidMaking, BizOutput, BizOutputInfo, BizTxInfo,
   BondConfig, Config, DatumType, DatumTypeAskLimit, DatumTypeAskMaking,
   DatumTypeBidLimit, DatumTypeBidMaking, EpochConfig, Error, EscrowDatum,
-  EscrowInfo, EscrowInfoResult, OK,
+  EscrowInfo, EscrowInfoResult, MakingDatum, OK,
 }
 use common/types.{Datums, PublicKeyHash} as common_types
 use common/utils.{get_data, get_payment_key}
@@ -25,7 +25,7 @@ pub fn must_be_signed_by(
 
 pub fn get_escrow_ref_inputs(
   ref_inputs: List<Input>,
-  bond_config: BondConfig,
+  cfg: BondConfig,
 ) -> Option<Input> {
   list.find(
     ref_inputs,
@@ -33,9 +33,8 @@ pub fn get_escrow_ref_inputs(
       when i.output.address.payment_credential is {
         VerificationKeyCredential(_) -> False
         ScriptCredential(k) -> {
-          let escrow_asset =
-            value.tokens(i.output.value, bond_config.escrow_policy_id)
-          k == bond_config.escrow_payment_key && dict.size(escrow_asset) == 1 && when
+          let escrow_asset = value.tokens(i.output.value, cfg.escrow_policy_id)
+          k == cfg.escrow_payment_key && dict.size(escrow_asset) == 1 && when
             list.at(dict.values(escrow_asset), 0)
           is {
             Some(v) -> v > 0
@@ -48,7 +47,7 @@ pub fn get_escrow_ref_inputs(
 }
 
 pub fn get_escrow_info(
-  bond_config: BondConfig,
+  cfg: BondConfig,
   escrow_lovelace: Int,
   escrow_datum: EscrowDatum,
   tx_posix_time: Int,
@@ -59,8 +58,7 @@ pub fn get_escrow_info(
   // Tong tien lai moi epoch Borrower phai tra
   let epoch_rewards_lovelace = value.lovelace_of(escrow_datum.epo_rewards)
   // Tien goc cua toan bo bond phat hanh
-  let principal_lovelace =
-    escrow_datum.bond_amount * bond_config.bond_face_value
+  let principal_lovelace = escrow_datum.bond_amount * cfg.bond_face_value
   // Tong tien lai tich luy hien tai cho toan bo bond phat hanh
   let premium_paid_lovelace = escrow_lovelace - principal_lovelace
   // Tong tien lai tich luy hien tai tinh theo epoch cho toan bo bond phat hanh
@@ -93,24 +91,23 @@ pub fn get_escrow_info(
     Error("Escrow closable")
   } else {
     // Tien phi Optim thu cua Borrower 3%
-    let lend_after_fee =
-      1 * bond_config.basis_points_ref_unit - escrow_datum.otm_fee
+    let lend_after_fee = 1 * cfg.basis_points_ref_unit - escrow_datum.otm_fee
     // Tong tien lai lender nhan duoc cua tat ca bond phat hanh khi ket thuc chu ky dao han
     let lender_interest =
       epoch_rewards_lovelace * escrow_datum.duration * lend_after_fee
     // Tong tien lai lender nhan duoc khi den ky dao han cua 1 bond da tru phi cua Optim 3%
     let interest_at_maturity_one_bond_lovelace =
-      lender_interest / bond_config.basis_points_ref_unit / escrow_datum.bond_amount
+      lender_interest / cfg.basis_points_ref_unit / escrow_datum.bond_amount
     OK(
       EscrowInfo {
         token_name: escrow_datum.token_name,
         // Tong tien goc + lai cua 1 bond theo lai suat Optim ma lender nhan duoc 
-        received_at_maturity_one_bond: interest_at_maturity_one_bond_lovelace + bond_config.bond_face_value,
+        received_at_maturity_one_bond: interest_at_maturity_one_bond_lovelace + cfg.bond_face_value,
         // So ngay den ky dao han cua bond
         day_to_maturity: get_day_to_maturity(
           tx_posix_time,
           end_epoch,
-          bond_config.epoch_config,
+          cfg.epoch_config,
         ),
       },
     )
@@ -209,89 +206,93 @@ fn datum_epoch_valid(
 
 fn datum_making_valid(
   conf: Config,
-  spd_payment_key: ByteArray,
-  out_payment_key: ByteArray,
+  spd_sc_payment_key: ByteArray,
+  out_sc_payment_key: ByteArray,
   spd_margin: Int,
-  out_margin: Option<Int>,
+  out_margin: Int,
   out_requested_yield: Int,
 ) -> Bool {
-  (out_payment_key == spd_payment_key)? && when out_margin is {
-    Some(m) ->
-      (m == spd_margin)? && (math.clamp(
-        m + out_requested_yield,
-        conf.bond.basis_points_min,
-        conf.bond.basis_points_max,
-      ) == m + out_requested_yield)?
-    None -> False
-  }?
+  (out_sc_payment_key == spd_sc_payment_key)? && (out_margin == spd_margin)? && (math.clamp(
+    out_margin + out_requested_yield,
+    conf.bond.basis_points_min,
+    conf.bond.basis_points_max,
+  ) == out_margin + out_requested_yield)?
 }
 
 fn datum_is_valid(
   conf: Config,
   extra_signatories: List<PublicKeyHash>,
   datum_type: DatumType,
-  out_datum: Data,
-  spd_payment_key: ByteArray,
-  spd_margin: Option<Int>,
+  out_data: Data,
+  spd_sc_payment_key: ByteArray,
+  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> Bool {
   when datum_type is {
     DatumTypeAskLimit -> {
-      expect ask_limit_datum: AskLimit = out_datum
+      expect out_datum: AskLimit = out_data
       datum_owner_valid(
         conf,
         extra_signatories,
-        ask_limit_datum.owner_payment_key,
-        ask_limit_datum.requested_yield,
+        out_datum.owner_payment_key,
+        out_datum.requested_yield,
       )
     }
     DatumTypeAskMaking -> {
-      expect ask_making_datum: AskMaking = out_datum
+      expect out_datum: AskMaking = out_data
       datum_owner_valid(
         conf,
         extra_signatories,
-        ask_making_datum.owner_payment_key,
-        ask_making_datum.requested_yield,
-      ) && datum_making_valid(
-        conf,
-        ask_making_datum.bid_sc,
-        spd_payment_key,
-        ask_making_datum.margin,
-        spd_margin,
-        ask_making_datum.requested_yield,
-      )
+        out_datum.owner_payment_key,
+        out_datum.requested_yield,
+      ) && when spd_datum.bid is {
+        Some(d) ->
+          datum_making_valid(
+            conf,
+            spd_sc_payment_key,
+            out_datum.bid_sc,
+            d.margin,
+            out_datum.margin,
+            out_datum.requested_yield,
+          )
+        None -> False
+      }
     }
     DatumTypeBidLimit -> {
-      expect bid_limit_datum: BidLimit = out_datum
+      expect out_datum: BidLimit = out_data
       datum_owner_valid(
         conf,
         extra_signatories,
-        bid_limit_datum.owner_payment_key,
-        bid_limit_datum.requested_yield,
+        out_datum.owner_payment_key,
+        out_datum.requested_yield,
       ) && datum_epoch_valid(
-        bid_limit_datum.from_epoch,
-        bid_limit_datum.to_epoch,
-        bid_limit_datum.quantity,
+        out_datum.from_epoch,
+        out_datum.to_epoch,
+        out_datum.quantity,
       )
     }
     DatumTypeBidMaking -> {
-      expect bid_making_datum: BidMaking = out_datum
+      expect out_datum: BidMaking = out_data
       datum_owner_valid(
         conf,
         extra_signatories,
-        bid_making_datum.owner_payment_key,
-        bid_making_datum.requested_yield,
+        out_datum.owner_payment_key,
+        out_datum.requested_yield,
       ) && datum_epoch_valid(
-        bid_making_datum.from_epoch,
-        bid_making_datum.to_epoch,
-        bid_making_datum.quantity,
-      ) && datum_making_valid(
-        conf,
-        bid_making_datum.ask_sc,
-        spd_payment_key,
-        bid_making_datum.margin,
-        spd_margin,
-        0 - bid_making_datum.requested_yield,
-      )
+        out_datum.from_epoch,
+        out_datum.to_epoch,
+        out_datum.quantity,
+      ) && when spd_datum.ask is {
+        Some(d) ->
+          datum_making_valid(
+            conf,
+            spd_sc_payment_key,
+            out_datum.ask_sc,
+            d.margin,
+            out_datum.margin,
+            0 - out_datum.requested_yield,
+          )
+        None -> False
+      }
     }
     _ -> False
   }
@@ -306,8 +307,8 @@ fn build_biz_output_info(
   datums: Datums,
   conf: Config,
   datum_type: DatumType,
-  spd_payment_key: ByteArray,
-  spd_margin: Option<Int>,
+  spd_sc_payment_key: ByteArray,
+  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutputInfo {
   let addresses =
     if list.has(self.addresses, output.address) {
@@ -335,8 +336,8 @@ fn build_biz_output_info(
               extra_signatories,
               datum_type,
               d,
-              spd_payment_key,
-              spd_margin,
+              spd_sc_payment_key,
+              spd_datum,
             )
           None -> {
             trace @"not found datum"
@@ -366,7 +367,7 @@ fn build_biz_data(
   data: BizOutput,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_margin: Option<Int>,
+  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutput {
   let bond_values = value.tokens(output.value, bond_policy_id)
   let biz_out_info =
@@ -392,7 +393,7 @@ fn build_biz_data(
       conf,
       datum_type,
       get_payment_key(sc),
-      spd_margin,
+      spd_datum,
     )
   BizOutput {
     valid: biz_out_info.bond_datum_valid,
@@ -426,7 +427,7 @@ fn get_biz_output(
   recursive: BizOutput,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_margin: Option<Int>,
+  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -442,7 +443,7 @@ fn get_biz_output(
           recursive,
           datum_type,
           bond_policy_id,
-          spd_margin,
+          spd_datum,
         )
       if !biz_data.valid {
         biz_data
@@ -457,7 +458,7 @@ fn get_biz_output(
           biz_data,
           datum_type,
           bond_policy_id,
-          spd_margin,
+          spd_datum,
         )
       }
     }
@@ -474,7 +475,7 @@ fn get_biz_input(
   recursive: BizOutput,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_margin: Option<Int>,
+  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -490,7 +491,7 @@ fn get_biz_input(
           recursive,
           datum_type,
           bond_policy_id,
-          spd_margin,
+          spd_datum,
         )
       if !biz_data.valid {
         biz_data
@@ -505,7 +506,7 @@ fn get_biz_input(
           biz_data,
           datum_type,
           bond_policy_id,
-          spd_margin,
+          spd_datum,
         )
       }
     }
@@ -522,7 +523,7 @@ pub fn collect_biz_tx_info(
   datums: Datums,
   datum_type: DatumType,
   bond_policy_id: ByteArray,
-  spd_margin: Option<Int>,
+  spd_datum: MakingDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizTxInfo {
   let biz_out_info_init =
     BizOutputInfo {
@@ -554,7 +555,7 @@ pub fn collect_biz_tx_info(
       biz_out_init,
       datum_type,
       bond_policy_id,
-      spd_margin,
+      spd_datum,
     )
   if biz_tx_in.valid {
     let biz_tx_out: BizOutput =
@@ -568,7 +569,7 @@ pub fn collect_biz_tx_info(
         biz_out_init,
         datum_type,
         bond_policy_id,
-        spd_margin,
+        spd_datum,
       )
     BizTxInfo {
       valid: biz_tx_out.valid,

@@ -171,6 +171,11 @@ pub type BondDatum<a, b> {
   making: b,
 }
 
+pub type MakingDatum<a, b> {
+  ask: a,
+  bid: b,
+}
+
 pub type TradeAction {
   Update
   Buy

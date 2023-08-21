@@ -7,7 +7,8 @@ use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/types.{
   AskLimit, AskMaking, BizOutput, BizTxInfo, BondDatum, Config,
-  DatumTypeAskLimit, DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo, OK,
+  DatumTypeAskLimit, DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo,
+  MakingDatum, OK,
 }
 use bond/utils.{
   collect_biz_tx_info, get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
@@ -106,7 +107,7 @@ fn buy_correct(
 pub fn buy(
   tx: Transaction,
   conf: Config,
-  ask_datum: BondDatum<Option<AskLimit>, Option<AskMaking>>,
+  spd_ask_datum: BondDatum<Option<AskLimit>, Option<AskMaking>>,
   owner: Address,
   sc: Address,
 ) -> Bool {
@@ -121,9 +122,13 @@ pub fn buy(
       _ -> 0
     }
   let owner_vk =
-    when owner.payment_credential is {
-      VerificationKeyCredential(x) -> x
-      _ -> #""
+    when spd_ask_datum.making is {
+      Some(d) -> d.owner_payment_key
+      _ ->
+        when owner.payment_credential is {
+          VerificationKeyCredential(x) -> x
+          _ -> #""
+        }
     }
   (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
     conf.market.tx_buy_valid_slot
@@ -167,15 +172,12 @@ pub fn buy(
                   sc,
                   [owner_vk],
                   tx.datums,
-                  when ask_datum.making is {
+                  when spd_ask_datum.making is {
                     Some(_) -> DatumTypeAskMaking
                     _ -> DatumTypeAskLimit
                   },
                   escrow_datum.bond_symbol,
-                  when ask_datum.making is {
-                    Some(m) -> Some(m.margin)
-                    _ -> None
-                  },
+                  MakingDatum(spd_ask_datum.making, None),
                 )
               biz_tx_info_valid && (dict.size(in.sc.bond_assets) == 1)? && dict.has_key(
                 in.sc.bond_assets,
@@ -188,10 +190,10 @@ pub fn buy(
                 Some(biz_output) ->
                   (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.sc.bond_qty + in.other.bond_qty == biz_output.sc.bond_qty + biz_output.other.bond_qty)? && buy_correct(
                     conf,
-                    when ask_datum.making is {
+                    when spd_ask_datum.making is {
                       Some(m) -> m.requested_yield
                       _ ->
-                        when ask_datum.limit is {
+                        when spd_ask_datum.limit is {
                           Some(l) -> l.requested_yield
                           _ -> -1
                         }

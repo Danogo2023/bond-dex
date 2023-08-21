@@ -15,16 +15,13 @@ validator(conf: Config) {
     ctx: ScriptContext,
   ) -> Bool {
     let tx = ctx.transaction
-    let owner_stake_key =
-      when datum.owner_stake_key is {
-        Some(owner_stake_key) ->
-          Some(Inline(VerificationKeyCredential(owner_stake_key)))
-        _ -> None
-      }
     let owner_address =
       Address {
         payment_credential: VerificationKeyCredential(datum.owner_payment_key),
-        stake_credential: owner_stake_key,
+        stake_credential: when datum.owner_stake_key is {
+          Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
+          _ -> None
+        },
       }
     when action is {
       Update -> must_be_signed_by(tx.extra_signatories, owner_address)?
@@ -48,16 +45,13 @@ validator(conf: Config) {
     ctx: ScriptContext,
   ) -> Bool {
     let tx = ctx.transaction
-    let owner_stake_key =
-      when datum.owner_stake_key is {
-        Some(owner_stake_key) ->
-          Some(Inline(VerificationKeyCredential(owner_stake_key)))
-        _ -> None
-      }
     let owner_address =
       Address {
         payment_credential: VerificationKeyCredential(datum.owner_payment_key),
-        stake_credential: owner_stake_key,
+        stake_credential: when datum.owner_stake_key is {
+          Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
+          _ -> None
+        },
       }
     when action is {
       Update -> must_be_signed_by(tx.extra_signatories, owner_address)?
