@@ -11,11 +11,11 @@ use aiken/transaction/credential.{
   Address, Inline, ScriptCredential, VerificationKeyCredential,
 }
 use aiken/transaction/value.{AssetName, PolicyId, Value}
+use bond/common.{get_day_to_maturity, posix_time_to_relative_epoch}
 use bond/types.{
-  BiddingDatum, BondConfig, Config, EpochConfig, EscrowDatum, ListingDatum,
-  MarketConfig, PaymentDatum,
+  AskLimit, BidLimit, BondConfig, Config, EpochConfig, EscrowDatum, MarketConfig,
+  PaymentDatum,
 }
-use bond/utils.{get_day_to_maturity, posix_time_to_relative_epoch}
 use common/types.{PublicKeyHash, SlotConfigNetwork} as common_types
 
 pub fn keyhash_address(keyhash: ByteArray) {
@@ -47,7 +47,9 @@ pub fn tx(
       reference_inputs,
       outputs,
       fee: value.zero(),
-      mint: value.from_asset(#"000000", #"000020e05363726970744f776e6572", -1),
+      mint: value.to_minted_value(
+        value.from_asset(#"000000", #"000020e05363726970744f776e6572", -1),
+      ),
       certificates: [],
       withdrawals: dict.new(),
       validity_range: Interval {
@@ -148,7 +150,7 @@ fn get_market_config() -> MarketConfig {
     address: get_market_address(),
     buyer_fee: 100,
     seller_fee: 100,
-    sell_valid_slot: Some(6 * 60),
+    tx_buy_valid_slot: Some(3 * 60),
   }
 }
 
@@ -212,7 +214,7 @@ pub fn get_buyer_address_hash() -> ByteArray {
   #"010204"
 }
 
-pub fn get_smart_contract_address() -> Address {
+pub fn get_sc_address() -> Address {
   keyhash_address(#"040506")
 }
 
@@ -366,8 +368,9 @@ pub fn get_escrow_address_unexpect() -> Address {
 
 pub fn get_input_escrow(
   address: Address,
-  policy_id: PolicyId,
-  asset_name: AssetName,
+  escrow_policy_id: PolicyId,
+  escrow_asset_name: AssetName,
+  escrow_qty: Int,
   lovelace: Int,
   datum: Datum,
 ) -> Input {
@@ -380,7 +383,9 @@ pub fn get_input_escrow(
       address,
       value: value.add(
         value.from_lovelace(lovelace),
-        value.from_asset(policy_id, asset_name, 1),
+        escrow_policy_id,
+        escrow_asset_name,
+        escrow_qty,
       ),
       datum,
       reference_script: None,
@@ -388,11 +393,11 @@ pub fn get_input_escrow(
   }
 }
 
-pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
-  ListingDatum {
+pub fn gen_ask_limit_datum(owner: Address, requested_yield: Int) -> AskLimit {
+  AskLimit {
     owner_payment_key: when owner.payment_credential is {
       VerificationKeyCredential(vk) -> vk
-      ScriptCredential(sh) -> sh
+      ScriptCredential(sc) -> sc
     },
     owner_stake_key: when owner.stake_credential is {
       Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
@@ -402,14 +407,14 @@ pub fn gen_listing_datum(owner: Address, requested_yield: Int) -> ListingDatum {
   }
 }
 
-pub fn gen_bidding_datum(
+pub fn gen_bid_limit_datum(
   owner: Address,
   from_epoch: Int,
   to_epoch: Int,
   quantity: Int,
   requested_yield: Int,
-) -> BiddingDatum {
-  BiddingDatum {
+) -> BidLimit {
+  BidLimit {
     owner_payment_key: when owner.payment_credential is {
       VerificationKeyCredential(vk) -> vk
       ScriptCredential(sh) -> sh
@@ -436,7 +441,7 @@ pub fn gen_input(
     output: Output {
       address,
       value: when assets is {
-        Some(x) -> value.add(value.from_lovelace(lovelace), x)
+        Some(x) -> value.merge(value.from_lovelace(lovelace), x)
         _ -> value.from_lovelace(lovelace)
       },
       datum,
@@ -465,7 +470,7 @@ pub fn gen_output(
   Output {
     address,
     value: when assets is {
-      Some(x) -> value.add(value.from_lovelace(lovelace), x)
+      Some(x) -> value.merge(value.from_lovelace(lovelace), x)
       _ -> value.from_lovelace(lovelace)
     },
     datum,
