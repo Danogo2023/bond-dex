@@ -11,11 +11,11 @@ use aiken/transaction/credential.{
   Address, Inline, ScriptCredential, VerificationKeyCredential,
 }
 use aiken/transaction/value.{AssetName, PolicyId, Value}
+use bond/common.{get_day_to_maturity, posix_time_to_relative_epoch}
 use bond/types.{
   AskLimit, BidLimit, BondConfig, Config, EpochConfig, EscrowDatum, MarketConfig,
   PaymentDatum,
 }
-use bond/utils.{get_day_to_maturity, posix_time_to_relative_epoch}
 use common/types.{PublicKeyHash, SlotConfigNetwork} as common_types
 
 pub fn keyhash_address(keyhash: ByteArray) {

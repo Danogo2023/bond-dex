@@ -5,7 +5,7 @@ use aiken/hash.{blake2b_256}
 use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
 use aiken/transaction/credential.{with_delegation_key, with_delegation_script}
 use aiken/transaction/value
-use bond/ask
+use bond/ask_limit
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_limit_datum, gen_input, gen_output,
   get_bond_id_1, get_bond_id_2, get_bond_policy_id, get_buyer_address,
@@ -15,8 +15,7 @@ use bond/fixture.{
   get_not_escrow_policy_id, get_payment_datum, get_sc_address,
   get_seller_address, get_seller_address_hash, scripthash_address,
 }
-use bond/types.{OrderTypeDatum}
-use bond/utils.{get_price_of_bond, posix_time_to_relative_epoch}
+use bond/common.{get_price_of_bond, posix_time_to_relative_epoch}
 
 test buy_limit_fail_partial_must_only_one_bond_1() {
   let time_of_tx = 1681095094000
@@ -151,7 +150,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -162,7 +161,7 @@ test buy_limit_fail_partial_must_only_one_bond_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -299,7 +298,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, sc_in_2, buyer_in_1],
       [refer_in_1],
@@ -310,7 +309,7 @@ test buy_limit_fail_partial_must_only_one_bond_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -433,7 +432,7 @@ test buy_limit_fail_partial_change_bond_name() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -444,7 +443,7 @@ test buy_limit_fail_partial_change_bond_name() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -576,7 +575,7 @@ test buy_limit_fail_partial_datum_owner_payment_key_invalid_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -587,7 +586,7 @@ test buy_limit_fail_partial_datum_owner_payment_key_invalid_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -718,7 +717,7 @@ test buy_limit_fail_partial_datum_owner_payment_key_invalid_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -729,7 +728,7 @@ test buy_limit_fail_partial_datum_owner_payment_key_invalid_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -868,7 +867,7 @@ test buy_limit_fail_partial_datum_owner_stake_key_invalid_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -879,7 +878,7 @@ test buy_limit_fail_partial_datum_owner_stake_key_invalid_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1018,7 +1017,7 @@ test buy_limit_fail_partial_datum_owner_stake_key_invalid_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -1029,7 +1028,7 @@ test buy_limit_fail_partial_datum_owner_stake_key_invalid_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1160,7 +1159,7 @@ test buy_limit_fail_partial_datum_requested_yield_invalid() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -1171,7 +1170,7 @@ test buy_limit_fail_partial_datum_requested_yield_invalid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1301,7 +1300,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -1312,7 +1311,7 @@ test buy_limit_fail_partial_escrow_datum_unexpect() fail {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1449,7 +1448,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, sc_in_2, buyer_in_1],
       [refer_in_1],
@@ -1460,7 +1459,7 @@ test buy_limit_fail_escrow_policy_id_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1597,7 +1596,7 @@ test buy_limit_fail_escrow_address_unexpect() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, sc_in_2, buyer_in_1],
       [refer_in_1],
@@ -1608,7 +1607,7 @@ test buy_limit_fail_escrow_address_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1738,7 +1737,7 @@ test buy_limit_fail_escrow_datum_not_found() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -1749,7 +1748,7 @@ test buy_limit_fail_escrow_datum_not_found() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -1879,7 +1878,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -1890,7 +1889,7 @@ test buy_limit_fail_escrow_datum_unexpect() fail {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2050,7 +2049,7 @@ test buy_limit_fail_escrow_closable() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2061,7 +2060,7 @@ test buy_limit_fail_escrow_closable() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2191,7 +2190,7 @@ test buy_limit_fail_buyer_must_not_owner() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2202,7 +2201,7 @@ test buy_limit_fail_buyer_must_not_owner() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2332,7 +2331,7 @@ test buy_limit_fail_buyer_must_not_market() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2343,7 +2342,7 @@ test buy_limit_fail_buyer_must_not_market() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2473,7 +2472,7 @@ test buy_limit_succ_partial() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  ask.buy(
+  ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2484,7 +2483,7 @@ test buy_limit_succ_partial() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2614,7 +2613,7 @@ test buy_limit_succ_full_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  ask.buy(
+  ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2625,7 +2624,7 @@ test buy_limit_succ_full_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2752,7 +2751,7 @@ test buy_limit_succ_full_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  ask.buy(
+  ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2763,7 +2762,7 @@ test buy_limit_succ_full_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -2893,7 +2892,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -2904,7 +2903,7 @@ test buy_limit_fail_partial_validity_end_not_set() {
       None,
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3034,7 +3033,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3045,7 +3044,7 @@ test buy_limit_fail_full_validity_end_not_set_1() {
       None,
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3172,7 +3171,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3183,7 +3182,7 @@ test buy_limit_fail_full_validity_end_not_set_2() {
       None,
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3313,7 +3312,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3324,7 +3323,7 @@ test buy_limit_fail_partial_validity_end_invalid_aft() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3454,7 +3453,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3465,7 +3464,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_1() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3592,7 +3591,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3603,7 +3602,7 @@ test buy_limit_fail_full_validity_end_invalid_aft_2() {
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3733,7 +3732,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3744,7 +3743,7 @@ test buy_limit_fail_partial_validity_end_invalid_pre() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -3874,7 +3873,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -3885,7 +3884,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_1() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -4012,7 +4011,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -4023,7 +4022,7 @@ test buy_limit_fail_full_validity_end_invalid_pre_2() {
       Some(time_of_tx - 1),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -4153,7 +4152,7 @@ test buy_limit_succ_bond_policy_id_valid() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  ask.buy(
+  ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -4164,7 +4163,7 @@ test buy_limit_succ_bond_policy_id_valid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )
@@ -4295,7 +4294,7 @@ test buy_limit_fail_bond_policy_id_invalid() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask.buy(
+  !ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
@@ -4306,7 +4305,7 @@ test buy_limit_fail_bond_policy_id_invalid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_out_datum_1), None),
+    sc_out_datum_1,
     owner_address,
     sc_address,
   )

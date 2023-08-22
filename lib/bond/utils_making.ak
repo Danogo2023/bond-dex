@@ -4,16 +4,13 @@ use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
 use bond/common.{
-  bond_assets, datum_ask_limit_compare, datum_ask_making_compare,
-  datum_bid_limit_compare, datum_bid_making_compare, datum_epoch_valid,
-  datum_yield_valid,
+  bond_assets, datum_ask_making_compare, datum_bid_making_compare,
+  datum_epoch_valid, datum_yield_valid,
 }
 use bond/types.{
-  AskLimit, AskMaking, BidLimit, BidMaking, BizOutput, BizOutputInfo, BizTxInfo,
-  Config, DatumOf, DatumType, DatumTypeAskLimit, DatumTypeAskMaking,
-  DatumTypeBidLimit, DatumTypeBidMaking,
-  EscrowInfo, OrderDatum, OrderTypeDatum, OtherDatum,
-  OwnerDatum, ScDatum,
+  AskMaking, BidMaking, BizOutput, BizOutputInfo, BizTxInfo, Config, DatumOf,
+  DatumType, DatumTypeAskMaking, DatumTypeBidMaking, EscrowInfo, OrderDatum,
+  OtherDatum, OwnerDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
 use common/utils.{get_data, get_payment_key}
@@ -23,43 +20,13 @@ fn datum_is_valid(
   spd_datum_type: DatumType,
   out_data: Data,
   spd_sc_payment_key: ByteArray,
-  spd_datum: OrderTypeDatum<
-    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
-    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
-  >,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
   datum_of: DatumOf,
   escrow_info: EscrowInfo,
 ) -> Bool {
   when spd_datum_type is {
-    DatumTypeAskLimit -> {
-      let OrderDatum { ask: a, bid: _ } = spd_datum.limit
-      when a is {
-        Some(d) -> {
-          expect out_datum: AskLimit = out_data
-          datum_yield_valid(conf, out_datum.requested_yield) && datum_ask_limit_compare(
-            d,
-            out_datum,
-          )
-        }
-        None -> False
-      }
-    }
-    DatumTypeBidLimit -> {
-      let OrderDatum { ask: _, bid: b } = spd_datum.limit
-      when b is {
-        Some(d) -> {
-          expect out_datum: BidLimit = out_data
-          datum_yield_valid(conf, out_datum.requested_yield) && datum_epoch_valid(
-            out_datum.from_epoch,
-            out_datum.to_epoch,
-            out_datum.quantity,
-          ) && datum_bid_limit_compare(d, out_datum)
-        }
-        None -> False
-      }
-    }
     DatumTypeAskMaking -> {
-      let OrderDatum { ask: a, bid: _ } = spd_datum.making
+      let OrderDatum { ask: a, bid: _ } = spd_datum
       when a is {
         Some(d) ->
           when datum_of is {
@@ -99,7 +66,7 @@ fn datum_is_valid(
       }
     }
     DatumTypeBidMaking -> {
-      let OrderDatum { ask: _, bid: b } = spd_datum.making
+      let OrderDatum { ask: _, bid: b } = spd_datum
       when b is {
         Some(d) ->
           when datum_of is {
@@ -148,10 +115,7 @@ fn build_biz_output_info(
   conf: Config,
   spd_datum_type: DatumType,
   spd_sc_payment_key: ByteArray,
-  spd_datum: OrderTypeDatum<
-    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
-    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
-  >,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
   escrow_info: EscrowInfo,
 ) -> BizOutputInfo {
   let addresses =
@@ -211,10 +175,7 @@ fn build_biz_data(
   data: BizOutput,
   spd_datum_type: DatumType,
   escrow_info: EscrowInfo,
-  spd_datum: OrderTypeDatum<
-    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
-    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
-  >,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutput {
   let bond_values = value.tokens(output.value, escrow_info.bond_symbol)
   let biz_out_info =
@@ -278,10 +239,7 @@ fn get_biz_output(
   recursive: BizOutput,
   spd_datum_type: DatumType,
   escrow_info: EscrowInfo,
-  spd_datum: OrderTypeDatum<
-    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
-    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
-  >,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -326,10 +284,7 @@ fn get_biz_input(
   recursive: BizOutput,
   spd_datum_type: DatumType,
   escrow_info: EscrowInfo,
-  spd_datum: OrderTypeDatum<
-    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
-    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
-  >,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -374,10 +329,7 @@ pub fn collect_biz_tx_info(
   datums: Datums,
   spd_datum_type: DatumType,
   escrow_info: EscrowInfo,
-  spd_datum: OrderTypeDatum<
-    OrderDatum<Option<AskLimit>, Option<BidLimit>>,
-    OrderDatum<Option<AskMaking>, Option<BidMaking>>,
-  >,
+  spd_datum: OrderDatum<Option<AskMaking>, Option<BidMaking>>,
 ) -> BizTxInfo {
   let biz_out_info_init =
     BizOutputInfo {

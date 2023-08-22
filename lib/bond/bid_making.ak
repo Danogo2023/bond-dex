@@ -5,24 +5,21 @@ use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/types.{
-  BidLimit, BidMaking, BizOutput, BizTxInfo, Config, DatumTypeBidLimit,
-  DatumTypeBidMaking, Error, EscrowDatum, EscrowInfo, OK, OrderDatum,
-  OrderTypeDatum,
-}
 use bond/common.{
   get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
 }
-use bond/utils.{
-  collect_biz_tx_info, 
+use bond/types.{
+  BidMaking, BizOutput, BizTxInfo, Config,
+  Error, EscrowDatum, EscrowInfo, OK,
 }
+use bond/utils_making_bid.{collect_biz_tx_info}
 use common/utils.{get_data} as common_utils
 
 fn sell_correct(
   tx: Transaction,
   conf: Config,
-  spd_bid_datum: OrderTypeDatum<Option<BidLimit>, Option<BidMaking>>,
+  spd_bid_datum: BidMaking,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -30,16 +27,6 @@ fn sell_correct(
 ) -> Bool {
   let buyer_receive_bonds_qty = out.owner.bond_qty
   let buyer_receive_lovelace = out.owner.lovelace
-  let (spd_quantity, spd_requested_yield) =
-    when spd_bid_datum.making is {
-      Some(m) -> (m.quantity, m.requested_yield)
-      _ ->
-        when spd_bid_datum.limit is {
-          Some(l) -> (l.quantity, l.requested_yield)
-          _ -> (-1, -1)
-        }
-    }
-
   let seller_in_lovelace = in.other.lovelace
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
@@ -49,7 +36,7 @@ fn sell_correct(
     get_price_of_bond(
       escrow_info.received_at_maturity_one_bond,
       escrow_info.day_to_maturity,
-      spd_requested_yield,
+      spd_bid_datum.requested_yield,
       conf.bond.basis_points_ref_unit,
     ) * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
@@ -62,7 +49,7 @@ fn sell_correct(
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
   let market_fee_total = market_fee_buyer + market_fee_seller
   let seller_receive_total = received_with_yield - market_fee_seller
-  let sc_out_remain = spd_quantity - buyer_receive_bonds_qty
+  let sc_out_remain = spd_bid_datum.quantity - buyer_receive_bonds_qty
   (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
     tx.fee,
   ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
@@ -70,25 +57,8 @@ fn sell_correct(
       Some(utxo) ->
         (sc_out_remain > 0)? && when get_data(tx.datums, utxo.datum) is {
           Some(d) -> {
-            let sc_out_datum_quantity =
-              when spd_bid_datum.making is {
-                Some(_) -> {
-                  expect sc_out_datum: BidMaking = d
-                  sc_out_datum.quantity
-                }
-                _ ->
-                  when spd_bid_datum.limit is {
-                    Some(_) -> {
-                      expect sc_out_datum: BidLimit = d
-                      sc_out_datum.quantity
-                    }
-                    _ -> {
-                      trace @"not found sc output datum"
-                      -1
-                    }
-                  }
-              }
-            (sc_out_datum_quantity > 0)? && (sc_out_datum_quantity == sc_out_remain)?
+            expect sc_out_datum: BidMaking = d
+            (sc_out_datum.quantity > 0)? && (sc_out_datum.quantity == sc_out_remain)?
           }
           None -> {
             trace @"not found output bid datum"
@@ -103,7 +73,7 @@ fn sell_correct(
 pub fn sell(
   tx: Transaction,
   conf: Config,
-  spd_bid_datum: OrderTypeDatum<Option<BidLimit>, Option<BidMaking>>,
+  spd_bid_datum: BidMaking,
   owner: Address,
   sc: Address,
 ) -> Bool {
@@ -112,17 +82,8 @@ pub fn sell(
       Finite(x) -> x
       _ -> 0
     }
-  let (owner_vk, spd_quantity, spd_to_epoch, spd_from_epoch) =
-    when spd_bid_datum.making is {
-      Some(m) -> (m.owner_payment_key, m.quantity, m.to_epoch, m.from_epoch)
-      _ ->
-        when spd_bid_datum.limit is {
-          Some(l) -> (l.owner_payment_key, l.quantity, l.to_epoch, l.from_epoch)
-          _ -> (#"", -1, -1, -1)
-        }
-    }
-  (spd_quantity > 0)? && (spd_to_epoch >= spd_from_epoch)? && (validity_after_must_set > 0)? && not(
-    bytearray.is_empty(owner_vk),
+  (spd_bid_datum.quantity > 0)? && (spd_bid_datum.to_epoch >= spd_bid_datum.from_epoch)? && (validity_after_must_set > 0)? && not(
+    bytearray.is_empty(spd_bid_datum.owner_payment_key),
   )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
     Some(ref_in_escrow) ->
       when get_data(tx.datums, ref_in_escrow.output.datum) is {
@@ -136,7 +97,7 @@ pub fn sell(
           let start_epoch =
             escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
           let end_epoch = start_epoch + escrow_datum.duration
-          (end_epoch >= current_epoch)? && (end_epoch >= spd_from_epoch)? && (end_epoch <= spd_to_epoch)? && (escrow_datum.bond_amount > 0)? && (value.lovelace_of(
+          (end_epoch >= current_epoch)? && (end_epoch >= spd_bid_datum.from_epoch)? && (end_epoch <= spd_bid_datum.to_epoch)? && (escrow_datum.bond_amount > 0)? && (value.lovelace_of(
             escrow_datum.epo_rewards,
           ) > 0)? && (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)? && when
             get_escrow_info(
@@ -162,23 +123,8 @@ pub fn sell(
                   owner,
                   sc,
                   tx.datums,
-                  when spd_bid_datum.making is {
-                    Some(_) -> DatumTypeBidMaking
-                    _ -> DatumTypeBidLimit
-                  },
                   escrow_info,
-                  when spd_bid_datum.making is {
-                    Some(_) ->
-                      OrderTypeDatum(
-                        OrderDatum(None, None),
-                        OrderDatum(None, spd_bid_datum.making),
-                      )
-                    _ ->
-                      OrderTypeDatum(
-                        OrderDatum(None, spd_bid_datum.limit),
-                        OrderDatum(None, None),
-                      )
-                  },
+                  spd_bid_datum,
                 )
               biz_tx_info_valid && when out is {
                 None -> {
@@ -188,14 +134,17 @@ pub fn sell(
                 Some(ou) -> {
                   let sc_out_utxos =
                     list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
-                  let owner_output_len = list.length(list.concat(ou.owner.bond_outputs, ou.owner.other_outputs))
+                  let owner_output_len =
+                    list.length(
+                      list.concat(ou.owner.bond_outputs, ou.owner.other_outputs),
+                    )
                   (in.owner.lovelace <= 0)? && (in.market.lovelace <= 0)? && (dict.size(
                     ou.owner.bond_assets,
                   ) > 0)? && (dict.size(ou.owner.bond_assets) <= 1)? && dict.has_key(
                     ou.owner.bond_assets,
                     escrow_info.token_name,
                   )? && (list.length(sc_out_utxos) <= 1)? && (owner_output_len <= 1)? && (
-                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)?
+                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_bid_datum.quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)?
                   ) && sell_correct(
                     tx,
                     conf,

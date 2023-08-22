@@ -10,11 +10,10 @@ use bond/common.{
   posix_time_to_relative_epoch,
 }
 use bond/types.{
-  AskLimit, AskMaking, BidMaking, BizOutput, BizTxInfo, Config,
-  DatumTypeAskLimit, DatumTypeAskMaking, Error, EscrowDatum, EscrowInfo, OK,
-  OrderDatum, OrderTypeDatum,
+  AskMaking, BidMaking, BizOutput, BizTxInfo, Config, Error, EscrowDatum,
+  EscrowInfo, OK,
 }
-use bond/utils.{collect_biz_tx_info}
+use bond/utils_making_ask.{collect_biz_tx_info}
 use common/utils.{get_data} as common_utils
 
 fn buy_is_valid(
@@ -26,7 +25,6 @@ fn buy_is_valid(
   buyer_qty: Int,
   price_of_one_bond: Int,
   min_ada_to_market: Int,
-  spd_ask_datum: OrderTypeDatum<Option<AskLimit>, Option<AskMaking>>,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
@@ -47,58 +45,37 @@ fn buy_is_valid(
   let sc_output_len =
     list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
 
-  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && when
-    spd_ask_datum.making
-  is {
-    Some(_) ->
-      (out.market.lovelace >= market_fee_buyer + market_fee_seller)? && (
-        ((owner_output_len > 0)? && (out.owner.lovelace == min_ada_to_market + received_with_yield - market_fee_seller)? && when
-          list.at(owner_out_utxos, 0)
-        is {
-          Some(utxo) ->
-            when get_data(tx.datums, utxo.datum) is {
-              Some(d) -> {
-                expect owner_out_datum: BidMaking = d
-                (owner_out_datum.quantity == buyer_qty)?
-              }
-              None -> {
-                trace @"not found owner output bid making datum"
-                False
-              }
-            }
+  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_fee_buyer + market_fee_seller)? && (
+    ((owner_output_len > 0)? && (out.owner.lovelace == min_ada_to_market + received_with_yield - market_fee_seller)? && when
+      list.at(owner_out_utxos, 0)
+    is {
+      Some(utxo) ->
+        when get_data(tx.datums, utxo.datum) is {
+          Some(d) -> {
+            expect owner_out_datum: BidMaking = d
+            (owner_out_datum.quantity == buyer_qty)?
+          }
           None -> {
-            trace @"not found owner output"
+            trace @"not found owner output bid making datum"
             False
           }
-        })? || ((sc_output_len > 0)? && (out.sc.lovelace == in.sc.lovelace + received_with_yield - market_fee_seller)? && (out.sc.bond_qty > 0)?)?
-      )
-    _ ->
-      when spd_ask_datum.limit is {
-        Some(_) ->
-          (out.market.lovelace >= market_fee_buyer + market_fee_seller + min_ada_to_market)? && (owner_output_len > 0)? && (out.owner.lovelace == received_with_yield - market_fee_seller)?
-        _ -> False
+        }
+      None -> {
+        trace @"not found owner output"
+        False
       }
-  }
+    })? || ((sc_output_len > 0)? && (out.sc.lovelace == in.sc.lovelace + received_with_yield - market_fee_seller)? && (out.sc.bond_qty > 0)?)?
+  )
 }
 
 fn buy_correct(
   tx: Transaction,
   conf: Config,
-  spd_ask_datum: OrderTypeDatum<Option<AskLimit>, Option<AskMaking>>,
+  spd_ask_datum: AskMaking,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
-  let requested_yield =
-    when spd_ask_datum.making is {
-      Some(m) -> m.requested_yield
-      _ ->
-        when spd_ask_datum.limit is {
-          Some(l) -> l.requested_yield
-          _ -> -1
-        }
-    }
-
   let (
     qty_owner_2_buyer,
     min_ada_to_sm,
@@ -148,11 +125,10 @@ fn buy_correct(
         get_price_of_bond(
           escrow_info.received_at_maturity_one_bond,
           escrow_info.day_to_maturity,
-          requested_yield,
+          spd_ask_datum.requested_yield,
           conf.bond.basis_points_ref_unit,
         ),
         min_ada_to_market,
-        spd_ask_datum,
       )?
   }
 }
@@ -160,7 +136,7 @@ fn buy_correct(
 pub fn buy(
   tx: Transaction,
   conf: Config,
-  spd_ask_datum: OrderTypeDatum<Option<AskLimit>, Option<AskMaking>>,
+  spd_ask_datum: AskMaking,
   owner: Address,
   sc: Address,
 ) -> Bool {
@@ -174,22 +150,13 @@ pub fn buy(
       Finite(x) -> x
       _ -> 0
     }
-  let owner_vk =
-    when spd_ask_datum.making is {
-      Some(m) -> m.owner_payment_key
-      None ->
-        when spd_ask_datum.limit is {
-          Some(l) -> l.owner_payment_key
-          None -> #""
-        }
-    }
   (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
     conf.market.tx_buy_valid_slot
   is {
     Some(x) -> x
     None -> 3 * 60
   } * conf.slot_config_network.slot_length)? && not(
-    bytearray.is_empty(owner_vk),
+    bytearray.is_empty(spd_ask_datum.owner_payment_key),
   )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
     Some(ref_in_escrow) ->
       when get_data(tx.datums, ref_in_escrow.output.datum) is {
@@ -227,23 +194,8 @@ pub fn buy(
                   owner,
                   sc,
                   tx.datums,
-                  when spd_ask_datum.making is {
-                    Some(_) -> DatumTypeAskMaking
-                    _ -> DatumTypeAskLimit
-                  },
                   escrow_info,
-                  when spd_ask_datum.making is {
-                    Some(_) ->
-                      OrderTypeDatum(
-                        OrderDatum(None, None),
-                        OrderDatum(spd_ask_datum.making, None),
-                      )
-                    _ ->
-                      OrderTypeDatum(
-                        OrderDatum(spd_ask_datum.limit, None),
-                        OrderDatum(None, None),
-                      )
-                  },
+                  spd_ask_datum,
                 )
               biz_tx_info_valid && (dict.size(in.sc.bond_assets) == 1)? && dict.has_key(
                 in.sc.bond_assets,

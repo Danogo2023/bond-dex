@@ -1,6 +1,6 @@
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/value
-use bond/bid
+use bond/bid_limit
 use bond/fixture.{
   calc_escrow_full_info, gen_bid_limit_datum, gen_input, gen_output,
   get_bond_id_1, get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
@@ -9,8 +9,7 @@ use bond/fixture.{
   get_input_escrow, get_market_address, get_not_bond_policy_id,
   get_not_escrow_policy_id, get_sc_address, get_seller_address,
 }
-use bond/types.{OrderTypeDatum}
-use bond/utils.{get_price_of_bond}
+use bond/common.{get_price_of_bond}
 
 test sell_limit_succ_full() {
   let time_of_tx = 1681095094000
@@ -85,7 +84,7 @@ test sell_limit_succ_full() {
   //   )
   // let sc_out_utxo =
   //   gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  bid.sell(
+  bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -97,7 +96,7 @@ test sell_limit_succ_full() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -176,7 +175,7 @@ test sell_limit_succ_partial() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  bid.sell(
+  bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -187,7 +186,7 @@ test sell_limit_succ_partial() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -266,7 +265,7 @@ test sell_limit_fail_input_epoch_1() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -277,7 +276,7 @@ test sell_limit_fail_input_epoch_1() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -356,7 +355,7 @@ test sell_limit_fail_input_epoch_2() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -367,7 +366,7 @@ test sell_limit_fail_input_epoch_2() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -459,7 +458,7 @@ test sell_limit_fail_input_epoch_3() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -470,7 +469,7 @@ test sell_limit_fail_input_epoch_3() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -549,7 +548,7 @@ test sell_limit_fail_input_epoch_4() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -560,7 +559,7 @@ test sell_limit_fail_input_epoch_4() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -649,7 +648,7 @@ test sell_limit_fail_input_qty() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -660,7 +659,7 @@ test sell_limit_fail_input_qty() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -739,7 +738,7 @@ test sell_limit_fail_output_qty() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -750,7 +749,7 @@ test sell_limit_fail_output_qty() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -829,7 +828,7 @@ test sell_limit_fail_validity_after_not_set() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -840,7 +839,7 @@ test sell_limit_fail_validity_after_not_set() {
       None,
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -919,7 +918,7 @@ test sell_limit_fail_owner_address_format() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -930,7 +929,7 @@ test sell_limit_fail_owner_address_format() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     get_buyer_address_scripthash(),
     sc_address,
   )
@@ -1009,7 +1008,7 @@ test sell_limit_fail_escrow_policy_id_unexpect() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1020,7 +1019,7 @@ test sell_limit_fail_escrow_policy_id_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -1099,7 +1098,7 @@ test sell_limit_fail_escrow_address_unexpect() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1110,7 +1109,7 @@ test sell_limit_fail_escrow_address_unexpect() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -1189,7 +1188,7 @@ test sell_limit_fail_escrow_datum_not_found() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1200,7 +1199,7 @@ test sell_limit_fail_escrow_datum_not_found() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -1279,7 +1278,7 @@ test sell_limit_fail_escrow_datum_unexpect() fail {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1290,7 +1289,7 @@ test sell_limit_fail_escrow_datum_unexpect() fail {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -1369,7 +1368,7 @@ test sell_limit_succ_bond_policy_id_valid() {
   //   )
   // let sc_out_utxo =
   //   gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  bid.sell(
+  bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1381,7 +1380,7 @@ test sell_limit_succ_bond_policy_id_valid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )
@@ -1460,7 +1459,7 @@ test sell_limit_fail_bond_policy_id_invalid() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !bid.sell(
+  !bid_limit.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1471,7 +1470,7 @@ test sell_limit_fail_bond_policy_id_invalid() {
       Some(time_of_tx + 3 * 60 * 1000),
     ),
     cfg,
-    OrderTypeDatum(Some(sc_in_datum_1), None),
+    sc_in_datum_1,
     owner_address,
     sc_address,
   )

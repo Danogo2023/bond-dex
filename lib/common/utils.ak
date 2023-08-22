@@ -6,7 +6,7 @@ use aiken/transaction.{
 use aiken/transaction/credential.{
   Address, ScriptCredential, VerificationKeyCredential,
 }
-use common/types.{Datums, POSIXTime, SlotConfigNetwork}
+use common/types.{Datums, POSIXTime, PublicKeyHash, SlotConfigNetwork}
 
 pub fn get_spending_input(ctx: ScriptContext) -> Input {
   expect Spend(output_reference) = ctx.purpose
@@ -45,4 +45,8 @@ pub fn get_payment_key(a: Address) -> ByteArray {
     VerificationKeyCredential(v) -> v
     ScriptCredential(s) -> s
   }
+}
+
+pub fn must_be_signed_by(pkhs: List<PublicKeyHash>, a: Address) -> Bool {
+  list.has(pkhs, get_payment_key(a))
 }
