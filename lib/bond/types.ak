@@ -42,7 +42,7 @@ pub type MarketConfig {
   // value in range 0001 -> 9999 default: 1% per yield == 100
   seller_fee: Int,
   // Khoảng thời gian giao dịch sell hợp lệ, giá trị tính theo slot
-  sell_valid_slot: Option<Int>,
+  tx_buy_valid_slot: Option<Int>,
 }
 
 pub type Config {
@@ -90,7 +90,11 @@ pub type EscrowInfoResult<a, b> {
 }
 
 pub type EscrowInfo {
+  bond_symbol: ByteArray,
   token_name: ByteArray,
+  bond_amount: Int,
+  start_epoch: Int,
+  end_epoch: Int,
   received_at_maturity_one_bond: Int,
   day_to_maturity: Int,
 }
@@ -108,7 +112,7 @@ pub type BizOutputInfo {
 pub type BizOutput {
   valid: Bool,
   unique_bonds: Dict<AssetName, Int>,
-  smart_contract: BizOutputInfo,
+  sc: BizOutputInfo,
   owner: BizOutputInfo,
   market: BizOutputInfo,
   other: BizOutputInfo,
@@ -116,27 +120,29 @@ pub type BizOutput {
 
 pub type BizTxInfo {
   valid: Bool,
-  biz_input_obj: BizOutput,
-  biz_output_obj: Option<BizOutput>,
+  biz_tx_in: BizOutput,
+  biz_tx_out: Option<BizOutput>,
 }
 
 pub type DatumType {
   DatumTypePayment
-  DatumTypeListing
-  DatumTypeBidding
+  DatumTypeAskLimit
+  DatumTypeBidLimit
+  DatumTypeAskMaking
+  DatumTypeBidMaking
 }
 
 pub type PaymentDatum {
   output_reference: OutputReference,
 }
 
-pub type ListingDatum {
+pub type AskLimit {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
   requested_yield: Int,
 }
 
-pub type BiddingDatum {
+pub type BidLimit {
   owner_payment_key: ByteArray,
   owner_stake_key: Option<ByteArray>,
   from_epoch: Int,
@@ -145,9 +151,44 @@ pub type BiddingDatum {
   requested_yield: Int,
 }
 
+pub type AskMaking {
+  owner_payment_key: ByteArray,
+  owner_stake_key: Option<ByteArray>,
+  requested_yield: Int,
+  bid_sc: ByteArray,
+  margin: Int,
+}
+
+pub type BidMaking {
+  owner_payment_key: ByteArray,
+  owner_stake_key: Option<ByteArray>,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
+  requested_yield: Int,
+  ask_sc: ByteArray,
+  margin: Int,
+}
+
+pub type OrderTypeDatum<a, b> {
+  limit: a,
+  making: b,
+}
+
+pub type OrderDatum<a, b> {
+  ask: a,
+  bid: b,
+}
+
+pub type DatumOf {
+  OtherDatum
+  ScDatum
+  OwnerDatum
+}
+
 pub type TradeAction {
   Update
   Buy
   Sell
-  Withdraw
+  Upgrade
 }

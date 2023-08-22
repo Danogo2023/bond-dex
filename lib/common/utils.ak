@@ -3,14 +3,17 @@ use aiken/list
 use aiken/transaction.{
   Datum, DatumHash, InlineDatum, Input, NoDatum, ScriptContext, Spend,
 }
-use common/types.{Datums, POSIXTime, SlotConfigNetwork}
+use aiken/transaction/credential.{
+  Address, ScriptCredential, VerificationKeyCredential,
+}
+use common/types.{Datums, POSIXTime, PublicKeyHash, SlotConfigNetwork}
 
 pub fn get_spending_input(ctx: ScriptContext) -> Input {
   expect Spend(output_reference) = ctx.purpose
   expect Some(input) =
     list.find(
       ctx.transaction.inputs,
-      fn(input) { input.output_reference == output_reference },
+      fn(i) { i.output_reference == output_reference },
     )
   input
 }
@@ -35,4 +38,15 @@ pub fn posix_time_to_enclosing_slot(
   slot_config: SlotConfigNetwork,
 ) -> Int {
   ( posix_time - slot_config.zero_time ) / slot_config.slot_length + slot_config.zero_slot
+}
+
+pub fn get_payment_key(a: Address) -> ByteArray {
+  when a.payment_credential is {
+    VerificationKeyCredential(v) -> v
+    ScriptCredential(s) -> s
+  }
+}
+
+pub fn must_be_signed_by(pkhs: List<PublicKeyHash>, a: Address) -> Bool {
+  list.has(pkhs, get_payment_key(a))
 }
