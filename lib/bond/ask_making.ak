@@ -44,9 +44,22 @@ fn buy_is_valid(
   let owner_output_len = list.length(owner_out_utxos)
   let sc_output_len =
     list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
+  let market_receive_lovelace_tmp = market_fee_buyer + market_fee_seller
+  let owner_receive_lovelace_tmp =
+    min_ada_to_market + received_with_yield - market_fee_seller
+  let (owner_receive_lovelace, market_receive_lovelace) =
+    when list.at(out.owner.addresses, 0) is {
+      Some(a) ->
+        if owner_output_len > 0 && a == conf.market.address {
+          (owner_receive_lovelace_tmp + market_receive_lovelace_tmp, 0)
+        } else {
+          (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
+        }
+      _ -> (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
+    }
 
-  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_fee_buyer + market_fee_seller)? && (
-    ((owner_output_len > 0)? && (out.owner.lovelace == min_ada_to_market + received_with_yield - market_fee_seller)? && when
+  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_receive_lovelace)? && (
+    ((owner_output_len > 0)? && (out.owner.lovelace == owner_receive_lovelace)? && when
       list.at(owner_out_utxos, 0)
     is {
       Some(utxo) ->
@@ -97,9 +110,11 @@ fn buy_correct(
         // trace @"buy all"
         (in.sc.bond_qty, 0, in.sc.lovelace, True, True)
     }
-  sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || dict.has_key(
-    out.other.bond_assets,
-    escrow_info.token_name,
+  sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || (
+    dict.has_key(out.other.bond_assets, escrow_info.token_name) || dict.has_key(
+      out.market.bond_assets,
+      escrow_info.token_name,
+    )
   ))? && when
     list.find(
       dict.keys(out.sc.bond_assets),
