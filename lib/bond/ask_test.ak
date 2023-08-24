@@ -6,6 +6,7 @@ use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
 use aiken/transaction/credential.{with_delegation_key, with_delegation_script}
 use aiken/transaction/value
 use bond/ask_limit
+use bond/common.{get_price_of_bond, posix_time_to_relative_epoch}
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_limit_datum, gen_input, gen_output,
   get_bond_id_1, get_bond_id_2, get_bond_policy_id, get_buyer_address,
@@ -15,7 +16,6 @@ use bond/fixture.{
   get_not_escrow_policy_id, get_payment_datum, get_sc_address,
   get_seller_address, get_seller_address_hash, scripthash_address,
 }
-use bond/common.{get_price_of_bond, posix_time_to_relative_epoch}
 
 test buy_limit_fail_partial_must_only_one_bond_1() {
   let time_of_tx = 1681095094000

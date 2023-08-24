@@ -9,8 +9,7 @@ use bond/common.{
 }
 use bond/types.{
   AskMaking, BidMaking, BizOutput, BizOutputInfo, BizTxInfo, Config, DatumOf,
-  EscrowInfo,
-  OtherDatum, OwnerDatum, ScDatum,
+  EscrowInfo, OtherDatum, OwnerDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
 use common/utils.{get_data, get_payment_key}
@@ -26,10 +25,7 @@ fn datum_is_valid(
   when datum_of is {
     OwnerDatum -> {
       expect out_datum: BidMaking = out_data
-      datum_yield_valid(
-        conf,
-        out_datum.requested_yield + out_datum.margin,
-      ) && datum_epoch_valid(
+      datum_yield_valid(conf, out_datum.requested_yield + out_datum.margin) && datum_epoch_valid(
         out_datum.from_epoch,
         out_datum.to_epoch,
         out_datum.quantity,
@@ -49,10 +45,10 @@ fn datum_is_valid(
     }
     ScDatum -> {
       expect out_datum: AskMaking = out_data
-      datum_yield_valid(
-        conf,
-        out_datum.requested_yield + out_datum.margin,
-      ) && datum_ask_making_compare(spd_datum, out_datum)
+      datum_yield_valid(conf, out_datum.requested_yield + out_datum.margin) && datum_ask_making_compare(
+        spd_datum,
+        out_datum,
+      )
     }
     _ -> False
   }

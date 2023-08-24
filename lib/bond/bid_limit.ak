@@ -25,8 +25,6 @@ fn sell_correct(
   sc_out_utxo: Option<Output>,
 ) -> Bool {
   let buyer_receive_bonds_qty = out.owner.bond_qty
-  let buyer_receive_lovelace = out.owner.lovelace
-  let seller_in_lovelace = in.other.lovelace
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
     escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
@@ -49,6 +47,18 @@ fn sell_correct(
   let market_fee_total = market_fee_buyer + market_fee_seller
   let seller_receive_total = received_with_yield - market_fee_seller
   let sc_out_remain = spd_bid_datum.quantity - buyer_receive_bonds_qty
+  let buyer_receive_lovelace =
+    when list.at(out.owner.addresses, 0) is {
+      Some(a) ->
+        if a == conf.market.address {
+          out.owner.lovelace - market_fee_total
+        } else {
+          out.owner.lovelace
+        }
+      _ -> out.owner.lovelace
+    }
+  let seller_in_lovelace = in.other.lovelace
+
   (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
     tx.fee,
   ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
