@@ -53,7 +53,7 @@ fn buy_is_valid(
         when get_data(tx.datums, utxo.datum) is {
           Some(d) -> {
             expect owner_out_datum: BidMaking = d
-            (owner_out_datum.quantity == buyer_qty)?
+            (owner_out_datum.quantity <= buyer_qty)?
           }
           None -> {
             trace @"not found owner output bid making datum"
