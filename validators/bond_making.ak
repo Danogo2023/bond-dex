@@ -14,6 +14,11 @@ validator(conf: Config) {
     ctx: ScriptContext,
   ) -> Bool {
     let tx = ctx.transaction
+    let owner_sk =
+      when datum.owner_stake_key is {
+        Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
+        _ -> None
+      }
     when action is {
       Update ->
         must_be_signed_by(
@@ -22,10 +27,7 @@ validator(conf: Config) {
             payment_credential: VerificationKeyCredential(
               datum.owner_payment_key,
             ),
-            stake_credential: when datum.owner_stake_key is {
-              Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
-              _ -> None
-            },
+            stake_credential: owner_sk,
           },
         )?
       Buy ->
@@ -35,10 +37,7 @@ validator(conf: Config) {
           datum,
           Address {
             payment_credential: ScriptCredential(datum.bid_sc),
-            stake_credential: when datum.owner_stake_key is {
-              Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
-              _ -> None
-            },
+            stake_credential: owner_sk,
           },
           get_spending_input(ctx).output.address,
         )
@@ -54,6 +53,11 @@ validator(conf: Config) {
     ctx: ScriptContext,
   ) -> Bool {
     let tx = ctx.transaction
+    let owner_sk =
+      when datum.owner_stake_key is {
+        Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
+        _ -> None
+      }
     when action is {
       Update ->
         must_be_signed_by(
@@ -62,10 +66,7 @@ validator(conf: Config) {
             payment_credential: VerificationKeyCredential(
               datum.owner_payment_key,
             ),
-            stake_credential: when datum.owner_stake_key is {
-              Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
-              _ -> None
-            },
+            stake_credential: owner_sk,
           },
         )?
       Sell ->
@@ -75,10 +76,7 @@ validator(conf: Config) {
           datum,
           Address {
             payment_credential: ScriptCredential(datum.ask_sc),
-            stake_credential: when datum.owner_stake_key is {
-              Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
-              _ -> None
-            },
+            stake_credential: owner_sk,
           },
           get_spending_input(ctx).output.address,
         )

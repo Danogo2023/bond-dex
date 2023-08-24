@@ -4,22 +4,16 @@ use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
 use bond/common.{
-  bond_assets, datum_bid_limit_compare,
-  datum_epoch_valid, datum_yield_valid,
+  bond_assets, datum_bid_limit_compare, datum_epoch_valid, datum_yield_valid,
 }
 use bond/types.{
-  BidLimit, BizOutput, BizOutputInfo, BizTxInfo, Config, DatumOf,
-  EscrowInfo,
+  BidLimit, BizOutput, BizOutputInfo, BizTxInfo, Config, DatumOf, EscrowInfo,
   OtherDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
 use common/utils.{get_data}
 
-fn datum_is_valid(
-  conf: Config,
-  out_data: Data,
-  spd_datum: BidLimit,
-) -> Bool {
+fn datum_is_valid(conf: Config, out_data: Data, spd_datum: BidLimit) -> Bool {
   expect out_datum: BidLimit = out_data
   datum_yield_valid(conf, out_datum.requested_yield) && datum_epoch_valid(
     out_datum.from_epoch,

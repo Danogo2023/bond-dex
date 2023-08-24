@@ -9,8 +9,7 @@ use bond/common.{
 }
 use bond/types.{
   AskMaking, BidMaking, BizOutput, BizOutputInfo, BizTxInfo, Config, DatumOf,
-  EscrowInfo,
-  OtherDatum, OwnerDatum, ScDatum,
+  EscrowInfo, OtherDatum, OwnerDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
 use common/utils.{get_data, get_payment_key}
@@ -79,13 +78,7 @@ fn build_biz_output_info(
       let bond_datum_valid =
         datum_of == OtherDatum || when get_data(datums, output.datum) is {
           Some(d) ->
-            datum_is_valid(
-              conf,
-              d,
-              spd_sc_payment_key,
-              spd_datum,
-              datum_of,
-            )
+            datum_is_valid(conf, d, spd_sc_payment_key, spd_datum, datum_of)
           None -> {
             trace @"not found datum"
             False

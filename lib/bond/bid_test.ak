@@ -1,6 +1,7 @@
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/value
 use bond/bid_limit
+use bond/common.{get_price_of_bond}
 use bond/fixture.{
   calc_escrow_full_info, gen_bid_limit_datum, gen_input, gen_output,
   get_bond_id_1, get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
@@ -9,7 +10,6 @@ use bond/fixture.{
   get_input_escrow, get_market_address, get_not_bond_policy_id,
   get_not_escrow_policy_id, get_sc_address, get_seller_address,
 }
-use bond/common.{get_price_of_bond}
 
 test sell_limit_succ_full() {
   let time_of_tx = 1681095094000
