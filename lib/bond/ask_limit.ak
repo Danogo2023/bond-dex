@@ -179,7 +179,7 @@ pub fn buy(
                 escrow_info.token_name,
               )? && when out is {
                 Some(ou) ->
-                  (in.market.bond_qty <= 0)? && (in.owner.bond_qty <= 0)? && (in.sc.bond_qty + in.other.bond_qty == ou.sc.bond_qty + ou.other.bond_qty)? && buy_correct(
+                  (in.owner.bond_qty <= 0)? && buy_correct(
                     conf,
                     spd_ask_datum,
                     in,
