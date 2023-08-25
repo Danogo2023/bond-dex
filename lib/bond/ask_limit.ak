@@ -55,7 +55,6 @@ fn buy_is_valid(
         }
       _ -> (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
     }
-
   (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_receive_lovelace)? && (owner_output_len > 0)? && (out.owner.lovelace == owner_receive_lovelace)?
 }
 

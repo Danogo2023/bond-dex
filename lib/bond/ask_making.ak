@@ -24,7 +24,6 @@ fn buy_is_valid(
   escrow_info: EscrowInfo,
   buyer_qty: Int,
   price_of_one_bond: Int,
-  min_ada_to_market: Int,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
@@ -45,8 +44,7 @@ fn buy_is_valid(
   let sc_output_len =
     list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
   let market_receive_lovelace_tmp = market_fee_buyer + market_fee_seller
-  let owner_receive_lovelace_tmp =
-    min_ada_to_market + received_with_yield - market_fee_seller
+  let owner_receive_lovelace_tmp = received_with_yield - market_fee_seller
   let (owner_receive_lovelace, market_receive_lovelace) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
@@ -57,28 +55,22 @@ fn buy_is_valid(
         }
       _ -> (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
     }
-
-  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_receive_lovelace)? && (
-    ((owner_output_len > 0)? && (out.owner.lovelace == owner_receive_lovelace)? && when
-      list.at(owner_out_utxos, 0)
-    is {
-      Some(utxo) ->
-        when get_data(tx.datums, utxo.datum) is {
-          Some(d) -> {
-            expect owner_out_datum: BidMaking = d
-            (owner_out_datum.quantity <= buyer_qty)?
-          }
-          None -> {
-            trace @"not found owner output bid making datum"
-            False
-          }
+  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_receive_lovelace)? && (out.sc.lovelace + out.owner.lovelace == in.sc.lovelace + owner_receive_lovelace)? && when
+    list.at(owner_out_utxos, 0)
+  is {
+    Some(utxo) ->
+      when get_data(tx.datums, utxo.datum) is {
+        Some(d) -> {
+          expect owner_out_datum: BidMaking = d
+          (owner_out_datum.quantity <= buyer_qty)?
         }
-      None -> {
-        trace @"not found owner output"
-        False
+        None -> {
+          trace @"not found owner output bid making datum"
+          False
+        }
       }
-    })? || ((sc_output_len > 0)? && (out.sc.lovelace == in.sc.lovelace + received_with_yield - market_fee_seller)? && (out.sc.bond_qty > 0)?)?
-  )
+    None -> True
+  }
 }
 
 fn buy_correct(
@@ -91,8 +83,6 @@ fn buy_correct(
 ) -> Bool {
   let (
     qty_owner_2_buyer,
-    min_ada_to_sm,
-    min_ada_to_market,
     sm_out_must_only_one_bond_name,
     sm_out_bond_same_escrow,
   ) =
@@ -101,14 +91,12 @@ fn buy_correct(
         // trace @"buy partial"
         (
           in.sc.bond_qty - out.sc.bond_qty,
-          in.sc.lovelace,
-          0,
           dict.size(out.sc.bond_assets) <= 1,
           dict.has_key(out.sc.bond_assets, escrow_info.token_name),
         )
       [] ->
         // trace @"buy all"
-        (in.sc.bond_qty, 0, in.sc.lovelace, True, True)
+        (in.sc.bond_qty, True, True)
     }
   sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || (
     dict.has_key(out.other.bond_assets, escrow_info.token_name) || dict.has_key(
@@ -128,9 +116,7 @@ fn buy_correct(
       False
     }
     _ ->
-      (
-        min_ada_to_sm <= 0 || (out.sc.lovelace >= min_ada_to_sm)? && out.sc.bond_datum_valid?
-      ) && buy_is_valid(
+      out.sc.bond_datum_valid? && out.owner.bond_datum_valid? && buy_is_valid(
         tx,
         conf,
         in,
@@ -143,8 +129,7 @@ fn buy_correct(
           spd_ask_datum.requested_yield,
           conf.bond.basis_points_ref_unit,
         ),
-        min_ada_to_market,
-      )?
+      )
   }
 }
 
