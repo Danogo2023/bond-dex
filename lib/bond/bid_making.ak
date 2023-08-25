@@ -44,18 +44,18 @@ fn sell_correct(
   // phi buyer(owner of bid) phai tra cho san theo ti le trong config
   let market_fee_buyer =
     received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  let market_fee_total = market_fee_buyer + market_fee_seller
+  let market_fee_total_tmp = market_fee_buyer + market_fee_seller
   let seller_receive_total = received_with_yield - market_fee_seller
   let sc_out_remain = spd_bid_datum.quantity - buyer_receive_bonds_qty
-  let buyer_receive_lovelace =
+  let (buyer_receive_lovelace, market_fee_total) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
         if a == conf.market.address {
-          out.owner.lovelace - market_fee_total
+          (out.owner.lovelace, 0)
         } else {
-          out.owner.lovelace
+          (out.owner.lovelace, market_fee_total_tmp)
         }
-      _ -> out.owner.lovelace
+      _ -> (out.owner.lovelace, market_fee_total_tmp)
     }
   let seller_in_lovelace = in.other.lovelace
   (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
@@ -146,9 +146,7 @@ pub fn sell(
                     list.length(
                       list.concat(ou.owner.bond_outputs, ou.owner.other_outputs),
                     )
-                  (in.owner.lovelace <= 0)? && (in.market.lovelace <= 0)? && (dict.size(
-                    ou.owner.bond_assets,
-                  ) > 0)? && (dict.size(ou.owner.bond_assets) <= 1)? && dict.has_key(
+                  (in.owner.lovelace <= 0)? && (dict.size(ou.owner.bond_assets) == 1)? && dict.has_key(
                     ou.owner.bond_assets,
                     escrow_info.token_name,
                   )? && (list.length(sc_out_utxos) <= 1)? && (owner_output_len <= 1)? && (

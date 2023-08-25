@@ -8,7 +8,7 @@ use bond/types.{AskMaking, BidMaking, Buy, Config, Sell, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: Config) {
-  fn ask_20230824(
+  fn ask_20230825(
     datum: AskMaking,
     action: TradeAction,
     ctx: ScriptContext,
@@ -47,7 +47,7 @@ validator(conf: Config) {
 }
 
 validator(conf: Config) {
-  fn bid_20230824(
+  fn bid_20230825(
     datum: BidMaking,
     action: TradeAction,
     ctx: ScriptContext,
