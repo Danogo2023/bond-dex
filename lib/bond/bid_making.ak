@@ -57,8 +57,25 @@ fn sell_correct(
         }
       _ -> (out.owner.lovelace, market_fee_total_tmp)
     }
-  let seller_in_lovelace = in.other.lovelace
-  (out.market.lovelace >= market_fee_total)? && (out.other.lovelace <= seller_in_lovelace + seller_receive_total - value.lovelace_of(
+  let seller_in_utxos_len =
+    list.length(list.concat(in.other.bond_outputs, in.other.other_outputs))
+  let (
+    seller_in_lovelace,
+    seller_in_bond_qty,
+    seller_ou_lovelace,
+    lovelace_seller_is_market,
+  ) =
+    if seller_in_utxos_len == 0 && in.market.bond_qty > 0 {
+      (
+        in.market.lovelace,
+        in.market.bond_qty,
+        out.market.lovelace,
+        market_fee_total,
+      )
+    } else {
+      (in.other.lovelace, in.other.bond_qty, out.other.lovelace, 0)
+    }
+  (out.market.lovelace >= market_fee_total)? && (out.owner.bond_qty <= seller_in_bond_qty)? && (seller_ou_lovelace <= seller_in_lovelace + seller_receive_total + lovelace_seller_is_market - value.lovelace_of(
     tx.fee,
   ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
     (sc_out_remain == 0)? || when sc_out_utxo is {
@@ -140,18 +157,20 @@ pub fn sell(
                   False
                 }
                 Some(ou) -> {
+                  let owner_in_utxos_len =
+                    list.length(
+                      list.concat(in.owner.bond_outputs, in.owner.other_outputs),
+                    )
                   let sc_out_utxos =
                     list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
                   let owner_output_len =
                     list.length(
                       list.concat(ou.owner.bond_outputs, ou.owner.other_outputs),
                     )
-                  (in.owner.lovelace <= 0)? && (dict.size(ou.owner.bond_assets) == 1)? && dict.has_key(
+                  (owner_in_utxos_len == 0)? && (dict.size(ou.owner.bond_assets) == 1)? && dict.has_key(
                     ou.owner.bond_assets,
                     escrow_info.token_name,
-                  )? && (list.length(sc_out_utxos) <= 1)? && (owner_output_len <= 1)? && (
-                    (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= in.other.bond_qty)? && (ou.owner.bond_qty <= spd_bid_datum.quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)?
-                  ) && sell_correct(
+                  )? && (list.length(sc_out_utxos) <= 1)? && (owner_output_len <= 1)? && (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= spd_bid_datum.quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)? && sell_correct(
                     tx,
                     conf,
                     spd_bid_datum,

@@ -6,7 +6,7 @@ use bond/types.{AskLimit, BidLimit, Buy, Config, Sell, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: Config) {
-  fn ask_20230825(
+  fn ask_20230829(
     datum: AskLimit,
     action: TradeAction,
     ctx: ScriptContext,
@@ -36,7 +36,7 @@ validator(conf: Config) {
 }
 
 validator(conf: Config) {
-  fn bid_20230825(
+  fn bid_20230829(
     datum: BidLimit,
     action: TradeAction,
     ctx: ScriptContext,
