@@ -2207,7 +2207,7 @@ test buy_limit_fail_buyer_must_not_owner() {
   )
 }
 
-test buy_limit_fail_buyer_must_not_market() {
+test buy_limit_succ_buyer_is_market() {
   let time_of_tx = 1681095094000
   let cfg = get_config_mainnet()
   let market_address = get_market_address()
@@ -2331,7 +2331,7 @@ test buy_limit_fail_buyer_must_not_market() {
       ),
       InlineDatum(sc_out_datum_1),
     )
-  !ask_limit.buy(
+  ask_limit.buy(
     fixture.tx(
       [sc_in_1, buyer_in_1],
       [refer_in_1],
