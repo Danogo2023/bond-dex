@@ -35,7 +35,7 @@ pub type BondConfig {
   epoch_config: EpochConfig,
 }
 
-pub type MarketConfig {
+pub type ExchangeConfigLimit {
   address: Address,
   // value in range 0001 -> 9999 default: 1% per yield == 100
   buyer_fee: Int,
@@ -45,9 +45,25 @@ pub type MarketConfig {
   tx_buy_valid_slot: Option<Int>,
 }
 
-pub type Config {
+pub type ExchangeConfigMaking {
+  address: Address,
+  // value in range 0001 -> 9999 default: 1% per yield == 100
+  maker_fee: Int,
+  // value in range 0001 -> 9999 default: 1% per yield == 100
+  taker_fee: Int,
+  // Time frame for valid transaction, value represent slot
+  tx_buy_valid_slot: Option<Int>,
+}
+
+pub type ConfigLimit {
   bond: BondConfig,
-  market: MarketConfig,
+  exchange: ExchangeConfigLimit,
+  slot_config_network: SlotConfigNetwork,
+}
+
+pub type ConfigMaking {
+  bond: BondConfig,
+  exchange: ExchangeConfigMaking,
   slot_config_network: SlotConfigNetwork,
 }
 
@@ -114,7 +130,7 @@ pub type BizOutput {
   unique_bonds: Dict<AssetName, Int>,
   sc: BizOutputInfo,
   owner: BizOutputInfo,
-  market: BizOutputInfo,
+  exchange: BizOutputInfo,
   other: BizOutputInfo,
 }
 

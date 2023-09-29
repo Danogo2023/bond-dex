@@ -6,8 +6,9 @@ use aiken/transaction.{Input}
 use aiken/transaction/credential.{ScriptCredential, VerificationKeyCredential}
 use aiken/transaction/value.{AssetName}
 use bond/types.{
-  AskLimit, AskMaking, BidLimit, BidMaking, BondConfig, Config, EpochConfig,
-  Error, EscrowDatum, EscrowInfo, EscrowInfoResult, OK,
+  AskLimit, AskMaking, BidLimit, BidMaking, BondConfig, ConfigLimit,
+  ConfigMaking, EpochConfig, Error, EscrowDatum, EscrowInfo, EscrowInfoResult,
+  OK,
 }
 
 pub fn get_escrow_ref_inputs(
@@ -174,7 +175,11 @@ pub fn bond_assets(
   )
 }
 
-pub fn datum_yield_valid(conf: Config, val: Int) -> Bool {
+pub fn datum_yield_limit_valid(conf: ConfigLimit, val: Int) -> Bool {
+  (math.clamp(val, conf.bond.basis_points_min, conf.bond.basis_points_max) == val)?
+}
+
+pub fn datum_yield_making_valid(conf: ConfigMaking, val: Int) -> Bool {
   (math.clamp(val, conf.bond.basis_points_min, conf.bond.basis_points_max) == val)?
 }
 

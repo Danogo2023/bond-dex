@@ -2,10 +2,10 @@ use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
 use bond/ask_limit.{buy}
 use bond/bid_limit.{sell}
-use bond/types.{AskLimit, BidLimit, Buy, Config, Sell, TradeAction, Update}
+use bond/types.{AskLimit, BidLimit, Buy, ConfigLimit, Sell, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
 
-validator(conf: Config) {
+validator(conf: ConfigLimit) {
   fn ask_20230829(
     datum: AskLimit,
     action: TradeAction,
@@ -35,7 +35,7 @@ validator(conf: Config) {
   }
 }
 
-validator(conf: Config) {
+validator(conf: ConfigLimit) {
   fn bid_20230829(
     datum: BidLimit,
     action: TradeAction,
