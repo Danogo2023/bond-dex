@@ -8,29 +8,17 @@ use aiken/transaction.{
   Datum, Input, Output, OutputReference, Transaction, TransactionId,
 }
 use aiken/transaction/credential.{
-  Address, Inline, ScriptCredential, VerificationKeyCredential,
+  Address, Inline, ScriptCredential, VerificationKeyCredential, from_script,
+  from_verification_key,
 }
 use aiken/transaction/value.{AssetName, PolicyId, Value}
 use bond/common.{get_day_to_maturity, posix_time_to_relative_epoch}
 use bond/types.{
-  AskLimit, BidLimit, BondConfig, Config, EpochConfig, EscrowDatum, MarketConfig,
-  PaymentDatum,
+  AskLimit, AskMaking, BidLimit, BidMaking, BondConfig, ConfigLimit,
+  ConfigMaking, EpochConfig, EscrowDatum, ExchangeConfigLimit,
+  ExchangeConfigMaking, PaymentDatum,
 }
 use common/types.{PublicKeyHash, SlotConfigNetwork} as common_types
-
-pub fn keyhash_address(keyhash: ByteArray) {
-  Address {
-    payment_credential: VerificationKeyCredential(keyhash),
-    stake_credential: None,
-  }
-}
-
-pub fn scripthash_address(scripthash: ByteArray) {
-  Address {
-    payment_credential: ScriptCredential(scripthash),
-    stake_credential: None,
-  }
-}
 
 pub fn tx(
   inputs: List<Input>,
@@ -71,7 +59,7 @@ pub fn tx(
       extra_signatories: when extra_signatories is {
         Some(s) -> s
         _ ->
-          [#"00010203040506"]
+          [#"00010213"]
       },
       redeemers: dict.new(),
       datums: when datums is {
@@ -145,27 +133,52 @@ fn get_bond_config_mainnet() -> BondConfig {
   }
 }
 
-fn get_market_config() -> MarketConfig {
-  MarketConfig {
-    address: get_market_address(),
+fn get_exchange_config() -> ExchangeConfigLimit {
+  ExchangeConfigLimit {
+    address: get_exchange_address(),
     buyer_fee: 100,
     seller_fee: 100,
     tx_buy_valid_slot: Some(3 * 60),
   }
 }
 
-pub fn get_config_preview() -> Config {
-  Config {
+fn get_exchange_making_config() -> ExchangeConfigMaking {
+  ExchangeConfigMaking {
+    address: get_exchange_address(),
+    maker_fee: 50,
+    taker_fee: 100,
+    tx_buy_valid_slot: Some(3 * 60),
+  }
+}
+
+pub fn get_config_limit_preview() -> ConfigLimit {
+  ConfigLimit {
     bond: get_bond_config_preview(),
-    market: get_market_config(),
+    exchange: get_exchange_config(),
     slot_config_network: get_slot_config_network_preview(),
   }
 }
 
-pub fn get_config_mainnet() -> Config {
-  Config {
+pub fn get_config_limit_mainnet() -> ConfigLimit {
+  ConfigLimit {
     bond: get_bond_config_mainnet(),
-    market: get_market_config(),
+    exchange: get_exchange_config(),
+    slot_config_network: get_slot_config_network_mainnet(),
+  }
+}
+
+pub fn get_config_making_preview() -> ConfigMaking {
+  ConfigMaking {
+    bond: get_bond_config_preview(),
+    exchange: get_exchange_making_config(),
+    slot_config_network: get_slot_config_network_preview(),
+  }
+}
+
+pub fn get_config_making_mainnet() -> ConfigMaking {
+  ConfigMaking {
+    bond: get_bond_config_mainnet(),
+    exchange: get_exchange_making_config(),
     slot_config_network: get_slot_config_network_mainnet(),
   }
 }
@@ -194,8 +207,16 @@ pub fn get_not_escrow_policy_id() -> PolicyId {
   )
 }
 
+pub fn get_fraud_address() -> Address {
+  from_verification_key(get_fraud_address_hash())
+}
+
+pub fn get_fraud_address_hash() -> ByteArray {
+  #"010200"
+}
+
 pub fn get_seller_address() -> Address {
-  keyhash_address(get_seller_address_hash())
+  from_verification_key(get_seller_address_hash())
 }
 
 pub fn get_seller_address_hash() -> ByteArray {
@@ -203,26 +224,38 @@ pub fn get_seller_address_hash() -> ByteArray {
 }
 
 pub fn get_buyer_address_scripthash() -> Address {
-  scripthash_address(get_buyer_address_hash())
+  from_script(get_buyer_address_hash())
 }
 
 pub fn get_buyer_address() -> Address {
-  keyhash_address(get_buyer_address_hash())
+  from_verification_key(get_buyer_address_hash())
 }
 
 pub fn get_buyer_address_hash() -> ByteArray {
   #"010204"
 }
 
-pub fn get_sc_address() -> Address {
-  keyhash_address(#"040506")
+pub fn get_ask_sc_address() -> Address {
+  from_script(get_ask_sc_address_hash())
 }
 
-pub fn get_market_address() -> Address {
-  keyhash_address(get_market_address_hash())
+fn get_ask_sc_address_hash() -> ByteArray {
+  #"040505"
 }
 
-pub fn get_market_address_hash() -> ByteArray {
+pub fn get_bid_sc_address() -> Address {
+  from_script(get_bid_sc_address_hash())
+}
+
+fn get_bid_sc_address_hash() -> ByteArray {
+  #"040506"
+}
+
+pub fn get_exchange_address() -> Address {
+  from_verification_key(get_exchange_address_hash())
+}
+
+pub fn get_exchange_address_hash() -> ByteArray {
   #"040507"
 }
 
@@ -351,19 +384,19 @@ pub fn get_escrow_datum(
 }
 
 pub fn get_escrow_address_hash() -> ByteArray {
-  #"01020304"
+  #"010210"
 }
 
 pub fn get_escrow_address() -> Address {
-  scripthash_address(get_escrow_address_hash())
+  from_script(get_escrow_address_hash())
 }
 
 pub fn get_escrow_address_hash_unexpect() -> ByteArray {
-  #"01020305"
+  #"010211"
 }
 
 pub fn get_escrow_address_unexpect() -> Address {
-  scripthash_address(get_escrow_address_hash_unexpect())
+  from_script(get_escrow_address_hash_unexpect())
 }
 
 pub fn get_input_escrow(
@@ -427,6 +460,91 @@ pub fn gen_bid_limit_datum(
     to_epoch,
     quantity,
     requested_yield,
+  }
+}
+
+pub fn gen_ask_making_datum(owner: Address, requested_yield: Int) -> AskMaking {
+  AskMaking {
+    owner_payment_key: when owner.payment_credential is {
+      VerificationKeyCredential(vk) -> vk
+      ScriptCredential(sh) -> sh
+    },
+    owner_stake_key: when owner.stake_credential is {
+      Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
+      _ -> None
+    },
+    requested_yield,
+    bid_sc: get_bid_sc_address_hash(),
+    margin: 1,
+  }
+}
+
+pub fn gen_tampered_ask_making_datum(
+  owner: Address,
+  requested_yield: Int,
+) -> AskMaking {
+  AskMaking {
+    owner_payment_key: when owner.payment_credential is {
+      VerificationKeyCredential(vk) -> vk
+      ScriptCredential(sh) -> sh
+    },
+    owner_stake_key: when owner.stake_credential is {
+      Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
+      _ -> None
+    },
+    requested_yield,
+    bid_sc: get_fraud_address_hash(),
+    margin: 1,
+  }
+}
+
+pub fn gen_bid_making_datum(
+  owner: Address,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
+  requested_yield: Int,
+) -> BidMaking {
+  BidMaking {
+    owner_payment_key: when owner.payment_credential is {
+      VerificationKeyCredential(vk) -> vk
+      ScriptCredential(sh) -> sh
+    },
+    owner_stake_key: when owner.stake_credential is {
+      Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
+      _ -> None
+    },
+    from_epoch,
+    to_epoch,
+    quantity,
+    requested_yield,
+    ask_sc: get_ask_sc_address_hash(),
+    margin: 1,
+  }
+}
+
+pub fn gen_tampered_bid_making_datum(
+  owner: Address,
+  from_epoch: Int,
+  to_epoch: Int,
+  quantity: Int,
+  requested_yield: Int,
+) -> BidMaking {
+  BidMaking {
+    owner_payment_key: when owner.payment_credential is {
+      VerificationKeyCredential(vk) -> vk
+      ScriptCredential(sh) -> sh
+    },
+    owner_stake_key: when owner.stake_credential is {
+      Some(Inline(VerificationKeyCredential(vk))) -> Some(vk)
+      _ -> None
+    },
+    from_epoch,
+    to_epoch,
+    quantity,
+    requested_yield,
+    ask_sc: get_fraud_address_hash(),
+    margin: 1,
   }
 }
 

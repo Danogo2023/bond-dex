@@ -10,14 +10,15 @@ use bond/common.{
   posix_time_to_relative_epoch,
 }
 use bond/types.{
-  BidLimit, BizOutput, BizTxInfo, Config, Error, EscrowDatum, EscrowInfo, OK,
+  BidLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
+  OK,
 }
 use bond/utils_limit_bid.{collect_biz_tx_info}
 use common/utils.{get_data} as common_utils
 
 fn sell_correct(
   tx: Transaction,
-  conf: Config,
+  conf: ConfigLimit,
   spd_bid_datum: BidLimit,
   in: BizOutput,
   out: BizOutput,
@@ -39,23 +40,23 @@ fn sell_correct(
   // Chenh lech tien lai nhan duoc
   let received_diff = received_at_maturity - received_with_yield
   // phi seller phai tra cho san theo ti le trong config
-  let market_fee_seller =
-    received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
+  let exchange_fee_seller =
+    received_diff * conf.exchange.seller_fee / conf.bond.basis_points_ref_unit
   // phi buyer(owner of bid) phai tra cho san theo ti le trong config
-  let market_fee_buyer =
-    received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
-  let market_fee_total_tmp = market_fee_buyer + market_fee_seller
-  let seller_receive_total = received_with_yield - market_fee_seller
+  let exchange_fee_buyer =
+    received_diff * conf.exchange.buyer_fee / conf.bond.basis_points_ref_unit
+  let exchange_fee_total_tmp = exchange_fee_buyer + exchange_fee_seller
+  let seller_receive_total = received_with_yield - exchange_fee_seller
   let sc_out_remain = spd_bid_datum.quantity - buyer_receive_bonds_qty
-  let (buyer_receive_lovelace, market_fee_total) =
+  let (buyer_receive_lovelace, exchange_fee_total) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
-        if a == conf.market.address {
+        if a == conf.exchange.address {
           (out.owner.lovelace, 0)
         } else {
-          (out.owner.lovelace, market_fee_total_tmp)
+          (out.owner.lovelace, exchange_fee_total_tmp)
         }
-      _ -> (out.owner.lovelace, market_fee_total_tmp)
+      _ -> (out.owner.lovelace, exchange_fee_total_tmp)
     }
   let seller_in_utxos_len =
     list.length(list.concat(in.other.bond_outputs, in.other.other_outputs))
@@ -63,21 +64,21 @@ fn sell_correct(
     seller_in_lovelace,
     seller_in_bond_qty,
     seller_ou_lovelace,
-    lovelace_seller_is_market,
+    lovelace_seller_is_exchange,
   ) =
-    if seller_in_utxos_len == 0 && in.market.bond_qty > 0 {
+    if seller_in_utxos_len == 0 && in.exchange.bond_qty > 0 {
       (
-        in.market.lovelace,
-        in.market.bond_qty,
-        out.market.lovelace,
-        market_fee_total,
+        in.exchange.lovelace,
+        in.exchange.bond_qty,
+        out.exchange.lovelace,
+        exchange_fee_total,
       )
     } else {
       (in.other.lovelace, in.other.bond_qty, out.other.lovelace, 0)
     }
-  (out.market.lovelace >= market_fee_total)? && (out.owner.bond_qty <= seller_in_bond_qty)? && (seller_ou_lovelace <= seller_in_lovelace + seller_receive_total + lovelace_seller_is_market - value.lovelace_of(
+  (out.exchange.lovelace >= exchange_fee_total)? && (out.owner.bond_qty <= seller_in_bond_qty)? && (seller_ou_lovelace <= seller_in_lovelace + seller_receive_total + lovelace_seller_is_exchange - value.lovelace_of(
     tx.fee,
-  ))? && (out.sc.lovelace == in.sc.lovelace - market_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
+  ))? && (out.sc.lovelace == in.sc.lovelace - exchange_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
     (sc_out_remain == 0)? || when sc_out_utxo is {
       Some(utxo) ->
         (sc_out_remain > 0)? && when get_data(tx.datums, utxo.datum) is {
@@ -97,10 +98,10 @@ fn sell_correct(
 
 pub fn sell(
   tx: Transaction,
-  conf: Config,
+  conf: ConfigLimit,
   spd_bid_datum: BidLimit,
   owner: Address,
-  sc: Address,
+  spending: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -153,7 +154,7 @@ pub fn sell(
                   tx.inputs,
                   tx.outputs,
                   owner,
-                  sc,
+                  spending,
                   tx.datums,
                   escrow_info,
                   spd_bid_datum,

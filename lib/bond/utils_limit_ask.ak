@@ -3,17 +3,21 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
-use bond/common.{bond_assets, datum_ask_limit_compare, datum_yield_valid}
+use bond/common.{bond_assets, datum_ask_limit_compare, datum_yield_limit_valid}
 use bond/types.{
-  AskLimit, BizOutput, BizOutputInfo, BizTxInfo, Config, DatumOf, EscrowInfo,
-  OtherDatum, ScDatum,
+  AskLimit, BizOutput, BizOutputInfo, BizTxInfo, ConfigLimit, DatumOf,
+  EscrowInfo, OtherDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
 use common/utils.{get_data}
 
-fn datum_is_valid(conf: Config, out_data: Data, spd_datum: AskLimit) -> Bool {
+fn datum_is_valid(
+  conf: ConfigLimit,
+  out_data: Data,
+  spd_datum: AskLimit,
+) -> Bool {
   expect out_datum: AskLimit = out_data
-  datum_yield_valid(conf, out_datum.requested_yield) && datum_ask_limit_compare(
+  datum_yield_limit_valid(conf, out_datum.requested_yield) && datum_ask_limit_compare(
     spd_datum,
     out_datum,
   )
@@ -25,7 +29,7 @@ fn build_biz_output_info(
   bond_values: Dict<AssetName, Int>,
   datum_of: DatumOf,
   datums: Datums,
-  conf: Config,
+  conf: ConfigLimit,
   spd_datum: AskLimit,
 ) -> BizOutputInfo {
   let addresses =
@@ -34,44 +38,35 @@ fn build_biz_output_info(
     } else {
       [output.address, ..self.addresses]
     }
-  when dict.keys(bond_values) is {
-    [] ->
-      BizOutputInfo {
-        addresses,
-        bond_datum_valid: True,
-        bond_outputs: self.bond_outputs,
-        bond_assets: self.bond_assets,
-        bond_qty: self.bond_qty,
-        lovelace: self.lovelace + value.lovelace_of(output.value),
-        other_outputs: [output, ..self.other_outputs],
-      }
-    _ -> {
-      let bond_datum_valid =
-        datum_of == OtherDatum || when get_data(datums, output.datum) is {
-          Some(d) -> datum_is_valid(conf, d, spd_datum)
-          None -> {
-            trace @"not found datum"
-            False
-          }
-        }
-      BizOutputInfo {
-        addresses,
-        bond_datum_valid,
-        bond_outputs: [output, ..self.bond_outputs],
-        bond_assets: bond_assets(self.bond_assets, bond_values),
-        bond_qty: dict.foldl(bond_values, self.bond_qty, fn(_, v, z) { v + z }),
-        lovelace: self.lovelace + value.lovelace_of(output.value),
-        other_outputs: self.other_outputs,
+  let bond_datum_valid =
+    datum_of == OtherDatum || when get_data(datums, output.datum) is {
+      Some(d) -> datum_is_valid(conf, d, spd_datum)
+      None -> {
+        trace @"not found datum"
+        False
       }
     }
+  let (output_bond, output_other) = if dict.size(bond_values) > 0 {
+    ([output, ..self.bond_outputs], self.other_outputs)
+  } else {
+    (self.bond_outputs, [output, ..self.other_outputs])
+  }
+  BizOutputInfo {
+    addresses,
+    bond_datum_valid,
+    bond_outputs: output_bond,
+    bond_assets: bond_assets(bond_values, self.bond_assets),
+    bond_qty: dict.foldl(bond_values, self.bond_qty, fn(_, v, z) { v + z }),
+    lovelace: self.lovelace + value.lovelace_of(output.value),
+    other_outputs: output_other,
   }
 }
 
 fn build_biz_data(
-  conf: Config,
+  conf: ConfigLimit,
   output: Output,
   owner: Address,
-  sc: Address,
+  spending: Address,
   datums: Datums,
   data: BizOutput,
   escrow_info: EscrowInfo,
@@ -80,18 +75,18 @@ fn build_biz_data(
   let bond_values = value.tokens(output.value, escrow_info.bond_symbol)
   let biz_out_info =
     build_biz_output_info(
-      if output.address == sc {
+      if output.address == spending {
         data.sc
       } else if output.address == owner {
         data.owner
-      } else if output.address == conf.market.address {
-        data.market
+      } else if output.address == conf.exchange.address {
+        data.exchange
       } else {
         data.other
       },
       output,
       bond_values,
-      if output.address == sc {
+      if output.address == spending {
         ScDatum
       } else {
         OtherDatum
@@ -103,7 +98,7 @@ fn build_biz_data(
   BizOutput {
     valid: biz_out_info.bond_datum_valid,
     unique_bonds: bond_assets(data.unique_bonds, bond_values),
-    sc: when (output.address, sc) is {
+    sc: when (output.address, spending) is {
       (a, b) if a == b -> biz_out_info
       _ -> data.sc
     },
@@ -111,11 +106,11 @@ fn build_biz_data(
       (a, b) if a == b -> biz_out_info
       _ -> data.owner
     },
-    market: when (output.address, conf.market.address) is {
+    exchange: when (output.address, conf.exchange.address) is {
       (a, b) if a == b -> biz_out_info
-      _ -> data.market
+      _ -> data.exchange
     },
-    other: when (output.address, sc, owner, conf.market.address) is {
+    other: when (output.address, spending, owner, conf.exchange.address) is {
       (a, b, c, d) if a != b && a != c && a != d -> biz_out_info
       _ -> data.other
     },
@@ -123,10 +118,10 @@ fn build_biz_data(
 }
 
 fn get_biz_output(
-  conf: Config,
+  conf: ConfigLimit,
   outputs: List<Output>,
   owner: Address,
-  sc: Address,
+  spending: Address,
   datums: Datums,
   recursive: BizOutput,
   escrow_info: EscrowInfo,
@@ -140,7 +135,7 @@ fn get_biz_output(
           conf,
           x,
           owner,
-          sc,
+          spending,
           datums,
           recursive,
           escrow_info,
@@ -153,7 +148,7 @@ fn get_biz_output(
           conf,
           xs,
           owner,
-          sc,
+          spending,
           datums,
           biz_data,
           escrow_info,
@@ -165,10 +160,10 @@ fn get_biz_output(
 }
 
 fn get_biz_input(
-  conf: Config,
+  conf: ConfigLimit,
   outputs: List<Input>,
   owner: Address,
-  sc: Address,
+  spending: Address,
   datums: Datums,
   recursive: BizOutput,
   escrow_info: EscrowInfo,
@@ -182,7 +177,7 @@ fn get_biz_input(
           conf,
           x.output,
           owner,
-          sc,
+          spending,
           datums,
           recursive,
           escrow_info,
@@ -195,7 +190,7 @@ fn get_biz_input(
           conf,
           xs,
           owner,
-          sc,
+          spending,
           datums,
           biz_data,
           escrow_info,
@@ -207,11 +202,11 @@ fn get_biz_input(
 }
 
 pub fn collect_biz_tx_info(
-  conf: Config,
+  conf: ConfigLimit,
   inputs: List<Input>,
   outputs: List<Output>,
   owner: Address,
-  sc: Address,
+  spending: Address,
   datums: Datums,
   escrow_info: EscrowInfo,
   spd_datum: AskLimit,
@@ -231,7 +226,7 @@ pub fn collect_biz_tx_info(
       valid: True,
       unique_bonds: dict.new(),
       sc: biz_out_info_init,
-      market: biz_out_info_init,
+      exchange: biz_out_info_init,
       owner: biz_out_info_init,
       other: biz_out_info_init,
     }
@@ -240,7 +235,7 @@ pub fn collect_biz_tx_info(
       conf,
       inputs,
       owner,
-      sc,
+      spending,
       datums,
       biz_out_init,
       escrow_info,
@@ -252,7 +247,7 @@ pub fn collect_biz_tx_info(
         conf,
         outputs,
         owner,
-        sc,
+        spending,
         datums,
         biz_out_init,
         escrow_info,

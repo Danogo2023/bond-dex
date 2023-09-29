@@ -10,19 +10,20 @@ use bond/common.{
   posix_time_to_relative_epoch,
 }
 use bond/types.{
-  AskLimit, BizOutput, BizTxInfo, Config, Error, EscrowDatum, EscrowInfo, OK,
+  AskLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
+  OK,
 }
 use bond/utils_limit_ask.{collect_biz_tx_info}
 use common/utils.{get_data} as common_utils
 
 fn buy_is_valid(
-  conf: Config,
+  conf: ConfigLimit,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
   buyer_qty: Int,
   price_of_one_bond: Int,
-  min_ada_to_market: Int,
+  min_ada_to_exchange: Int,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
@@ -32,34 +33,34 @@ fn buy_is_valid(
   // Chenh lech tien lai nhan duoc
   let received_diff = received_at_maturity - received_with_yield
   // phi seller(owner of listing) phai tra cho san theo ti le trong config
-  let market_fee_seller =
-    received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
+  let exchange_fee_seller =
+    received_diff * conf.exchange.seller_fee / conf.bond.basis_points_ref_unit
   // phi buyer phai tra cho san theo ti le trong config
-  let market_fee_buyer =
-    received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
+  let exchange_fee_buyer =
+    received_diff * conf.exchange.buyer_fee / conf.bond.basis_points_ref_unit
   let owner_out_utxos =
     list.concat(out.owner.bond_outputs, out.owner.other_outputs)
   let owner_output_len = list.length(owner_out_utxos)
   let sc_output_len =
     list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
-  let market_receive_lovelace_tmp =
-    market_fee_buyer + market_fee_seller + min_ada_to_market
-  let owner_receive_lovelace_tmp = received_with_yield - market_fee_seller
-  let (owner_receive_lovelace, market_receive_lovelace) =
+  let exchange_receive_lovelace_tmp =
+    exchange_fee_buyer + exchange_fee_seller + min_ada_to_exchange
+  let owner_receive_lovelace_tmp = received_with_yield - exchange_fee_seller
+  let (owner_receive_lovelace, exchange_receive_lovelace) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
-        if owner_output_len > 0 && a == conf.market.address {
-          (owner_receive_lovelace_tmp + market_receive_lovelace_tmp, 0)
+        if owner_output_len > 0 && a == conf.exchange.address {
+          (owner_receive_lovelace_tmp + exchange_receive_lovelace_tmp, 0)
         } else {
-          (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
+          (owner_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
         }
-      _ -> (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
+      _ -> (owner_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
     }
-  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_receive_lovelace)? && (owner_output_len > 0)? && (out.owner.lovelace == owner_receive_lovelace)?
+  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.exchange.lovelace >= exchange_receive_lovelace)? && (owner_output_len > 0)? && (out.owner.lovelace == owner_receive_lovelace)?
 }
 
 fn buy_correct(
-  conf: Config,
+  conf: ConfigLimit,
   spd_ask_datum: AskLimit,
   in: BizOutput,
   out: BizOutput,
@@ -68,7 +69,7 @@ fn buy_correct(
   let (
     qty_owner_2_buyer,
     min_ada_to_sm,
-    min_ada_to_market,
+    min_ada_to_exchange,
     sm_out_must_only_one_bond_name,
     sm_out_bond_same_escrow,
   ) =
@@ -88,7 +89,7 @@ fn buy_correct(
     }
   sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || (
     dict.has_key(out.other.bond_assets, escrow_info.token_name) || dict.has_key(
-      out.market.bond_assets,
+      out.exchange.bond_assets,
       escrow_info.token_name,
     )
   ))? && when
@@ -118,17 +119,17 @@ fn buy_correct(
           spd_ask_datum.requested_yield,
           conf.bond.basis_points_ref_unit,
         ),
-        min_ada_to_market,
+        min_ada_to_exchange,
       )?
   }
 }
 
 pub fn buy(
   tx: Transaction,
-  conf: Config,
+  conf: ConfigLimit,
   spd_ask_datum: AskLimit,
   owner: Address,
-  sc: Address,
+  spending: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -142,7 +143,7 @@ pub fn buy(
     }
   let owner_vk = spd_ask_datum.owner_payment_key
   (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
-    conf.market.tx_buy_valid_slot
+    conf.exchange.tx_buy_valid_slot
   is {
     Some(x) -> x
     None -> 3 * 60
@@ -183,7 +184,7 @@ pub fn buy(
                   tx.inputs,
                   tx.outputs,
                   owner,
-                  sc,
+                  spending,
                   tx.datums,
                   escrow_info,
                   spd_ask_datum,

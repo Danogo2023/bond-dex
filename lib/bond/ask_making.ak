@@ -3,14 +3,14 @@ use aiken/dict
 use aiken/interval.{Finite}
 use aiken/list
 use aiken/transaction.{Transaction}
-use aiken/transaction/credential.{Address}
+use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
 use bond/common.{
   get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
 }
 use bond/types.{
-  AskMaking, BidMaking, BizOutput, BizTxInfo, Config, Error, EscrowDatum,
+  AskMaking, BidMaking, BizOutput, BizTxInfo, ConfigMaking, Error, EscrowDatum,
   EscrowInfo, OK,
 }
 use bond/utils_making_ask.{collect_biz_tx_info}
@@ -18,7 +18,7 @@ use common/utils.{get_data} as common_utils
 
 fn buy_is_valid(
   tx: Transaction,
-  conf: Config,
+  conf: ConfigMaking,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -33,29 +33,29 @@ fn buy_is_valid(
   // Chenh lech tien lai nhan duoc
   let received_diff = received_at_maturity - received_with_yield
   // phi seller(owner of listing) phai tra cho san theo ti le trong config
-  let market_fee_seller =
-    received_diff * conf.market.seller_fee / conf.bond.basis_points_ref_unit
+  let exchange_fee_seller =
+    received_diff * conf.exchange.maker_fee / conf.bond.basis_points_ref_unit
   // phi buyer phai tra cho san theo ti le trong config
-  let market_fee_buyer =
-    received_diff * conf.market.buyer_fee / conf.bond.basis_points_ref_unit
+  let exchange_fee_buyer =
+    received_diff * conf.exchange.taker_fee / conf.bond.basis_points_ref_unit
   let owner_out_utxos =
     list.concat(out.owner.bond_outputs, out.owner.other_outputs)
   let owner_output_len = list.length(owner_out_utxos)
   let sc_output_len =
     list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
-  let market_receive_lovelace_tmp = market_fee_buyer + market_fee_seller
-  let owner_receive_lovelace_tmp = received_with_yield - market_fee_seller
-  let (owner_receive_lovelace, market_receive_lovelace) =
+  let exchange_receive_lovelace_tmp = exchange_fee_buyer + exchange_fee_seller
+  let owner_receive_lovelace_tmp = received_with_yield - exchange_fee_seller
+  let (owner_receive_lovelace, exchange_receive_lovelace) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
-        if owner_output_len > 0 && a == conf.market.address {
-          (owner_receive_lovelace_tmp + market_receive_lovelace_tmp, 0)
+        if owner_output_len > 0 && a == conf.exchange.address {
+          (owner_receive_lovelace_tmp + exchange_receive_lovelace_tmp, 0)
         } else {
-          (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
+          (owner_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
         }
-      _ -> (owner_receive_lovelace_tmp, market_receive_lovelace_tmp)
+      _ -> (owner_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
     }
-  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.market.lovelace >= market_receive_lovelace)? && (out.sc.lovelace + out.owner.lovelace == in.sc.lovelace + owner_receive_lovelace)? && when
+  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.exchange.lovelace >= exchange_receive_lovelace)? && (out.sc.lovelace + out.owner.lovelace == in.sc.lovelace + owner_receive_lovelace)? && when
     list.at(owner_out_utxos, 0)
   is {
     Some(utxo) ->
@@ -75,7 +75,7 @@ fn buy_is_valid(
 
 fn buy_correct(
   tx: Transaction,
-  conf: Config,
+  conf: ConfigMaking,
   spd_ask_datum: AskMaking,
   in: BizOutput,
   out: BizOutput,
@@ -100,7 +100,7 @@ fn buy_correct(
     }
   sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || (
     dict.has_key(out.other.bond_assets, escrow_info.token_name) || dict.has_key(
-      out.market.bond_assets,
+      out.exchange.bond_assets,
       escrow_info.token_name,
     )
   ))? && when
@@ -135,10 +135,10 @@ fn buy_correct(
 
 pub fn buy(
   tx: Transaction,
-  conf: Config,
+  conf: ConfigMaking,
   spd_ask_datum: AskMaking,
   owner: Address,
-  sc: Address,
+  spending: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -151,7 +151,7 @@ pub fn buy(
       _ -> 0
     }
   (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
-    conf.market.tx_buy_valid_slot
+    conf.exchange.tx_buy_valid_slot
   is {
     Some(x) -> x
     None -> 3 * 60
@@ -182,6 +182,13 @@ pub fn buy(
             )
           is {
             OK(escrow_info) -> {
+              let spd_ask_datum_owner =
+                Address {
+                  payment_credential: VerificationKeyCredential(
+                    spd_ask_datum.owner_payment_key,
+                  ),
+                  stake_credential: owner.stake_credential,
+                }
               let BizTxInfo {
                 valid: biz_tx_info_valid,
                 biz_tx_in: in,
@@ -192,7 +199,7 @@ pub fn buy(
                   tx.inputs,
                   tx.outputs,
                   owner,
-                  sc,
+                  spending,
                   tx.datums,
                   escrow_info,
                   spd_ask_datum,
@@ -200,9 +207,11 @@ pub fn buy(
               biz_tx_info_valid && (dict.size(in.sc.bond_assets) == 1)? && dict.has_key(
                 in.sc.bond_assets,
                 escrow_info.token_name,
-              )? && when out is {
+              )? && (!list.has(in.other.addresses, spd_ask_datum_owner))? && when
+                out
+              is {
                 Some(ou) ->
-                  (in.owner.bond_qty <= 0)? && buy_correct(
+                  (!list.has(ou.other.addresses, spd_ask_datum_owner))? && (in.owner.bond_qty <= 0)? && buy_correct(
                     tx,
                     conf,
                     spd_ask_datum,
