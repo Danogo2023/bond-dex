@@ -1,14 +1,10 @@
-use aiken/builtin
-use aiken/bytearray
-use aiken/dict.{Dict}
-use aiken/hash.{blake2b_256}
-use aiken/transaction.{DatumHash, InlineDatum, NoDatum}
+use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/credential.{
   from_script, with_delegation_key, with_delegation_script,
 }
 use aiken/transaction/value
 use bond/ask_making
-use bond/common.{get_price_of_bond, posix_time_to_relative_epoch}
+use bond/common.{get_price_of_bond}
 // use common/utils.{get_payment_key}
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_making_datum, gen_bid_making_datum, gen_input,
@@ -18,7 +14,397 @@ use bond/fixture.{
   get_escrow_address, get_escrow_address_unexpect, get_escrow_datum,
   get_escrow_policy_id, get_exchange_address, get_fraud_address,
   get_input_escrow, get_not_bond_policy_id, get_not_escrow_policy_id,
-  get_payment_datum, get_seller_address, get_seller_address_hash,
+  get_seller_address, get_seller_address_hash,
+}
+
+test buy_succ_buyer_is_exchange() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_making_mainnet()
+  let exchange_address = get_exchange_address()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
+  let revert_address = from_script(sc_in_datum_1.bid_sc)
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_ask_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = exchange_address
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let exchange_fee_seller =
+    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
+  let exchange_fee_buyer =
+    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
+  //
+  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
+  let min_ada_to_exchange =
+    when sc_remaining_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let exchange_received = exchange_fee_buyer + exchange_fee_seller
+
+  let exchange_out_1 =
+    gen_output(exchange_address, exchange_received, None, NoDatum)
+  let owner_received =
+    received_with_yield - exchange_fee_seller + min_ada_to_exchange
+  let owner_out_bid_datum_1 =
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
+  let owner_out_1 =
+    gen_output(
+      revert_address,
+      owner_received,
+      None,
+      InlineDatum(owner_out_bid_datum_1),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      NoDatum,
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_exchange,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_remaining_qty,
+        ),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  ask_making.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      None,
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    sc_in_datum_1,
+    revert_address,
+    sc_address,
+  )
+}
+
+test buy_succ_partial() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_making_mainnet()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
+  let revert_address = from_script(sc_in_datum_1.bid_sc)
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_ask_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = get_buyer_address()
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let exchange_fee_seller =
+    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
+  let exchange_fee_buyer =
+    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
+  //
+  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
+  let min_ada_to_exchange =
+    when sc_remaining_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let exchange_received = exchange_fee_buyer + exchange_fee_seller
+
+  let exchange_address = get_exchange_address()
+  let exchange_out_1 =
+    gen_output(exchange_address, exchange_received, None, NoDatum)
+  let owner_received =
+    received_with_yield - exchange_fee_seller + min_ada_to_exchange
+  let owner_out_bid_datum_1 =
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
+  let owner_out_1 =
+    gen_output(
+      revert_address,
+      owner_received,
+      None,
+      InlineDatum(owner_out_bid_datum_1),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      NoDatum,
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_exchange,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_remaining_qty,
+        ),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  ask_making.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      None,
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    sc_in_datum_1,
+    revert_address,
+    sc_address,
+  )
+}
+
+test buy_succ_full() {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_making_mainnet()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
+  let revert_address = from_script(sc_in_datum_1.bid_sc)
+  let bond_name_ask_1 = get_bond_id_1()
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
+  let escrow_full_info =
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.bond.basis_points_ref_unit,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_ask_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address,
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = get_buyer_address()
+  let bond_name_ask_2 = get_bond_id_2()
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 5
+  let received_at_maturity =
+    escrow_full_info.received_at_maturity_one_bond * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let exchange_fee_seller =
+    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
+  let exchange_fee_buyer =
+    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
+  //
+  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
+  let min_ada_to_exchange =
+    when sc_remaining_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let exchange_received = exchange_fee_buyer + exchange_fee_seller
+
+  let exchange_address = get_exchange_address()
+  let exchange_out_1 =
+    gen_output(exchange_address, exchange_received, None, NoDatum)
+  let owner_received =
+    received_with_yield - exchange_fee_seller + min_ada_to_exchange
+  let owner_out_bid_datum_1 =
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
+  let owner_out_1 =
+    gen_output(
+      revert_address,
+      owner_received,
+      None,
+      InlineDatum(owner_out_bid_datum_1),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          buyer_qty,
+        ),
+      ),
+      NoDatum,
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address,
+      sc_in_lovelace - min_ada_to_exchange,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_remaining_qty,
+        ),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  ask_making.buy(
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      None,
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    ),
+    cfg,
+    sc_in_datum_1,
+    revert_address,
+    sc_address,
+  )
 }
 
 test buy_fail_partial_must_only_one_bond_1() {
@@ -101,29 +487,13 @@ test buy_fail_partial_must_only_one_bond_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -145,7 +515,7 @@ test buy_fail_partial_must_only_one_bond_1() {
           6,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -166,7 +536,7 @@ test buy_fail_partial_must_only_one_bond_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -254,29 +624,13 @@ test buy_fail_partial_must_only_one_bond_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -298,7 +652,7 @@ test buy_fail_partial_must_only_one_bond_2() {
           6,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -319,7 +673,7 @@ test buy_fail_partial_must_only_one_bond_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -402,29 +756,13 @@ test buy_fail_partial_change_bond_name() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -441,7 +779,7 @@ test buy_fail_partial_change_bond_name() {
       Some(
         value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -462,7 +800,7 @@ test buy_fail_partial_change_bond_name() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -543,29 +881,13 @@ test buy_fail_partial_datum_owner_payment_key_invalid_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -587,7 +909,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_1() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_datum_1 = gen_ask_making_datum(from_script(#"010203040506"), 515)
   let sc_out_1 =
@@ -609,7 +931,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -690,29 +1012,13 @@ test buy_fail_partial_datum_owner_payment_key_invalid_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -734,7 +1040,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_2() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_datum_1 = gen_ask_making_datum(buyer_address, 515)
   let sc_out_1 =
@@ -756,7 +1062,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -841,29 +1147,13 @@ test buy_fail_partial_datum_owner_stake_key_invalid_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -885,7 +1175,7 @@ test buy_fail_partial_datum_owner_stake_key_invalid_1() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_datum_1 =
     gen_ask_making_datum(
@@ -911,7 +1201,7 @@ test buy_fail_partial_datum_owner_stake_key_invalid_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -996,29 +1286,13 @@ test buy_fail_partial_datum_owner_stake_key_invalid_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1040,7 +1314,7 @@ test buy_fail_partial_datum_owner_stake_key_invalid_2() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_datum_1 =
     gen_ask_making_datum(
@@ -1066,7 +1340,7 @@ test buy_fail_partial_datum_owner_stake_key_invalid_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1147,29 +1421,13 @@ test buy_fail_partial_datum_requested_yield_invalid() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1191,7 +1449,7 @@ test buy_fail_partial_datum_requested_yield_invalid() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_datum_1 = gen_ask_making_datum(owner_address, 785)
   let sc_out_1 =
@@ -1213,7 +1471,7 @@ test buy_fail_partial_datum_requested_yield_invalid() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1294,29 +1552,13 @@ test buy_fail_partial_escrow_datum_unexpect() fail {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1338,7 +1580,7 @@ test buy_fail_partial_escrow_datum_unexpect() fail {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -1359,7 +1601,7 @@ test buy_fail_partial_escrow_datum_unexpect() fail {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1412,13 +1654,6 @@ test buy_fail_escrow_policy_id_unexpect() {
       ),
       InlineDatum(sc_in_datum_1),
     )
-  let sc_in_2 =
-    gen_input(
-      sc_address,
-      sc_in_lovelace,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
-      InlineDatum(sc_in_datum_1),
-    )
   let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
   let buyer_in_1 =
@@ -1447,29 +1682,13 @@ test buy_fail_escrow_policy_id_unexpect() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1491,7 +1710,7 @@ test buy_fail_escrow_policy_id_unexpect() {
           6,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -1508,11 +1727,11 @@ test buy_fail_escrow_policy_id_unexpect() {
     )
   !ask_making.buy(
     fixture.tx(
-      [sc_in_1, sc_in_2, buyer_in_1],
+      [sc_in_1, buyer_in_1],
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1600,29 +1819,13 @@ test buy_fail_escrow_address_unexpect() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1644,7 +1847,7 @@ test buy_fail_escrow_address_unexpect() {
           6,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -1665,7 +1868,7 @@ test buy_fail_escrow_address_unexpect() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1746,29 +1949,13 @@ test buy_fail_escrow_datum_not_found() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1790,7 +1977,7 @@ test buy_fail_escrow_datum_not_found() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -1811,7 +1998,7 @@ test buy_fail_escrow_datum_not_found() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1892,29 +2079,13 @@ test buy_fail_escrow_datum_unexpect() fail {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -1936,7 +2107,7 @@ test buy_fail_escrow_datum_unexpect() fail {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -1957,7 +2128,7 @@ test buy_fail_escrow_datum_unexpect() fail {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -1969,7 +2140,8 @@ test buy_fail_escrow_datum_unexpect() fail {
 }
 
 test buy_fail_escrow_closable() {
-  let time_of_tx = 1681095094000
+  // increase time
+  let time_of_tx = 1781095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
   let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
@@ -1979,25 +2151,9 @@ test buy_fail_escrow_closable() {
   let escrow_datum_start = 63
   let escrow_datum_duration = 72
   let epoch_rewards_lovelace = 753424657
-  let current_epoch =
-    posix_time_to_relative_epoch(time_of_tx, cfg.bond.epoch_config)
-  let start_epoch =
-    escrow_datum_start + cfg.bond.epoch_config.epoch_boundary_as_epoch
-  let end_epoch = start_epoch + escrow_datum_duration
-  let claim_amount = 1000
-  let claim_amount_principal_lovelace = claim_amount * cfg.bond.bond_face_value
-  let claim_amount_interest_lovelace =
-    claim_amount * (
-      if current_epoch >= end_epoch {
-        escrow_datum_duration
-      } else {
-        current_epoch - start_epoch + 1
-      } * epoch_rewards_lovelace
-    )
-  let claim_lovelace =
-    claim_amount_principal_lovelace + claim_amount_interest_lovelace
+
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum_amount_remaining = 10000 - claim_amount
+  let escrow_datum_amount_remaining = 10000
   let escrow_datum =
     get_escrow_datum(
       bond_name_ask_1,
@@ -2006,8 +2162,7 @@ test buy_fail_escrow_closable() {
       escrow_datum_duration,
       escrow_datum_start,
     )
-  let escrow_lovelace_pre_claim = 1017328767112
-  let escrow_lovelace = escrow_lovelace_pre_claim - claim_lovelace
+  let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
   let price_of_one_bond =
@@ -2068,29 +2223,13 @@ test buy_fail_escrow_closable() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -2112,7 +2251,7 @@ test buy_fail_escrow_closable() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -2133,7 +2272,7 @@ test buy_fail_escrow_closable() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -2214,29 +2353,13 @@ test buy_fail_buyer_must_not_owner_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -2258,7 +2381,7 @@ test buy_fail_buyer_must_not_owner_1() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -2279,7 +2402,7 @@ test buy_fail_buyer_must_not_owner_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -2360,29 +2483,13 @@ test buy_fail_buyer_must_not_owner_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -2404,7 +2511,7 @@ test buy_fail_buyer_must_not_owner_2() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -2425,154 +2532,7 @@ test buy_fail_buyer_must_not_owner_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
-      Some(time_of_tx),
-      Some(time_of_tx + 3 * 60 * 1000),
-    ),
-    cfg,
-    sc_in_datum_1,
-    revert_address,
-    sc_address,
-  )
-}
-
-test buy_succ_buyer_is_exchange() {
-  let time_of_tx = 1681095094000
-  let cfg = get_config_making_mainnet()
-  let exchange_address = get_exchange_address()
-  let owner_address = get_seller_address()
-  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
-  let revert_address = from_script(sc_in_datum_1.bid_sc)
-  let bond_name_ask_1 = get_bond_id_1()
-  let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
-  let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
-  let price_of_one_bond =
-    get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
-      escrow_full_info.day_to_maturity,
-      sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
-    )
-  //
-  let refer_in_1 =
-    get_input_escrow(
-      get_escrow_address(),
-      get_escrow_policy_id(),
-      bond_name_ask_1,
-      1,
-      escrow_lovelace,
-      InlineDatum(escrow_datum),
-    )
-  //
-  let sc_in_bond_qty = 5
-  let sc_in_lovelace = 2068800
-  let sc_address = get_ask_sc_address()
-  let sc_in_1 =
-    gen_input(
-      sc_address,
-      sc_in_lovelace,
-      Some(
-        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  let buyer_fee_ada = 3000000000
-  let buyer_address = exchange_address
-  let buyer_in_1 =
-    gen_input(
-      buyer_address,
-      buyer_fee_ada,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
-      NoDatum,
-    )
-  //
-  let buyer_qty = 2
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * buyer_qty
-  let received_with_yield = price_of_one_bond * buyer_qty
-  let received_diff = received_at_maturity - received_with_yield
-  let exchange_fee_seller =
-    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
-  let exchange_fee_buyer =
-    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
-  //
-  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
-  let min_ada_to_exchange =
-    when sc_remaining_qty is {
-      0 -> sc_in_lovelace
-      _ -> 0
-    }
-  let exchange_received = exchange_fee_buyer + exchange_fee_seller
-
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums: Dict<ByteArray, Data> =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           // convert the BidMaking to Data type
-           builtin.b_data(builtin.un_b_data(payment_datum)),
-           bytearray.compare,
-         )
-  let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
       None,
-      DatumHash(payment_datum_hash),
-    )
-  let owner_received =
-    received_with_yield - exchange_fee_seller + min_ada_to_exchange
-  let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
-  let owner_out_1 =
-    gen_output(
-      revert_address,
-      owner_received,
-      None,
-      InlineDatum(owner_out_bid_datum_1),
-    )
-  let buyer_received =
-    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
-  let buyer_out_1 =
-    gen_output(
-      buyer_address,
-      buyer_received,
-      Some(
-        value.add(
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          3,
-        ),
-      ),
-      DatumHash(payment_datum_hash),
-    )
-  let sc_out_1 =
-    gen_output(
-      sc_address,
-      sc_in_lovelace - min_ada_to_exchange,
-      Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_remaining_qty,
-        ),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  ask_making.buy(
-    fixture.tx(
-      [sc_in_1, buyer_in_1],
-      [refer_in_1],
-      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
-      Some([get_seller_address_hash()]),
-      Some(tx_datums),
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -2653,30 +2613,13 @@ test buy_fail_invalid_revert_address() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums: Dict<ByteArray, Data> =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           // convert the BidMaking to Data type
-           builtin.b_data(builtin.un_b_data(payment_datum)),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       get_fraud_address(),
@@ -2698,7 +2641,7 @@ test buy_fail_invalid_revert_address() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -2719,445 +2662,7 @@ test buy_fail_invalid_revert_address() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
-      Some(time_of_tx),
-      Some(time_of_tx + 3 * 60 * 1000),
-    ),
-    cfg,
-    sc_in_datum_1,
-    revert_address,
-    sc_address,
-  )
-}
-
-test buy_succ_partial() {
-  let time_of_tx = 1681095094000
-  let cfg = get_config_making_mainnet()
-  let owner_address = get_seller_address()
-  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
-  let revert_address = from_script(sc_in_datum_1.bid_sc)
-  let bond_name_ask_1 = get_bond_id_1()
-  let bond_name_ask_2 = get_bond_id_2()
-  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
-  let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
-  let price_of_one_bond =
-    get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
-      escrow_full_info.day_to_maturity,
-      sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
-    )
-  //
-  let refer_in_1 =
-    get_input_escrow(
-      get_escrow_address(),
-      get_escrow_policy_id(),
-      bond_name_ask_1,
-      1,
-      escrow_lovelace,
-      InlineDatum(escrow_datum),
-    )
-  //
-  let sc_in_bond_qty = 5
-  let sc_in_lovelace = 2068800
-  let sc_address = get_ask_sc_address()
-  let sc_in_1 =
-    gen_input(
-      sc_address,
-      sc_in_lovelace,
-      Some(
-        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  let buyer_fee_ada = 3000000000
-  let buyer_address = get_buyer_address()
-  let buyer_in_1 =
-    gen_input(
-      buyer_address,
-      buyer_fee_ada,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
-      NoDatum,
-    )
-  //
-  let buyer_qty = 2
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * buyer_qty
-  let received_with_yield = price_of_one_bond * buyer_qty
-  let received_diff = received_at_maturity - received_with_yield
-  let exchange_fee_seller =
-    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
-  let exchange_fee_buyer =
-    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
-  //
-  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
-  let min_ada_to_exchange =
-    when sc_remaining_qty is {
-      0 -> sc_in_lovelace
-      _ -> 0
-    }
-  let exchange_received = exchange_fee_buyer + exchange_fee_seller
-
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums: Dict<ByteArray, Data> =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           // convert the BidMaking to Data type
-           builtin.b_data(builtin.un_b_data(payment_datum)),
-           bytearray.compare,
-         )
-  let exchange_address = get_exchange_address()
-  let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
       None,
-      DatumHash(payment_datum_hash),
-    )
-  let owner_received =
-    received_with_yield - exchange_fee_seller + min_ada_to_exchange
-  let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
-  let owner_out_1 =
-    gen_output(
-      revert_address,
-      owner_received,
-      None,
-      InlineDatum(owner_out_bid_datum_1),
-    )
-  let buyer_received =
-    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
-  let buyer_out_1 =
-    gen_output(
-      buyer_address,
-      buyer_received,
-      Some(
-        value.add(
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          3,
-        ),
-      ),
-      DatumHash(payment_datum_hash),
-    )
-  let sc_out_1 =
-    gen_output(
-      sc_address,
-      sc_in_lovelace - min_ada_to_exchange,
-      Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_remaining_qty,
-        ),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  ask_making.buy(
-    fixture.tx(
-      [sc_in_1, buyer_in_1],
-      [refer_in_1],
-      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
-      Some([get_seller_address_hash()]),
-      Some(tx_datums),
-      Some(time_of_tx),
-      Some(time_of_tx + 3 * 60 * 1000),
-    ),
-    cfg,
-    sc_in_datum_1,
-    revert_address,
-    sc_address,
-  )
-}
-
-test buy_succ_full_1() {
-  let time_of_tx = 1681095094000
-  let cfg = get_config_making_mainnet()
-  let owner_address = get_seller_address()
-  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
-  let revert_address = from_script(sc_in_datum_1.bid_sc)
-  let bond_name_ask_1 = get_bond_id_1()
-  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
-  let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
-  let price_of_one_bond =
-    get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
-      escrow_full_info.day_to_maturity,
-      sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
-    )
-  //
-  let refer_in_1 =
-    get_input_escrow(
-      get_escrow_address(),
-      get_escrow_policy_id(),
-      bond_name_ask_1,
-      1,
-      escrow_lovelace,
-      InlineDatum(escrow_datum),
-    )
-  //
-  let sc_in_bond_qty = 5
-  let sc_in_lovelace = 2068800
-  let sc_address = get_ask_sc_address()
-  let sc_in_1 =
-    gen_input(
-      sc_address,
-      sc_in_lovelace,
-      Some(
-        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  let buyer_fee_ada = 3000000000
-  let buyer_address = get_buyer_address()
-  let bond_name_ask_2 = get_bond_id_2()
-  let buyer_in_1 =
-    gen_input(
-      buyer_address,
-      buyer_fee_ada,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
-      NoDatum,
-    )
-  //
-  let buyer_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * buyer_qty
-  let received_with_yield = price_of_one_bond * buyer_qty
-  let received_diff = received_at_maturity - received_with_yield
-  let exchange_fee_seller =
-    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
-  let exchange_fee_buyer =
-    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
-  //
-  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
-  let min_ada_to_exchange =
-    when sc_remaining_qty is {
-      0 -> sc_in_lovelace
-      _ -> 0
-    }
-  let exchange_received = exchange_fee_buyer + exchange_fee_seller
-
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums: Dict<ByteArray, Data> =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           // convert the BidMaking to Data type
-           builtin.b_data(builtin.un_b_data(payment_datum)),
-           bytearray.compare,
-         )
-  let exchange_address = get_exchange_address()
-  let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
-  let owner_received =
-    received_with_yield - exchange_fee_seller + min_ada_to_exchange
-  let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
-  let owner_out_1 =
-    gen_output(
-      revert_address,
-      owner_received,
-      None,
-      InlineDatum(owner_out_bid_datum_1),
-    )
-  let buyer_received =
-    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
-  let buyer_out_1 =
-    gen_output(
-      buyer_address,
-      buyer_received,
-      Some(
-        value.add(
-          value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3),
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          buyer_qty,
-        ),
-      ),
-      DatumHash(payment_datum_hash),
-    )
-  let sc_out_1 =
-    gen_output(
-      sc_address,
-      sc_in_lovelace - min_ada_to_exchange,
-      Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_remaining_qty,
-        ),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  ask_making.buy(
-    fixture.tx(
-      [sc_in_1, buyer_in_1],
-      [refer_in_1],
-      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
-      Some([get_seller_address_hash()]),
-      Some(tx_datums),
-      Some(time_of_tx),
-      Some(time_of_tx + 3 * 60 * 1000),
-    ),
-    cfg,
-    sc_in_datum_1,
-    revert_address,
-    sc_address,
-  )
-}
-
-test buy_succ_full_2() {
-  // let time_of_tx = 1666656000 000
-  let time_of_tx = 1687343990000
-  // => current_epoch = 22241
-  let cfg = get_config_making_preview()
-  let owner_address = get_seller_address()
-  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 7)
-  let revert_address = from_script(sc_in_datum_1.bid_sc)
-  let bond_name_ask_1 = get_bond_id_1()
-  let bond_name_ask_2 = get_bond_id_2()
-  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
-  // => epoch_start = 22190 epoch_end = 22244
-  let escrow_lovelace = 2001430920
-  let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
-  let price_of_one_bond =
-    get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
-      escrow_full_info.day_to_maturity,
-      sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
-    )
-  //
-  let refer_in_1 =
-    get_input_escrow(
-      get_escrow_address(),
-      get_escrow_policy_id(),
-      bond_name_ask_1,
-      1,
-      escrow_lovelace,
-      InlineDatum(escrow_datum),
-    )
-  //
-  let sc_in_bond_qty = 1
-  let buyer_qty = 0
-  let sc_in_lovelace = 1599010
-  let sc_address = get_ask_sc_address()
-  let sc_in_1 =
-    gen_input(
-      sc_address,
-      sc_in_lovelace,
-      Some(
-        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  let buyer_fee_ada = 18704383567
-  let buyer_address = get_buyer_address()
-  let buyer_in_1 =
-    gen_input(
-      buyer_address,
-      buyer_fee_ada,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
-      NoDatum,
-    )
-  //
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * buyer_qty
-  let received_with_yield = price_of_one_bond * buyer_qty
-  let received_diff = received_at_maturity - received_with_yield
-  let exchange_fee_seller =
-    received_diff * cfg.exchange.maker_fee / cfg.bond.basis_points_ref_unit
-  let exchange_fee_buyer =
-    received_diff * cfg.exchange.taker_fee / cfg.bond.basis_points_ref_unit
-  //
-  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
-  let min_ada_to_exchange =
-    when sc_remaining_qty is {
-      0 -> sc_in_lovelace
-      _ -> 0
-    }
-  let exchange_received = exchange_fee_buyer + exchange_fee_seller
-
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums: Dict<ByteArray, Data> =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           // convert the BidMaking to Data type
-           builtin.b_data(builtin.un_b_data(payment_datum)),
-           bytearray.compare,
-         )
-  let exchange_address = get_exchange_address()
-  let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
-  let owner_received =
-    received_with_yield - exchange_fee_seller + min_ada_to_exchange
-  let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
-  let owner_out_1 =
-    gen_output(
-      revert_address,
-      owner_received,
-      None,
-      InlineDatum(owner_out_bid_datum_1),
-    )
-  let buyer_received =
-    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
-  let buyer_out_1 =
-    gen_output(
-      buyer_address,
-      buyer_received,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
-      DatumHash(payment_datum_hash),
-    )
-  let sc_out_1 =
-    gen_output(
-      sc_address,
-      sc_in_lovelace - min_ada_to_exchange,
-      Some(
-        value.from_asset(
-          get_bond_policy_id(),
-          bond_name_ask_1,
-          sc_remaining_qty,
-        ),
-      ),
-      InlineDatum(sc_in_datum_1),
-    )
-  ask_making.buy(
-    fixture.tx(
-      [sc_in_1, buyer_in_1],
-      [refer_in_1],
-      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
-      Some([get_seller_address_hash()]),
-      Some(tx_datums),
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -3238,29 +2743,13 @@ test buy_fail_partial_validity_end_not_set() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -3282,7 +2771,7 @@ test buy_fail_partial_validity_end_not_set() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -3303,7 +2792,7 @@ test buy_fail_partial_validity_end_not_set() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       None,
     ),
@@ -3384,29 +2873,13 @@ test buy_fail_full_validity_end_not_set_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -3428,7 +2901,7 @@ test buy_fail_full_validity_end_not_set_1() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -3449,7 +2922,7 @@ test buy_fail_full_validity_end_not_set_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       None,
     ),
@@ -3534,29 +3007,13 @@ test buy_fail_full_validity_end_not_set_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -3571,7 +3028,7 @@ test buy_fail_full_validity_end_not_set_2() {
       buyer_address,
       buyer_received,
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -3592,7 +3049,7 @@ test buy_fail_full_validity_end_not_set_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       None,
     ),
@@ -3673,29 +3130,13 @@ test buy_fail_partial_validity_end_invalid_aft() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -3717,7 +3158,7 @@ test buy_fail_partial_validity_end_invalid_aft() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -3738,7 +3179,7 @@ test buy_fail_partial_validity_end_invalid_aft() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
@@ -3819,29 +3260,13 @@ test buy_fail_full_validity_end_invalid_aft_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -3863,7 +3288,7 @@ test buy_fail_full_validity_end_invalid_aft_1() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -3884,7 +3309,7 @@ test buy_fail_full_validity_end_invalid_aft_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
@@ -3969,29 +3394,13 @@ test buy_fail_full_validity_end_invalid_aft_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -4006,7 +3415,7 @@ test buy_fail_full_validity_end_invalid_aft_2() {
       buyer_address,
       buyer_received,
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -4027,7 +3436,7 @@ test buy_fail_full_validity_end_invalid_aft_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 6 * 60 * 1000 + 1),
     ),
@@ -4108,29 +3517,13 @@ test buy_fail_partial_validity_end_invalid_pre() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 82755 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -4152,7 +3545,7 @@ test buy_fail_partial_validity_end_invalid_pre() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -4173,7 +3566,7 @@ test buy_fail_partial_validity_end_invalid_pre() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx - 1),
     ),
@@ -4254,29 +3647,13 @@ test buy_fail_full_validity_end_invalid_pre_1() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -4298,7 +3675,7 @@ test buy_fail_full_validity_end_invalid_pre_1() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -4319,7 +3696,7 @@ test buy_fail_full_validity_end_invalid_pre_1() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx - 1),
     ),
@@ -4404,29 +3781,13 @@ test buy_fail_full_validity_end_invalid_pre_2() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -4441,7 +3802,7 @@ test buy_fail_full_validity_end_invalid_pre_2() {
       buyer_address,
       buyer_received,
       Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -4462,7 +3823,7 @@ test buy_fail_full_validity_end_invalid_pre_2() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx - 1),
     ),
@@ -4543,30 +3904,13 @@ test buy_succ_bond_policy_id_valid() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums: Dict<ByteArray, Data> =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           // convert the BidMaking to Data type
-           builtin.b_data(builtin.un_b_data(payment_datum)),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -4588,7 +3932,7 @@ test buy_succ_bond_policy_id_valid() {
           3,
         ),
       ),
-      DatumHash(payment_datum_hash),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -4609,7 +3953,7 @@ test buy_succ_bond_policy_id_valid() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -4621,19 +3965,15 @@ test buy_succ_bond_policy_id_valid() {
 }
 
 test buy_fail_bond_policy_id_invalid() {
-  // let time_of_tx = 1666656000 000
-  let time_of_tx = 1687343990000
-  // => current_epoch = 22241
-  let cfg = get_config_making_preview()
+  let time_of_tx = 1681095094000
+  let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
-  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 7)
+  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
   let revert_address = from_script(sc_in_datum_1.bid_sc)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
-  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
-  let escrow_datum = get_escrow_datum(bond_name_ask_1, 20, 1084931, 54, 21862)
-  // => epoch_start = 22190 epoch_end = 22244
-  let escrow_lovelace = 701430920
+  let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
+  let escrow_lovelace = 1017328767112
   let escrow_full_info =
     calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
   let price_of_one_bond =
@@ -4654,9 +3994,8 @@ test buy_fail_bond_policy_id_invalid() {
       InlineDatum(escrow_datum),
     )
   //
-  let sc_in_bond_qty = 1
-  let buyer_qty = 0
-  let sc_in_lovelace = 1599010
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
   let sc_address = get_ask_sc_address()
   let sc_in_1 =
     gen_input(
@@ -4671,16 +4010,17 @@ test buy_fail_bond_policy_id_invalid() {
       ),
       InlineDatum(sc_in_datum_1),
     )
-  let buyer_fee_ada = 18704383567
+  let buyer_fee_ada = 3000000000
   let buyer_address = get_buyer_address()
   let buyer_in_1 =
     gen_input(
       buyer_address,
       buyer_fee_ada,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
+      Some(value.from_asset(get_not_bond_policy_id(), bond_name_ask_2, 3)),
       NoDatum,
     )
   //
+  let buyer_qty = 2
   let received_at_maturity =
     escrow_full_info.received_at_maturity_one_bond * buyer_qty
   let received_with_yield = price_of_one_bond * buyer_qty
@@ -4698,35 +4038,19 @@ test buy_fail_bond_policy_id_invalid() {
     }
   let exchange_received = exchange_fee_buyer + exchange_fee_seller
 
-  // exchange_received == 206888 * 2
-  let payment_datum = get_payment_datum()
-  let payment_datum_data = builtin.serialise_data(payment_datum)
-  let payment_datum_hash = blake2b_256(payment_datum_data)
-  let tx_datums =
-    dict.new()
-      |> dict.insert(
-           payment_datum_hash,
-           builtin.b_data(payment_datum_data),
-           bytearray.compare,
-         )
   let exchange_address = get_exchange_address()
   let exchange_out_1 =
-    gen_output(
-      exchange_address,
-      exchange_received,
-      None,
-      DatumHash(payment_datum_hash),
-    )
+    gen_output(exchange_address, exchange_received, None, NoDatum)
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
-  let owner_out_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+  let owner_out_bid_datum_1 =
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
       owner_received,
       None,
-      InlineDatum(owner_out_datum_1),
+      InlineDatum(owner_out_bid_datum_1),
     )
   let buyer_received =
     buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
@@ -4734,8 +4058,15 @@ test buy_fail_bond_policy_id_invalid() {
     gen_output(
       buyer_address,
       buyer_received,
-      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 1)),
-      DatumHash(payment_datum_hash),
+      Some(
+        value.add(
+          value.from_asset(get_not_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_not_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      NoDatum,
     )
   let sc_out_1 =
     gen_output(
@@ -4743,7 +4074,7 @@ test buy_fail_bond_policy_id_invalid() {
       sc_in_lovelace - min_ada_to_exchange,
       Some(
         value.from_asset(
-          get_bond_policy_id(),
+          get_not_bond_policy_id(),
           bond_name_ask_1,
           sc_remaining_qty,
         ),
@@ -4756,7 +4087,7 @@ test buy_fail_bond_policy_id_invalid() {
       [refer_in_1],
       [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
       Some([get_seller_address_hash()]),
-      Some(tx_datums),
+      None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     ),
@@ -4840,7 +4171,7 @@ test buy_fail_buy_more_than_expect() {
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -4964,7 +4295,7 @@ test buy_fail_buy_less_than_expect() {
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
@@ -5208,7 +4539,7 @@ test buy_fail_tampered_ask_datum_address() {
   let owner_received =
     received_with_yield - exchange_fee_seller + min_ada_to_exchange
   let owner_out_bid_datum_1 =
-    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 515)
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
   let owner_out_1 =
     gen_output(
       revert_address,
