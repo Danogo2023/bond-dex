@@ -1,4 +1,3 @@
-use aiken/cbor
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/credential.{from_script}
 use aiken/transaction/value
@@ -660,6 +659,7 @@ test sell_fail_output_qty() {
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 1, 500)
+  let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let revert_address = from_script(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   //
@@ -715,7 +715,12 @@ test sell_fail_output_qty() {
   let seller_out_1 =
     gen_output(seller_address, seller_out_lovelace, None, NoDatum)
   let owner_out_1 =
-    gen_output(revert_address, owner_out_lovelace, Some(asset_sell), NoDatum)
+    gen_output(
+      revert_address,
+      owner_out_lovelace,
+      Some(asset_sell),
+      InlineDatum(owner_in_datum_1),
+    )
   let sc_out_lovelace =
     sc_in_lovelace - received_with_yield - exchange_fee_buyer - owner_out_lovelace
   let sc_out_datum_1 =
@@ -836,11 +841,12 @@ test sell_fail_validity_after_not_set() {
   )
 }
 
-test sell_fail_owner_address_format() {
+test sell_fail_wrong_owner_address() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
+  let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
   let revert_address = from_script(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
@@ -897,7 +903,12 @@ test sell_fail_owner_address_format() {
   let seller_out_1 =
     gen_output(seller_address, seller_out_lovelace, None, NoDatum)
   let owner_out_1 =
-    gen_output(revert_address, owner_out_lovelace, Some(asset_sell), NoDatum)
+    gen_output(
+      revert_address,
+      owner_out_lovelace,
+      Some(asset_sell),
+      InlineDatum(owner_in_datum_1),
+    )
   let sc_out_lovelace =
     sc_in_lovelace - received_with_yield - exchange_fee_buyer - owner_out_lovelace
   let sc_out_datum_1 =
@@ -923,6 +934,7 @@ test sell_fail_owner_address_format() {
     cfg,
     sc_in_datum_1,
     get_buyer_address_scripthash(),
+    // should be revert_address
     sc_address,
   )
 }
@@ -1382,6 +1394,7 @@ test sell_fail_bond_policy_id_invalid() {
   let cfg = get_config_making_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
+  let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
   let revert_address = from_script(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
@@ -1398,7 +1411,7 @@ test sell_fail_bond_policy_id_invalid() {
       cfg.bond.basis_points_ref_unit,
     )
   //  
-  let bond_sell_qty = 5
+  let bond_sell_qty = 2
   let received_at_maturity =
     escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
@@ -1438,7 +1451,12 @@ test sell_fail_bond_policy_id_invalid() {
   let seller_out_1 =
     gen_output(seller_address, seller_out_lovelace, None, NoDatum)
   let owner_out_1 =
-    gen_output(revert_address, owner_out_lovelace, Some(asset_sell), NoDatum)
+    gen_output(
+      revert_address,
+      owner_out_lovelace,
+      Some(asset_sell),
+      InlineDatum(owner_in_datum_1),
+    )
   let sc_out_lovelace =
     sc_in_lovelace - received_with_yield - exchange_fee_buyer - owner_out_lovelace
   let sc_out_datum_1 =
@@ -1742,12 +1760,6 @@ test sell_succ_partial_buy_2() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  trace cbor.diagnostic(sc_in_1.output.value)
-  trace cbor.diagnostic(seller_in_1.output.value)
-  trace cbor.diagnostic(exchange_out_1.value)
-  trace cbor.diagnostic(seller_out_1.value)
-  trace cbor.diagnostic(owner_out_1.value)
-  trace cbor.diagnostic(sc_out_utxo.value)
   bid_making.sell(
     fixture.tx(
       [sc_in_1, seller_in_1],
