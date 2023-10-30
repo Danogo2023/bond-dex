@@ -7,7 +7,7 @@ For now you'll need:
 
 Run command:
 ```
-cargo install aiken --version 1.0.13-alpha --root ./
+cargo install aiken --version 1.0.20-alpha --root ./
 or
 cargo install --git https://github.com/aiken-lang/aiken.git --root ./
 ```
@@ -30,10 +30,10 @@ To run all tests, simply do:
 aiken check
 ```
 
-To run only tests matching the string `bond/validation_listing_test`, do:
+To run only tests matching the string `bond/***_test`, do:
 
 ```sh
-aiken check -m bond/validation_listing_test
+aiken check -m bond/ask_limit_test
 ```
 
 ## Resources
