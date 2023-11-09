@@ -2,51 +2,11 @@ use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{
   Address, Inline, ScriptCredential, VerificationKeyCredential,
 }
-use bond/ask_making.{buy}
-use bond/bid_making.{sell}
+use bond_making_bid/sell.{matching}
 use bond/types.{
-  AskMaking, BidMaking, Buy, ConfigMaking, Sell, TradeAction, Update,
+  BidMaking, ConfigMaking, Sell, TradeAction, Update,
 }
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
-
-validator(conf: ConfigMaking) {
-  fn ask_20230921(
-    datum: AskMaking,
-    action: TradeAction,
-    ctx: ScriptContext,
-  ) -> Bool {
-    let tx = ctx.transaction
-    let owner_sk =
-      when datum.owner_stake_key is {
-        Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
-        _ -> None
-      }
-    when action is {
-      Update ->
-        must_be_signed_by(
-          tx.extra_signatories,
-          Address {
-            payment_credential: VerificationKeyCredential(
-              datum.owner_payment_key,
-            ),
-            stake_credential: owner_sk,
-          },
-        )?
-      Buy ->
-        buy(
-          tx,
-          conf,
-          datum,
-          Address {
-            payment_credential: ScriptCredential(datum.bid_sc),
-            stake_credential: owner_sk,
-          },
-          get_spending_input(ctx).output.address,
-        )
-      _ -> False
-    }
-  }
-}
 
 validator(conf: ConfigMaking) {
   fn bid_20230921(
@@ -72,7 +32,7 @@ validator(conf: ConfigMaking) {
           },
         )?
       Sell ->
-        sell(
+        matching(
           tx,
           conf,
           datum,
