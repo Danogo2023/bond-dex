@@ -7,7 +7,7 @@ version = "1.6.0"
 source = "github"
 
 [[requirements]]
-name = "vnc4f/danogo-bonds-common"
+name = "Danogo2023/bonds-common"
 version = "master"
 source = "github"
 
@@ -18,10 +18,10 @@ requirements = []
 source = "github"
 
 [[packages]]
-name = "vnc4f/danogo-bonds-common"
+name = "Danogo2023/bonds-common"
 version = "master"
 requirements = []
 source = "github"
 
 [etags]
-"vnc4f/danogo-bonds-common@master" = [{ secs_since_epoch = 1699521842, nanos_since_epoch = 964309300 }, "185ecb9e9d935b446d7d9c3d0dcc2e7e2d8c869dad3aa88dcfe3ccadfd5d3b45"]
+"Danogo2023/bonds-common@master" = [{ secs_since_epoch = 1699542006, nanos_since_epoch = 619647500 }, "d6a491d5c9d9ed256e2ce110a66bce540140c50ab882d2f109b128460ed1e127"]
