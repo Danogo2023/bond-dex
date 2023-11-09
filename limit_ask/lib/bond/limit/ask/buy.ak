@@ -6,7 +6,7 @@ use aiken/list
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use ask/utils.{collect_biz_tx_info}
+use bond/limit/ask/utils.{collect_biz_tx_info}
 use bond/common.{
   get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
