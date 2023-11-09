@@ -1,39 +1,8 @@
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
-use bond/ask_limit.{buy}
-use bond/bid_limit.{sell}
-use bond/types.{AskLimit, BidLimit, Buy, ConfigLimit, Sell, TradeAction, Update}
+use bond_limit_bid/sell.{matching}
+use bond/types.{BidLimit, ConfigLimit, Sell, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
-
-validator(conf: ConfigLimit) {
-  fn ask_20230829(
-    datum: AskLimit,
-    action: TradeAction,
-    ctx: ScriptContext,
-  ) -> Bool {
-    let tx = ctx.transaction
-    let owner_address =
-      Address {
-        payment_credential: VerificationKeyCredential(datum.owner_payment_key),
-        stake_credential: when datum.owner_stake_key is {
-          Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
-          _ -> None
-        },
-      }
-    when action is {
-      Update -> must_be_signed_by(tx.extra_signatories, owner_address)?
-      Buy ->
-        buy(
-          tx,
-          conf,
-          datum,
-          owner_address,
-          get_spending_input(ctx).output.address,
-        )
-      _ -> False
-    }
-  }
-}
 
 validator(conf: ConfigLimit) {
   fn bid_20230829(
@@ -53,7 +22,7 @@ validator(conf: ConfigLimit) {
     when action is {
       Update -> must_be_signed_by(tx.extra_signatories, owner_address)?
       Sell ->
-        sell(
+        matching(
           tx,
           conf,
           datum,
