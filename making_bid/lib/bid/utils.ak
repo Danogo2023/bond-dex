@@ -1,30 +1,57 @@
+// Bid Making
 use aiken/dict.{Dict}
 use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
 use bond/common.{
-  bond_assets, datum_bid_limit_compare, datum_epoch_valid,
-  datum_yield_limit_valid,
+  bond_assets, datum_ask_making_compare, datum_bid_making_compare,
+  datum_epoch_valid, datum_yield_making_valid,
 }
 use bond/types.{
-  BidLimit, BizOutput, BizOutputInfo, BizTxInfo, ConfigLimit, DatumOf,
-  EscrowInfo, OtherDatum, ScDatum,
+  AskMaking, BidMaking, BizOutput, BizOutputInfo, BizTxInfo, ConfigMaking,
+  DatumOf, EscrowInfo, OtherDatum, OwnerDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
-use common/utils.{get_data}
+use common/utils.{get_data, get_payment_key}
 
 fn datum_is_valid(
-  conf: ConfigLimit,
+  conf: ConfigMaking,
   out_data: Data,
-  spd_datum: BidLimit,
+  spd_sc_payment_key: ByteArray,
+  spd_datum: BidMaking,
+  datum_of: DatumOf,
 ) -> Bool {
-  expect out_datum: BidLimit = out_data
-  datum_yield_limit_valid(conf, out_datum.requested_yield) && datum_epoch_valid(
-    out_datum.from_epoch,
-    out_datum.to_epoch,
-    out_datum.quantity,
-  ) && datum_bid_limit_compare(spd_datum, out_datum)
+  when datum_of is {
+    OwnerDatum -> {
+      expect out_datum: AskMaking = out_data
+      datum_yield_making_valid(
+        conf,
+        out_datum.requested_yield + out_datum.margin,
+      ) && datum_ask_making_compare(
+        AskMaking {
+          owner_payment_key: spd_datum.owner_payment_key,
+          owner_stake_key: spd_datum.owner_stake_key,
+          requested_yield: spd_datum.requested_yield - spd_datum.margin,
+          bid_sc: spd_sc_payment_key,
+          margin: spd_datum.margin,
+        },
+        out_datum,
+      )
+    }
+    ScDatum -> {
+      expect out_datum: BidMaking = out_data
+      datum_yield_making_valid(
+        conf,
+        out_datum.requested_yield + out_datum.margin,
+      ) && datum_epoch_valid(
+        out_datum.from_epoch,
+        out_datum.to_epoch,
+        out_datum.quantity,
+      ) && datum_bid_making_compare(spd_datum, out_datum)
+    }
+    _ -> False
+  }
 }
 
 fn build_biz_output_info(
@@ -33,8 +60,9 @@ fn build_biz_output_info(
   bond_values: Dict<AssetName, Int>,
   datum_of: DatumOf,
   datums: Datums,
-  conf: ConfigLimit,
-  spd_datum: BidLimit,
+  conf: ConfigMaking,
+  spd_sc_payment_key: ByteArray,
+  spd_datum: BidMaking,
 ) -> BizOutputInfo {
   let addresses =
     if list.has(self.addresses, output.address) {
@@ -44,7 +72,8 @@ fn build_biz_output_info(
     }
   let bond_datum_valid =
     datum_of == OtherDatum || when get_data(datums, output.datum) is {
-      Some(d) -> datum_is_valid(conf, d, spd_datum)
+      Some(d) ->
+        datum_is_valid(conf, d, spd_sc_payment_key, spd_datum, datum_of)
       None -> {
         trace @"not found datum"
         False
@@ -67,14 +96,14 @@ fn build_biz_output_info(
 }
 
 fn build_biz_data(
-  conf: ConfigLimit,
+  conf: ConfigMaking,
   output: Output,
   owner: Address,
   spending: Address,
   datums: Datums,
   data: BizOutput,
   escrow_info: EscrowInfo,
-  spd_datum: BidLimit,
+  spd_datum: BidMaking,
 ) -> BizOutput {
   let bond_values = value.tokens(output.value, escrow_info.bond_symbol)
   let biz_out_info =
@@ -92,11 +121,14 @@ fn build_biz_data(
       bond_values,
       if output.address == spending {
         ScDatum
+      } else if output.address == owner {
+        OwnerDatum
       } else {
         OtherDatum
       },
       datums,
       conf,
+      get_payment_key(spending),
       spd_datum,
     )
   BizOutput {
@@ -122,14 +154,14 @@ fn build_biz_data(
 }
 
 fn get_biz_output(
-  conf: ConfigLimit,
+  conf: ConfigMaking,
   outputs: List<Output>,
   owner: Address,
   spending: Address,
   datums: Datums,
   recursive: BizOutput,
   escrow_info: EscrowInfo,
-  spd_datum: BidLimit,
+  spd_datum: BidMaking,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -164,14 +196,14 @@ fn get_biz_output(
 }
 
 fn get_biz_input(
-  conf: ConfigLimit,
+  conf: ConfigMaking,
   outputs: List<Input>,
   owner: Address,
   spending: Address,
   datums: Datums,
   recursive: BizOutput,
   escrow_info: EscrowInfo,
-  spd_datum: BidLimit,
+  spd_datum: BidMaking,
 ) -> BizOutput {
   when outputs is {
     [] -> recursive
@@ -206,14 +238,14 @@ fn get_biz_input(
 }
 
 pub fn collect_biz_tx_info(
-  conf: ConfigLimit,
+  conf: ConfigMaking,
   inputs: List<Input>,
   outputs: List<Output>,
   owner: Address,
   spending: Address,
   datums: Datums,
   escrow_info: EscrowInfo,
-  spd_datum: BidLimit,
+  spd_datum: BidMaking,
 ) -> BizTxInfo {
   let biz_out_info_init =
     BizOutputInfo {

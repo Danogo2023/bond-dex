@@ -1,3 +1,4 @@
+// Bid Limit
 use aiken/bytearray
 use aiken/dict
 use aiken/interval.{Finite}
@@ -5,6 +6,7 @@ use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
+use bid/utils.{collect_biz_tx_info}
 use bond/common.{
   get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
@@ -13,7 +15,6 @@ use bond/types.{
   BidLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
   OK,
 }
-use bond_limit_bid/utils.{collect_biz_tx_info}
 use common/utils.{get_data} as common_utils
 
 fn matching_correct(
