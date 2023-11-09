@@ -4,7 +4,7 @@ use aiken/transaction/credential.{
   from_script, with_delegation_key, with_delegation_script,
 }
 use aiken/transaction/value
-use ask/buy
+use bond/making/ask/buy
 use bond/common.{get_price_of_bond}
 // use common/utils.{get_payment_key}
 use bond/fixture.{

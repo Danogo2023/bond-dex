@@ -8,7 +8,7 @@ use aiken/transaction/credential.{
   from_script, with_delegation_key, with_delegation_script,
 }
 use aiken/transaction/value
-use ask/buy
+use bond/limit/ask/buy
 use bond/common.{get_price_of_bond, posix_time_to_relative_epoch}
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_limit_datum, gen_input, gen_output,
