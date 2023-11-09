@@ -1,11 +1,11 @@
-name = "vnc4f/danogo-bonds-making-bid"
+name = "Danogo2023/bonds-making-bid"
 version = "1.0.0"
 license = "Apache-2.0"
 description = "Aiken contracts for danogo bonds bid making"
 
 [repository]
-user = "vnc4f"
-project = "danogo-bonds-making-bid"
+user = "Danogo2023"
+project = "bonds/making-bid"
 platform = "github"
 
 [[dependencies]]
@@ -14,6 +14,6 @@ version = "1.6.0"
 source = "github"
 
 [[dependencies]]
-name = "vnc4f/danogo-bonds-common"
+name = "Danogo2023/bonds-common"
 version = "master"
 source = "github"
