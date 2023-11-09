@@ -1,6 +1,7 @@
+// Ask Limit
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
-use bond_limit_ask/buy.{matching}
+use ask/buy.{matching}
 use bond/types.{AskLimit, Buy, ConfigLimit, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by}
 

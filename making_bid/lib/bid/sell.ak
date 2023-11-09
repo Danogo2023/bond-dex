@@ -1,3 +1,4 @@
+// Bid Making
 use aiken/bytearray
 use aiken/dict
 use aiken/interval.{Finite}
@@ -5,6 +6,7 @@ use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
+use bid/utils.{collect_biz_tx_info}
 use bond/common.{
   get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
@@ -13,7 +15,6 @@ use bond/types.{
   BidMaking, BizOutput, BizTxInfo, ConfigMaking, Error, EscrowDatum, EscrowInfo,
   OK,
 }
-use bond_making_bid/utils.{collect_biz_tx_info}
 use common/utils.{get_data} as common_utils
 
 fn matching_correct(
@@ -159,10 +160,10 @@ pub fn matching(
                   escrow_info,
                   spd_bid_datum,
                 )
-              biz_tx_info_valid && (!list.has(
+              biz_tx_info_valid && !list.has(
                 in.other.addresses,
                 spd_bid_datum_owner,
-              ))? && when out is {
+              )? && when out is {
                 None -> {
                   trace @"out is None"
                   False
@@ -170,7 +171,7 @@ pub fn matching(
                 Some(ou) -> {
                   let sc_out_utxos =
                     list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
-                  (!list.has(ou.other.addresses, spd_bid_datum_owner))? && (list.length(
+                  !list.has(ou.other.addresses, spd_bid_datum_owner)? && (list.length(
                     list.concat(in.owner.bond_outputs, in.owner.other_outputs),
                   ) == 0)? && (dict.size(ou.owner.bond_assets) == 1)? && dict.has_key(
                     ou.owner.bond_assets,

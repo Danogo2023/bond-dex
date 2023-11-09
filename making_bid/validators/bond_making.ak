@@ -1,11 +1,10 @@
+// Bid Making
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{
   Address, Inline, ScriptCredential, VerificationKeyCredential,
 }
-use bond_making_bid/sell.{matching}
-use bond/types.{
-  BidMaking, ConfigMaking, Sell, TradeAction, Update,
-}
+use bid/sell.{matching}
+use bond/types.{BidMaking, ConfigMaking, Sell, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: ConfigMaking) {

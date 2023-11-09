@@ -1,11 +1,10 @@
+// Ask Making
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{
   Address, Inline, ScriptCredential, VerificationKeyCredential,
 }
-use bond_making_ask/buy.{matching}
-use bond/types.{
-  AskMaking, Buy, ConfigMaking, TradeAction, Update,
-}
+use ask/buy.{matching}
+use bond/types.{AskMaking, Buy, ConfigMaking, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: ConfigMaking) {

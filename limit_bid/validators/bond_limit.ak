@@ -1,6 +1,7 @@
+// Bid Limit
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
-use bond_limit_bid/sell.{matching}
+use bid/sell.{matching}
 use bond/types.{BidLimit, ConfigLimit, Sell, TradeAction, Update}
 use common/utils.{get_spending_input, must_be_signed_by} as common_utils
 
