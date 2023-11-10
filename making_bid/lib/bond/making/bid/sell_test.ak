@@ -3,7 +3,7 @@ use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/credential.{from_script}
 use aiken/transaction/value
 use bond/making/bid/sell
-use bond/common.{get_price_of_bond}
+use bond/constraint.{get_price_of_bond}
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_making_datum, gen_bid_making_datum, gen_input,
   gen_output, gen_tampered_ask_making_datum, gen_tampered_bid_making_datum,

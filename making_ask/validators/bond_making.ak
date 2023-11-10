@@ -5,7 +5,7 @@ use aiken/transaction/credential.{
 }
 use bond/making/ask/buy.{matching}
 use bond/types.{AskMaking, Buy, ConfigMaking, TradeAction, Update}
-use common/utils.{get_spending_input, must_be_signed_by} as common_utils
+use common/util.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: ConfigMaking) {
   fn ask_20230921(

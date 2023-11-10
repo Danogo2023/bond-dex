@@ -7,7 +7,7 @@ version = "1.6.0"
 source = "github"
 
 [[requirements]]
-name = "Danogo2023/bonds-common"
+name = "Danogo2023/daken"
 version = "master"
 source = "github"
 
@@ -18,10 +18,10 @@ requirements = []
 source = "github"
 
 [[packages]]
-name = "Danogo2023/bonds-common"
+name = "Danogo2023/daken"
 version = "master"
 requirements = []
 source = "github"
 
 [etags]
-"Danogo2023/bonds-common@master" = [{ secs_since_epoch = 1699541904, nanos_since_epoch = 931984000 }, "d6a491d5c9d9ed256e2ce110a66bce540140c50ab882d2f109b128460ed1e127"]
+"Danogo2023/daken@master" = [{ secs_since_epoch = 1699611178, nanos_since_epoch = 432739800 }, "b7b8b7fa89a7185316bb5878def4ac01c976f4e2eaf087b0f0540f4c86f96e26"]

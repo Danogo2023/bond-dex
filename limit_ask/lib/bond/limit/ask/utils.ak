@@ -4,13 +4,15 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
-use bond/common.{bond_assets, datum_ask_limit_compare, datum_yield_limit_valid}
+use bond/constraint.{
+  bond_assets, datum_ask_limit_compare, datum_yield_limit_valid,
+}
 use bond/types.{
   AskLimit, BizOutput, BizOutputInfo, BizTxInfo, ConfigLimit, DatumOf,
   EscrowInfo, OtherDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
-use common/utils.{get_data}
+use common/util.{get_data}
 
 fn datum_is_valid(
   conf: ConfigLimit,
@@ -47,11 +49,12 @@ fn build_biz_output_info(
         False
       }
     }
-  let (output_bond, output_other) = if dict.size(bond_values) > 0 {
-    ([output, ..self.bond_outputs], self.other_outputs)
-  } else {
-    (self.bond_outputs, [output, ..self.other_outputs])
-  }
+  let (output_bond, output_other) =
+    if dict.size(bond_values) > 0 {
+      ([output, ..self.bond_outputs], self.other_outputs)
+    } else {
+      (self.bond_outputs, [output, ..self.other_outputs])
+    }
   BizOutputInfo {
     addresses,
     bond_datum_valid,
