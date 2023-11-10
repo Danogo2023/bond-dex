@@ -5,7 +5,7 @@ use aiken/transaction/credential.{
 }
 use aiken/transaction/value
 use bond/making/ask/buy
-use bond/common.{get_price_of_bond}
+use bond/constraint.{get_price_of_bond}
 // use common/utils.{get_payment_key}
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_making_datum, gen_bid_making_datum, gen_input,

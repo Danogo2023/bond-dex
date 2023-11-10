@@ -5,7 +5,7 @@ use aiken/transaction/credential.{
 }
 use bond/making/bid/sell.{matching}
 use bond/types.{BidMaking, ConfigMaking, Sell, TradeAction, Update}
-use common/utils.{get_spending_input, must_be_signed_by} as common_utils
+use common/util.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: ConfigMaking) {
   fn bid_20230921(

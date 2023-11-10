@@ -4,7 +4,7 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
-use bond/common.{
+use bond/constraint.{
   bond_assets, datum_ask_making_compare, datum_bid_making_compare,
   datum_epoch_valid, datum_yield_making_valid,
 }
@@ -13,7 +13,7 @@ use bond/types.{
   DatumOf, EscrowInfo, OtherDatum, OwnerDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
-use common/utils.{get_data, get_payment_key}
+use common/util.{get_data, get_payment_key}
 
 fn datum_is_valid(
   conf: ConfigMaking,

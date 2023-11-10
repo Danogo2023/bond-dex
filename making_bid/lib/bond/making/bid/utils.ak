@@ -4,7 +4,7 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
-use bond/common.{
+use bond/constraint.{
   bond_assets, datum_ask_making_compare, datum_bid_making_compare,
   datum_epoch_valid, datum_yield_making_valid,
 }
@@ -13,7 +13,7 @@ use bond/types.{
   DatumOf, EscrowInfo, OtherDatum, OwnerDatum, ScDatum,
 }
 use common/types.{Datums} as common_types
-use common/utils.{get_data, get_payment_key}
+use common/util.{get_data, get_payment_key}
 
 fn datum_is_valid(
   conf: ConfigMaking,
@@ -79,11 +79,12 @@ fn build_biz_output_info(
         False
       }
     }
-  let (output_bond, output_other) = if dict.size(bond_values) > 0 {
-    ([output, ..self.bond_outputs], self.other_outputs)
-  } else {
-    (self.bond_outputs, [output, ..self.other_outputs])
-  }
+  let (output_bond, output_other) =
+    if dict.size(bond_values) > 0 {
+      ([output, ..self.bond_outputs], self.other_outputs)
+    } else {
+      (self.bond_outputs, [output, ..self.other_outputs])
+    }
   BizOutputInfo {
     addresses,
     bond_datum_valid,

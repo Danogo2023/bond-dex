@@ -14,6 +14,6 @@ version = "1.6.0"
 source = "github"
 
 [[dependencies]]
-name = "Danogo2023/bonds-common"
-version = "master"
+name = "Danogo2023/daken"
+version = "features/bond"
 source = "github"

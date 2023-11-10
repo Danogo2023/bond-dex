@@ -6,16 +6,16 @@ use aiken/list
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/limit/ask/utils.{collect_biz_tx_info}
-use bond/common.{
+use bond/constraint.{
   get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
   posix_time_to_relative_epoch,
 }
+use bond/limit/ask/utils.{collect_biz_tx_info}
 use bond/types.{
   AskLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
   OK,
 }
-use common/utils.{get_data} as common_utils
+use common/util.{get_data} as common_utils
 
 fn matching_is_valid(
   conf: ConfigLimit,

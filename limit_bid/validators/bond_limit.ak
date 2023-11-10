@@ -3,7 +3,7 @@ use aiken/transaction.{ScriptContext}
 use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
 use bond/limit/bid/sell.{matching}
 use bond/types.{BidLimit, ConfigLimit, Sell, TradeAction, Update}
-use common/utils.{get_spending_input, must_be_signed_by} as common_utils
+use common/util.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: ConfigLimit) {
   fn bid_20230829(
