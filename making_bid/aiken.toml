@@ -1,11 +1,11 @@
-name = "Danogo2023/bonds-making-bid"
+name = "Danogo2023/bonds/making-bid"
 version = "1.0.0"
 license = "Apache-2.0"
 description = "Aiken contracts for danogo bonds bid making"
 
 [repository]
-user = "Danogo2023"
-project = "bonds/making-bid"
+user = "Danogo2023/bonds"
+project = "making-bid"
 platform = "github"
 
 [[dependencies]]

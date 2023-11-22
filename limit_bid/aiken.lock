@@ -8,7 +8,7 @@ source = "github"
 
 [[requirements]]
 name = "Danogo2023/daken"
-version = "master"
+version = "features/bond"
 source = "github"
 
 [[packages]]
@@ -19,9 +19,9 @@ source = "github"
 
 [[packages]]
 name = "Danogo2023/daken"
-version = "master"
+version = "features/bond"
 requirements = []
 source = "github"
 
 [etags]
-"Danogo2023/daken@master" = [{ secs_since_epoch = 1699611178, nanos_since_epoch = 432739800 }, "b7b8b7fa89a7185316bb5878def4ac01c976f4e2eaf087b0f0540f4c86f96e26"]
+"Danogo2023/daken@features/bond" = [{ secs_since_epoch = 1700629907, nanos_since_epoch = 856079200 }, "acb87fe73889f1700c46a094806533647dbb6e92663c9f4d7a3484d60df249eb"]
