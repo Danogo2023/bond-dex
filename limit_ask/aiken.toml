@@ -1,11 +1,11 @@
-name = "Danogo2023/bonds-limit-ask"
+name = "Danogo2023/bonds/limit-ask"
 version = "1.0.0"
 license = "Apache-2.0"
 description = "Aiken contracts for danogo bonds ask limit"
 
 [repository]
-user = "Danogo2023"
-project = "bonds/limit-ask"
+user = "Danogo2023/bonds"
+project = "limit-ask"
 platform = "github"
 
 [[dependencies]]
