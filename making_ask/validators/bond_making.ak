@@ -15,7 +15,7 @@ validator(conf: ConfigMaking) {
   ) -> Bool {
     let tx = ctx.transaction
     let owner_sk =
-      when datum.owner_stake_key is {
+      when datum.owner_sk is {
         Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
         _ -> None
       }
@@ -24,9 +24,7 @@ validator(conf: ConfigMaking) {
         must_be_signed_by(
           tx.extra_signatories,
           Address {
-            payment_credential: VerificationKeyCredential(
-              datum.owner_payment_key,
-            ),
+            payment_credential: VerificationKeyCredential(datum.owner_vk),
             stake_credential: owner_sk,
           },
         )?

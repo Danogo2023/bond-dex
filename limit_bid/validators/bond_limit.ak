@@ -14,8 +14,8 @@ validator(conf: ConfigLimit) {
     let tx = ctx.transaction
     let owner_address =
       Address {
-        payment_credential: VerificationKeyCredential(datum.owner_payment_key),
-        stake_credential: when datum.owner_stake_key is {
+        payment_credential: VerificationKeyCredential(datum.owner_vk),
+        stake_credential: when datum.owner_sk is {
           Some(sk) -> Some(Inline(VerificationKeyCredential(sk)))
           _ -> None
         },

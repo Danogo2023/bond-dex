@@ -77,24 +77,31 @@ fn matching_correct(
     } else {
       (in.other.lovelace, in.other.bond_qty, out.other.lovelace, 0)
     }
-  (out.exchange.lovelace >= exchange_fee_total)? && (out.owner.bond_qty <= seller_in_bond_qty)? && (seller_ou_lovelace <= seller_in_lovelace + seller_receive_total + lovelace_seller_is_exchange - value.lovelace_of(
-    tx.fee,
-  ))? && (out.sc.lovelace == in.sc.lovelace - exchange_fee_total - seller_receive_total - buyer_receive_lovelace)? && (
-    (sc_out_remain == 0)? || when sc_out_utxo is {
-      Some(utxo) ->
-        (sc_out_remain > 0)? && when get_data(tx.datums, utxo.datum) is {
-          Some(d) -> {
-            expect sc_out_datum: BidMaking = d
-            (sc_out_datum.quantity > 0)? && (sc_out_datum.quantity == sc_out_remain)?
+  and {
+    (out.exchange.lovelace >= exchange_fee_total)?,
+    (out.owner.bond_qty <= seller_in_bond_qty)?,
+    (seller_ou_lovelace <= seller_in_lovelace + seller_receive_total + lovelace_seller_is_exchange - value.lovelace_of(
+      tx.fee,
+    ))?,
+    (out.sc.lovelace == in.sc.lovelace - exchange_fee_total - seller_receive_total - buyer_receive_lovelace)?,
+    or {
+      (sc_out_remain == 0)?,
+      when sc_out_utxo is {
+        Some(utxo) ->
+          (sc_out_remain > 0)? && when get_data(tx.datums, utxo.datum) is {
+            Some(d) -> {
+              expect sc_out_datum: BidMaking = d
+              (sc_out_datum.quantity > 0)? && (sc_out_datum.quantity == sc_out_remain)?
+            }
+            None -> {
+              trace @"not found output bid datum"
+              False
+            }
           }
-          None -> {
-            trace @"not found output bid datum"
-            False
-          }
-        }
-      None -> True
-    }
-  )
+        None -> True
+      },
+    },
+  }
 }
 
 pub fn matching(
@@ -109,101 +116,129 @@ pub fn matching(
       Finite(x) -> x
       _ -> 0
     }
-  (spd_bid_datum.quantity > 0)? && (spd_bid_datum.to_epoch >= spd_bid_datum.from_epoch)? && (validity_after_must_set > 0)? && not(
-    bytearray.is_empty(spd_bid_datum.owner_payment_key),
-  )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
-    Some(ref_in_escrow) ->
-      when get_data(tx.datums, ref_in_escrow.output.datum) is {
-        Some(d) -> {
-          expect escrow_datum: EscrowDatum = d
-          let current_epoch =
-            posix_time_to_relative_epoch(
-              validity_after_must_set,
-              conf.bond.epoch_config,
-            )
-          let start_epoch =
-            escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-          let end_epoch = start_epoch + escrow_datum.duration
-          (end_epoch >= current_epoch)? && (end_epoch >= spd_bid_datum.from_epoch)? && (end_epoch <= spd_bid_datum.to_epoch)? && (escrow_datum.bond_amount > 0)? && (value.lovelace_of(
-            escrow_datum.epo_rewards,
-          ) > 0)? && (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)? && when
-            get_escrow_info(
-              conf.bond,
-              value.lovelace_of(ref_in_escrow.output.value),
-              escrow_datum,
-              validity_after_must_set,
-              current_epoch,
-              start_epoch,
-              end_epoch,
-            )
-          is {
-            OK(escrow_info) -> {
-              let spd_bid_datum_owner =
-                Address {
-                  payment_credential: VerificationKeyCredential(
-                    spd_bid_datum.owner_payment_key,
-                  ),
-                  stake_credential: owner.stake_credential,
-                }
-              let BizTxInfo {
-                valid: biz_tx_info_valid,
-                biz_tx_in: in,
-                biz_tx_out: out,
-              } =
-                collect_biz_tx_info(
-                  conf,
-                  tx.inputs,
-                  tx.outputs,
-                  owner,
-                  spending,
-                  tx.datums,
-                  escrow_info,
-                  spd_bid_datum,
+  and {
+    (spd_bid_datum.quantity > 0)?,
+    (spd_bid_datum.to_epoch >= spd_bid_datum.from_epoch)?,
+    (validity_after_must_set > 0)?,
+    not(bytearray.is_empty(spd_bid_datum.owner_vk))?,
+    when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
+      Some(ref_in_escrow) ->
+        when get_data(tx.datums, ref_in_escrow.output.datum) is {
+          Some(d) -> {
+            expect escrow_datum: EscrowDatum = d
+            let current_epoch =
+              posix_time_to_relative_epoch(
+                validity_after_must_set,
+                conf.bond.epoch_config,
+              )
+            let start_epoch =
+              escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+            let end_epoch = start_epoch + escrow_datum.duration
+            and {
+              (end_epoch >= current_epoch)?,
+              (end_epoch >= spd_bid_datum.from_epoch)?,
+              (end_epoch <= spd_bid_datum.to_epoch)?,
+              (escrow_datum.bond_amount > 0)?,
+              (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
+              (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+              when
+                get_escrow_info(
+                  conf.bond,
+                  value.lovelace_of(ref_in_escrow.output.value),
+                  escrow_datum,
+                  validity_after_must_set,
+                  current_epoch,
+                  start_epoch,
+                  end_epoch,
                 )
-              biz_tx_info_valid && !list.has(
-                in.other.addresses,
-                spd_bid_datum_owner,
-              )? && when out is {
-                None -> {
-                  trace @"out is None"
+              is {
+                OK(escrow_info) -> {
+                  let spd_bid_datum_owner =
+                    Address {
+                      payment_credential: VerificationKeyCredential(
+                        spd_bid_datum.owner_vk,
+                      ),
+                      stake_credential: owner.stake_credential,
+                    }
+                  let BizTxInfo {
+                    valid: biz_tx_info_valid,
+                    biz_tx_in: in,
+                    biz_tx_out: out,
+                  } =
+                    collect_biz_tx_info(
+                      conf,
+                      tx.inputs,
+                      tx.outputs,
+                      owner,
+                      spending,
+                      tx.datums,
+                      escrow_info,
+                      spd_bid_datum,
+                    )
+                  and {
+                    biz_tx_info_valid,
+                    !list.has(in.other.addresses, spd_bid_datum_owner),
+                    when out is {
+                      None -> {
+                        trace @"out is None"
+                        False
+                      }
+                      Some(ou) -> {
+                        let sc_out_utxos =
+                          list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
+                        and {
+                          !list.has(ou.other.addresses, spd_bid_datum_owner),
+                          (list.length(
+                            list.concat(
+                              in.owner.bond_outputs,
+                              in.owner.other_outputs,
+                            ),
+                          ) == 0)?,
+                          (dict.size(ou.owner.bond_assets) == 1)?,
+                          dict.has_key(
+                            ou.owner.bond_assets,
+                            escrow_info.token_name,
+                          )?,
+                          (list.length(sc_out_utxos) <= 1)?,
+                          (list.length(
+                            list.concat(
+                              ou.owner.bond_outputs,
+                              ou.owner.other_outputs,
+                            ),
+                          ) <= 1)?,
+                          (ou.owner.bond_qty > 0)?,
+                          (ou.owner.bond_qty <= spd_bid_datum.quantity)?,
+                          (ou.owner.bond_qty <= escrow_datum.bond_amount)?,
+                          matching_correct(
+                            tx,
+                            conf,
+                            spd_bid_datum,
+                            in,
+                            ou,
+                            escrow_info,
+                            list.at(sc_out_utxos, 0),
+                          ),
+                        }
+                      }
+                    },
+                  }
+                }
+                Error(_) -> {
+                  trace @"bond is closable"
                   False
                 }
-                Some(ou) -> {
-                  let sc_out_utxos =
-                    list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
-                  !list.has(ou.other.addresses, spd_bid_datum_owner)? && (list.length(
-                    list.concat(in.owner.bond_outputs, in.owner.other_outputs),
-                  ) == 0)? && (dict.size(ou.owner.bond_assets) == 1)? && dict.has_key(
-                    ou.owner.bond_assets,
-                    escrow_info.token_name,
-                  )? && (list.length(sc_out_utxos) <= 1)? && (list.length(
-                    list.concat(ou.owner.bond_outputs, ou.owner.other_outputs),
-                  ) <= 1)? && (ou.owner.bond_qty > 0)? && (ou.owner.bond_qty <= spd_bid_datum.quantity)? && (ou.owner.bond_qty <= escrow_datum.bond_amount)? && matching_correct(
-                    tx,
-                    conf,
-                    spd_bid_datum,
-                    in,
-                    ou,
-                    escrow_info,
-                    list.at(sc_out_utxos, 0),
-                  )
-                }
-              }
-            }
-            Error(_) -> {
-              trace @"bond is closable"
-              False
+              },
             }
           }
+          _ -> {
+            trace @"not found escrow datum in reference_inputs"
+            False
+          }
         }
-        _ -> {
-          trace @"not found escrow datum in reference_inputs"
-          False
-        }
+      _ -> {
+        trace @"not found escrow info in reference_inputs"
+        False
       }
-    _ -> {
-      trace @"not found escrow info in reference_inputs"
-      False
-    }
+    },
   }
 }

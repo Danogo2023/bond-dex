@@ -4,7 +4,6 @@ use aiken/transaction/credential.{
   from_script, with_delegation_key, with_delegation_script,
 }
 use aiken/transaction/value
-use bond/making/ask/buy
 use bond/constraint.{get_price_of_bond}
 // use common/utils.{get_payment_key}
 use bond/fixture.{
@@ -17,6 +16,7 @@ use bond/fixture.{
   get_input_escrow, get_not_bond_policy_id, get_not_escrow_policy_id,
   get_seller_address, get_seller_address_hash,
 }
+use bond/making/ask/buy
 
 test buy_succ_buyer_is_exchange() {
   let time_of_tx = 1681095094000
@@ -812,7 +812,7 @@ test buy_fail_partial_change_bond_name() {
   )
 }
 
-test buy_fail_partial_datum_owner_payment_key_invalid_1() {
+test buy_fail_partial_datum_owner_vk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -943,7 +943,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_1() {
   )
 }
 
-test buy_fail_partial_datum_owner_payment_key_invalid_2() {
+test buy_fail_partial_datum_owner_vk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1074,7 +1074,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_2() {
   )
 }
 
-test buy_fail_partial_datum_owner_stake_key_invalid_1() {
+test buy_fail_partial_datum_owner_sk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1213,7 +1213,7 @@ test buy_fail_partial_datum_owner_stake_key_invalid_1() {
   )
 }
 
-test buy_fail_partial_datum_owner_stake_key_invalid_2() {
+test buy_fail_partial_datum_owner_sk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()

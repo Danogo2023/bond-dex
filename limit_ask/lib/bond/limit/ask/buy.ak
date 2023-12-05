@@ -57,7 +57,15 @@ fn matching_is_valid(
         }
       _ -> (owner_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
     }
-  (sc_output_len <= 1)? && (owner_output_len <= 1)? && (buyer_qty >= 0)? && (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)? && (out.exchange.lovelace >= exchange_receive_lovelace)? && (owner_output_len > 0)? && (out.owner.lovelace == owner_receive_lovelace)?
+  and {
+    (sc_output_len <= 1)?,
+    (owner_output_len <= 1)?,
+    (buyer_qty >= 0)?,
+    (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)?,
+    (out.exchange.lovelace >= exchange_receive_lovelace)?,
+    (owner_output_len > 0)?,
+    (out.owner.lovelace == owner_receive_lovelace)?,
+  }
 }
 
 fn matching_correct(
@@ -88,40 +96,45 @@ fn matching_correct(
         // trace @"buy all"
         (in.sc.bond_qty, 0, in.sc.lovelace, True, True)
     }
-  sm_out_must_only_one_bond_name? && sm_out_bond_same_escrow? && (qty_owner_2_buyer <= escrow_info.bond_amount)? && (qty_owner_2_buyer == 0 || (
-    dict.has_key(out.other.bond_assets, escrow_info.token_name) || dict.has_key(
-      out.exchange.bond_assets,
-      escrow_info.token_name,
-    )
-  ))? && when
-    list.find(
-      dict.keys(out.sc.bond_assets),
-      fn(sm_bond_name_output) {
-        !list.has(dict.keys(in.sc.bond_assets), sm_bond_name_output)
-      },
-    )
-  is {
-    Some(_) -> {
-      trace @"output to smart contract contain bond name invalid!"
-      False
-    }
-    _ ->
-      (
-        min_ada_to_sm == 0 || (out.sc.lovelace >= min_ada_to_sm)? && out.sc.bond_datum_valid?
-      ) && matching_is_valid(
-        conf,
-        in,
-        out,
-        escrow_info,
-        qty_owner_2_buyer,
-        get_price_of_bond(
-          escrow_info.received_at_maturity_one_bond,
-          escrow_info.day_to_maturity,
-          spd_ask_datum.requested_yield,
-          conf.bond.basis_points_ref_unit,
-        ),
-        min_ada_to_exchange,
-      )?
+  and {
+    sm_out_must_only_one_bond_name?,
+    sm_out_bond_same_escrow?,
+    (qty_owner_2_buyer <= escrow_info.bond_amount)?,
+    or {
+      qty_owner_2_buyer == 0,
+      dict.has_key(out.other.bond_assets, escrow_info.token_name),
+      dict.has_key(out.exchange.bond_assets, escrow_info.token_name),
+    }?,
+    when
+      list.find(
+        dict.keys(out.sc.bond_assets),
+        fn(sm_bond_name_output) {
+          !list.has(dict.keys(in.sc.bond_assets), sm_bond_name_output)
+        },
+      )
+    is {
+      Some(_) -> {
+        trace @"output to smart contract contain bond name invalid!"
+        False
+      }
+      _ -> and {
+          min_ada_to_sm == 0 || (out.sc.lovelace >= min_ada_to_sm)? && out.sc.bond_datum_valid?,
+          matching_is_valid(
+            conf,
+            in,
+            out,
+            escrow_info,
+            qty_owner_2_buyer,
+            get_price_of_bond(
+              escrow_info.received_at_maturity_one_bond,
+              escrow_info.day_to_maturity,
+              spd_ask_datum.requested_yield,
+              conf.bond.basis_points_ref_unit,
+            ),
+            min_ada_to_exchange,
+          )?,
+        }
+    },
   }
 }
 
@@ -142,86 +155,98 @@ pub fn matching(
       Finite(x) -> x
       _ -> 0
     }
-  let owner_vk = spd_ask_datum.owner_payment_key
-  (validity_after_must_set > 0)? && (validity_end_must_set > 0)? && (validity_end_must_set > validity_after_must_set)? && (validity_end_must_set - validity_after_must_set <= when
-    conf.exchange.tx_buy_valid_slot
-  is {
-    Some(x) -> x
-    None -> 3 * 60
-  } * conf.slot_config_network.slot_length)? && not(
-    bytearray.is_empty(owner_vk),
-  )? && when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
-    Some(ref_in_escrow) ->
-      when get_data(tx.datums, ref_in_escrow.output.datum) is {
-        Some(d) -> {
-          expect escrow_datum: EscrowDatum = d
-          let start_epoch =
-            escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-          let end_epoch = start_epoch + escrow_datum.duration
-          (escrow_datum.bond_amount > 0)? && (value.lovelace_of(
-            escrow_datum.epo_rewards,
-          ) > 0)? && (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)? && when
-            get_escrow_info(
-              conf.bond,
-              value.lovelace_of(ref_in_escrow.output.value),
-              escrow_datum,
-              validity_after_must_set,
-              posix_time_to_relative_epoch(
-                validity_after_must_set,
-                conf.bond.epoch_config,
-              ),
-              start_epoch,
-              end_epoch,
-            )
-          is {
-            OK(escrow_info) -> {
-              let BizTxInfo {
-                valid: biz_tx_info_valid,
-                biz_tx_in: in,
-                biz_tx_out: out,
-              } =
-                collect_biz_tx_info(
-                  conf,
-                  tx.inputs,
-                  tx.outputs,
-                  owner,
-                  spending,
-                  tx.datums,
-                  escrow_info,
-                  spd_ask_datum,
+  let owner_vk = spd_ask_datum.owner_vk
+  and {
+    (validity_after_must_set > 0)?,
+    (validity_end_must_set > 0)?,
+    (validity_end_must_set > validity_after_must_set)?,
+    (validity_end_must_set - validity_after_must_set <= when
+      conf.exchange.tx_buy_valid_slot
+    is {
+      Some(x) -> x
+      None -> 3 * 60
+    } * conf.slot.slot_length)?,
+    not(bytearray.is_empty(owner_vk))?,
+    when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
+      Some(ref_in_escrow) ->
+        when get_data(tx.datums, ref_in_escrow.output.datum) is {
+          Some(d) -> {
+            expect escrow_datum: EscrowDatum = d
+            let start_epoch =
+              escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+            let end_epoch = start_epoch + escrow_datum.duration
+            and {
+              (escrow_datum.bond_amount > 0)?,
+              (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
+              (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+              when
+                get_escrow_info(
+                  conf.bond,
+                  value.lovelace_of(ref_in_escrow.output.value),
+                  escrow_datum,
+                  validity_after_must_set,
+                  posix_time_to_relative_epoch(
+                    validity_after_must_set,
+                    conf.bond.epoch_config,
+                  ),
+                  start_epoch,
+                  end_epoch,
                 )
-              biz_tx_info_valid && (dict.size(in.sc.bond_assets) == 1)? && dict.has_key(
-                in.sc.bond_assets,
-                escrow_info.token_name,
-              )? && when out is {
-                Some(ou) ->
-                  (in.owner.bond_qty <= 0)? && matching_correct(
-                    conf,
-                    spd_ask_datum,
-                    in,
-                    ou,
-                    escrow_info,
-                  )
-                None -> {
-                  trace @"out is None"
+              is {
+                OK(escrow_info) -> {
+                  let BizTxInfo {
+                    valid: biz_tx_info_valid,
+                    biz_tx_in: in,
+                    biz_tx_out: out,
+                  } =
+                    collect_biz_tx_info(
+                      conf,
+                      tx.inputs,
+                      tx.outputs,
+                      owner,
+                      spending,
+                      tx.datums,
+                      escrow_info,
+                      spd_ask_datum,
+                    )
+                  and {
+                    biz_tx_info_valid,
+                    (dict.size(in.sc.bond_assets) == 1)?,
+                    dict.has_key(in.sc.bond_assets, escrow_info.token_name)?,
+                    when out is {
+                      Some(ou) -> and {
+                          (in.owner.bond_qty <= 0)?,
+                          matching_correct(
+                            conf,
+                            spd_ask_datum,
+                            in,
+                            ou,
+                            escrow_info,
+                          ),
+                        }
+                      None -> {
+                        trace @"out is None"
+                        False
+                      }
+                    },
+                  }
+                }
+                Error(_) -> {
+                  trace @"bond is closable"
                   False
                 }
-              }
-            }
-            Error(_) -> {
-              trace @"bond is closable"
-              False
+              },
             }
           }
+          _ -> {
+            trace @"not found escrow datum in reference_inputs"
+            False
+          }
         }
-        _ -> {
-          trace @"not found escrow datum in reference_inputs"
-          False
-        }
+      _ -> {
+        trace @"not found escrow info in reference_inputs"
+        False
       }
-    _ -> {
-      trace @"not found escrow info in reference_inputs"
-      False
-    }
+    },
   }
 }

@@ -455,7 +455,7 @@ test buy_fail_partial_change_bond_name() {
   )
 }
 
-test buy_fail_partial_datum_owner_payment_key_invalid_1() {
+test buy_fail_partial_datum_owner_vk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -598,7 +598,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_1() {
   )
 }
 
-test buy_fail_partial_datum_owner_payment_key_invalid_2() {
+test buy_fail_partial_datum_owner_vk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -741,7 +741,7 @@ test buy_fail_partial_datum_owner_payment_key_invalid_2() {
   )
 }
 
-test buy_fail_partial_datum_owner_stake_key_invalid_1() {
+test buy_fail_partial_datum_owner_sk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -892,7 +892,7 @@ test buy_fail_partial_datum_owner_stake_key_invalid_1() {
   )
 }
 
-test buy_fail_partial_datum_owner_stake_key_invalid_2() {
+test buy_fail_partial_datum_owner_sk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()

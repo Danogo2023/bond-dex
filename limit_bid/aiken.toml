@@ -1,10 +1,10 @@
-name = "Danogo2023/bonds/limit-bid"
+name = "danogo2023/bonds/limit-bid"
 version = "1.0.0"
 license = "Apache-2.0"
 description = "Aiken contracts for danogo bonds bid limit"
 
 [repository]
-user = "Danogo2023/bonds"
+user = "danogo2023/bonds"
 project = "limit-bid"
 platform = "github"
 
@@ -14,6 +14,6 @@ version = "1.6.0"
 source = "github"
 
 [[dependencies]]
-name = "Danogo2023/daken"
+name = "danogo2023/daken"
 version = "features/bond"
 source = "github"
