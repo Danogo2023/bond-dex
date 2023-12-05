@@ -35,8 +35,8 @@ fn datum_is_valid(
         out_datum.quantity,
       ) && datum_bid_making_compare(
         BidMaking {
-          owner_payment_key: spd_datum.owner_payment_key,
-          owner_stake_key: spd_datum.owner_stake_key,
+          owner_vk: spd_datum.owner_vk,
+          owner_sk: spd_datum.owner_sk,
           from_epoch: escrow_info.end_epoch,
           to_epoch: escrow_info.end_epoch,
           quantity: 0,
@@ -91,11 +91,12 @@ fn build_biz_output_info(
         False
       }
     }
-  let (output_bond, output_other) = if dict.size(bond_values) > 0 {
-    ([output, ..self.bond_outputs], self.other_outputs)
-  } else {
-    (self.bond_outputs, [output, ..self.other_outputs])
-  }
+  let (output_bond, output_other) =
+    if dict.size(bond_values) > 0 {
+      ([output, ..self.bond_outputs], self.other_outputs)
+    } else {
+      (self.bond_outputs, [output, ..self.other_outputs])
+    }
   BizOutputInfo {
     addresses,
     bond_datum_valid,

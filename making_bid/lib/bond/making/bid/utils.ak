@@ -30,8 +30,8 @@ fn datum_is_valid(
         out_datum.requested_yield + out_datum.margin,
       ) && datum_ask_making_compare(
         AskMaking {
-          owner_payment_key: spd_datum.owner_payment_key,
-          owner_stake_key: spd_datum.owner_stake_key,
+          owner_vk: spd_datum.owner_vk,
+          owner_sk: spd_datum.owner_sk,
           requested_yield: spd_datum.requested_yield - spd_datum.margin,
           bid_sc: spd_sc_payment_key,
           margin: spd_datum.margin,
@@ -41,14 +41,18 @@ fn datum_is_valid(
     }
     ScDatum -> {
       expect out_datum: BidMaking = out_data
-      datum_yield_making_valid(
-        conf,
-        out_datum.requested_yield + out_datum.margin,
-      ) && datum_epoch_valid(
-        out_datum.from_epoch,
-        out_datum.to_epoch,
-        out_datum.quantity,
-      ) && datum_bid_making_compare(spd_datum, out_datum)
+      and {
+        datum_yield_making_valid(
+          conf,
+          out_datum.requested_yield + out_datum.margin,
+        ),
+        datum_epoch_valid(
+          out_datum.from_epoch,
+          out_datum.to_epoch,
+          out_datum.quantity,
+        ),
+        datum_bid_making_compare(spd_datum, out_datum),
+      }
     }
     _ -> False
   }
