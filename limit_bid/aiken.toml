@@ -10,10 +10,10 @@ platform = "github"
 
 [[dependencies]]
 name = "aiken-lang/stdlib"
-version = "1.6.0"
+version = "1.7.0"
 source = "github"
 
 [[dependencies]]
 name = "danogo2023/daken"
-version = "features/bond"
+version = "master"
 source = "github"
