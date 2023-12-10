@@ -38,21 +38,21 @@ pub fn minting(
       },
     )
   is {
-    Some((data, output)) ->
-      when data is {
-        InlineDatum(dt) -> {
-          expect d: RequestDatum = dt
-          and {
-            (output.address.stake_credential != None)?,
-            (d.issued == 0)?,
-            (d.symbol == pid)?,
-            request_output_valid(value.lovelace_of(output.value), d, cfg),
-            (d.borrower == hash_head(tx.inputs))?,
-            mint_only_one(tx, pid, d.borrower),
-          }
+    Some((data, o)) -> {
+      expect oreq_dt: RequestDatum =
+        when data is {
+          InlineDatum(d) -> d
+          _ -> fail @"only supports InlineDatum"
         }
-        _ -> fail @"only supports InlineDatum"
+      and {
+        (o.address.stake_credential != None)?,
+        (oreq_dt.issued == 0)?,
+        (oreq_dt.symbol == pid)?,
+        request_output_valid(value.lovelace_of(o.value), oreq_dt, cfg),
+        (oreq_dt.borrower == hash_head(tx.inputs))?,
+        mint_only_one(tx, pid, oreq_dt.borrower),
       }
+    }
     _ -> fail @"only 1 request output is allowed"
   }
 }
