@@ -1,11 +1,11 @@
 name = "danogo2023/bonds"
 version = "1.0.0"
 license = "Apache-2.0"
-description = "Danogo Staking Bond Validator"
+description = "Danogo Bond Borrow Request Validator"
 
 [repository]
 user = "danogo2023/bonds"
-project = "bond-staking"
+project = "borrow-request"
 platform = "github"
 
 [[dependencies]]
