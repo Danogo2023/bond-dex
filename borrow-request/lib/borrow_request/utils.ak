@@ -25,7 +25,7 @@ pub fn request_output_valid(
     (oreq_dt.prepaid <= oreq_dt.duration)?,
     (oreq_dt.fee >= cfg.platform.fee)?,
     (oreq_dt.requested >= oreq_dt.issued)?,
-    (oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis_points.base / cfg.epoch.year_to_epoch)?,
+    (oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
     (required_premium >= oreq_dt.epo_rewards * oreq_dt.prepaid)?,
   }
 }

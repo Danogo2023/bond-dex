@@ -186,7 +186,7 @@ fn bond_value_valid(
 ) -> Bool {
   let obond_principal = obond_dt.bond_amount * cfg.platform.bond_face_value
   let obond_epo_rewards =
-    obond_principal * ireq_dt.apr / cfg.basis_points.base / cfg.epoch.year_to_epoch
+    obond_principal * ireq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch
   and {
     (value.lovelace_of(obond_dt.epo_rewards) == obond_epo_rewards)?,
     bond_asset_valid(
@@ -224,9 +224,9 @@ fn bond_asset_valid(
         }
       },
     )
-  let obond_apy = cfg.basis_points.base - obond_dt.fee
+  let obond_apy = cfg.basis.base - obond_dt.fee
   let obond_required_premium =
-    obond_epo_rewards * ireq_dt.prepaid * obond_apy / cfg.basis_points.base
+    obond_epo_rewards * ireq_dt.prepaid * obond_apy / cfg.basis.base
   and {
     (obond_nft == 1)?,
     (obond_lovelace >= obond_principal + obond_required_premium)?,
