@@ -16,9 +16,9 @@ use common/time.{get_current_epoch_with_ttl}
 use common/types.{ScriptKeyHash} as common_types
 
 pub fn minting(
-  pid: PolicyId,
-  tx: Transaction,
   cfg: BondIssueConfig,
+  tx: Transaction,
+  req_pid: PolicyId,
   sk: ScriptKeyHash,
 ) -> Bool {
   when
@@ -28,7 +28,12 @@ pub fn minting(
       fn(o, c) {
         if o.address.payment_credential == ScriptCredential(sk) {
           if c == None {
-            Some((o.datum, o))
+            expect oreq_dt: RequestDatum =
+              when o.datum is {
+                InlineDatum(d) -> d
+                _ -> fail @"only supports InlineDatum for request"
+              }
+            Some((oreq_dt, o))
           } else {
             fail @"only 1 request output is allowed"
           }
@@ -38,21 +43,14 @@ pub fn minting(
       },
     )
   is {
-    Some((data, o)) -> {
-      expect oreq_dt: RequestDatum =
-        when data is {
-          InlineDatum(d) -> d
-          _ -> fail @"only supports InlineDatum"
-        }
-      and {
-        (o.address.stake_credential != None)?,
+    Some((oreq_dt, output)) -> and {
+        (output.address.stake_credential != None)?,
         (oreq_dt.issued == 0)?,
-        (oreq_dt.symbol == pid)?,
-        request_output_valid(value.lovelace_of(o.value), oreq_dt, cfg),
+        (oreq_dt.symbol == req_pid)?,
+        request_output_valid(value.lovelace_of(output.value), oreq_dt, cfg),
         (oreq_dt.borrower == hash_head(tx.inputs))?,
-        mint_only_one(tx, pid, oreq_dt.borrower),
+        mint_only_one(tx, req_pid, oreq_dt.borrower),
       }
-    }
     _ -> fail @"only 1 request output is allowed"
   }
 }

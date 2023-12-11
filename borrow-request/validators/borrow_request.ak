@@ -10,9 +10,9 @@ use common/util.{get_spending_input}
 
 validator(cfg: BondIssueConfig) {
   fn mint(ac: RequestAction, ctx: ScriptContext) -> Bool {
-    expect Mint(p) = ctx.purpose
+    expect Mint(pid) = ctx.purpose
     when ac is {
-      RequestCreate { sk } -> constraint.minting(p, ctx.transaction, cfg, sk)
+      RequestCreate { sk } -> constraint.minting(cfg, ctx.transaction, pid, sk)
       _ -> fail @"invalid action"
     }
   }
