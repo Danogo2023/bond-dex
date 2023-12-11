@@ -1,6 +1,5 @@
 use aiken/dict
 use aiken/math
-use aiken/option
 use aiken/transaction.{InlineDatum, Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName, PolicyId}
@@ -30,11 +29,26 @@ pub fn request_output_valid(
   }
 }
 
-pub fn mint_only_one(tx: Transaction, pid: PolicyId, tn: AssetName) -> Bool {
-  let mint_assets = value.from_minted_value(tx.mint) |> value.tokens(pid)
+pub fn mint_only_one(
+  tx: Transaction,
+  req_pid: PolicyId,
+  req_nft: AssetName,
+) -> Bool {
+  let (mint_nft, mint_count) =
+    dict.foldr(
+      value.from_minted_value(tx.mint) |> value.tokens(req_pid),
+      (0, 0),
+      fn(k, v, z) {
+        if (k == req_nft)? {
+          (z.1st + v, z.2nd + 1)
+        } else {
+          (z.1st, z.2nd + 1)
+        }
+      },
+    )
   and {
-    (dict.size(mint_assets) == 1)?,
-    (option.or_else(dict.get(mint_assets, tn), 0) == 1)?,
+    (mint_count == 1)?,
+    (mint_nft == 1)?,
   }
 }
 
