@@ -1,4 +1,4 @@
-use aiken/transaction.{Output}
+use aiken/transaction.{Output, OutputReference}
 use bond_issue/types.{BondDatum} as bond_issue_types
 use common/types.{ScriptKeyHash}
 
@@ -17,7 +17,7 @@ pub type BondCreateOutput {
 }
 
 pub type RequestAction {
-  RequestCreate { sk: ScriptKeyHash }
+  RequestCreate { out_ref: OutputReference, sk: ScriptKeyHash }
   RequestUpdate
-  BondCreate
+  BondCreate { out_ref: OutputReference }
 }
