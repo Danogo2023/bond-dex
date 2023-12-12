@@ -1,11 +1,37 @@
 use aiken/dict
 use aiken/math
-use aiken/transaction.{InlineDatum, Output, Transaction}
+use aiken/transaction.{
+  InlineDatum, Input, Output, OutputReference, ScriptContext, Spend, Transaction,
+}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName, PolicyId}
-use bond_issue/types.{BondDatum,
-  BondIssueConfig, RequestDatum} as bond_issue_types
-use borrow_request/types.{BondCreateOutput, BorrowRequestOutput}
+use bond_issue/types.{BondDatum, BondIssueConfig, RequestDatum}
+use borrow_request/types.{BondCreateOutput, BorrowRequestOutput} as br_types
+use common/util.{find_while}
+
+pub fn get_out_ref(
+  ctx: ScriptContext,
+  out_ref: OutputReference,
+) -> (Input, Option<Input>) {
+  expect Spend(sout_ref) = ctx.purpose
+  expect (Some(spending_input), out_ref_input) =
+    find_while(
+      ctx.transaction.inputs,
+      (None, None),
+      fn(i, z) {
+        let r =
+          if i.output_reference == sout_ref {
+            (Some(i), z.2nd)
+          } else if i.output_reference == out_ref {
+            (z.1st, Some(i))
+          } else {
+            z
+          }
+        (r.1st != None && r.2nd != None, r)
+      },
+    )
+  (spending_input, out_ref_input)
+}
 
 pub fn request_output_valid(
   required_premium: Int,
@@ -39,7 +65,7 @@ pub fn mint_only_one(
       value.from_minted_value(tx.mint) |> value.tokens(req_pid),
       (0, 0),
       fn(k, v, z) {
-        if (k == req_nft)? {
+        if k == req_nft {
           (z.1st + v, z.2nd + 1)
         } else {
           (z.1st, z.2nd + 1)
@@ -57,7 +83,7 @@ pub fn get_borrow_request_output(
   o: Output,
   ireq: Output,
   ireq_dt: RequestDatum,
-  zero: BorrowRequestOutput,
+  z: BorrowRequestOutput,
 ) -> BorrowRequestOutput {
   if o.address.payment_credential == ireq.address.payment_credential {
     expect oreq_dt: RequestDatum =
@@ -69,32 +95,32 @@ pub fn get_borrow_request_output(
       oreq_dt.symbol == ireq_dt.symbol,
       oreq_dt.borrower == ireq_dt.borrower,
     } {
-      if zero.oreq_valid == 0 {
+      if z.oreq_valid == 0 {
         if and {
           (oreq_dt.issued == ireq_dt.issued)?,
           (o.address.stake_credential != None)?,
           request_output_valid(value.lovelace_of(o.value), oreq_dt, cfg),
         } {
           // trace @"borrow request output valid"
-          BorrowRequestOutput { ..zero, oreq_valid: 1 }
+          BorrowRequestOutput { ..z, oreq_valid: 1 }
         } else {
           // trace @"borrow request output2b405c773982c6cddf1d8b8a80769a84851f3ce21febbb227777b3ba43be14f1 invalid"
-          BorrowRequestOutput { ..zero, oreq_valid: 2 }
+          BorrowRequestOutput { ..z, oreq_valid: 2 }
         }
       } else {
         fail @"one borrow request input allows only one borrow request output"
       }
     } else {
-      zero
+      z
     }
-  } else if !zero.nft_valid && value.quantity_of(
+  } else if !z.nft_valid && value.quantity_of(
     o.value,
     ireq_dt.symbol,
     ireq_dt.borrower,
   ) > 0 {
-    BorrowRequestOutput { ..zero, nft_valid: True }
+    BorrowRequestOutput { ..z, nft_valid: True }
   } else {
-    zero
+    z
   }
 }
 
@@ -104,7 +130,7 @@ pub fn get_bond_create_output(
   o: Output,
   ireq: Output,
   ireq_dt: RequestDatum,
-  zero: BondCreateOutput,
+  z: BondCreateOutput,
 ) -> BondCreateOutput {
   if o.address.payment_credential == ireq.address.payment_credential {
     expect oreq_dt: RequestDatum =
@@ -116,7 +142,7 @@ pub fn get_bond_create_output(
       oreq_dt.symbol == ireq_dt.symbol,
       oreq_dt.borrower == ireq_dt.borrower,
     } {
-      if zero.oreq_valid == 0 {
+      if z.oreq_valid == 0 {
         if and {
           (o.address.stake_credential == ireq.address.stake_credential)?,
           (oreq_dt.apr == ireq_dt.apr)?,
@@ -130,19 +156,19 @@ pub fn get_bond_create_output(
         } {
           // trace @"borrow request output valid"
           BondCreateOutput {
-            ..zero,
+            ..z,
             oreq_valid: 1,
             mint_qty: oreq_dt.issued - ireq_dt.issued,
           }
         } else {
           // trace @"borrow request output invalid"
-          BondCreateOutput { ..zero, oreq_valid: 2 }
+          BondCreateOutput { ..z, oreq_valid: 2 }
         }
       } else {
         fail @"one borrow request input allows only one borrow request output"
       }
     } else {
-      zero
+      z
     }
   } else if o.address == bond_addr {
     expect obond_dt: BondDatum =
@@ -151,15 +177,15 @@ pub fn get_bond_create_output(
         _ -> fail @"only supports InlineDatum for bond"
       }
     if obond_dt.borrower == ireq_dt.borrower {
-      if zero.obond == None {
-        BondCreateOutput { ..zero, obond: Some((obond_dt, o)) }
+      if z.obond == None {
+        BondCreateOutput { ..z, obond: Some((obond_dt, o)) }
       } else {
         fail @"one borrow request allows only one bond output"
       }
     } else {
-      zero
+      z
     }
   } else {
-    zero
+    z
   }
 }

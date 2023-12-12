@@ -1,7 +1,7 @@
 use aiken/dict
 use aiken/list
 use aiken/option
-use aiken/transaction.{InlineDatum, Input, Output, Transaction}
+use aiken/transaction.{InlineDatum, Input, Output, OutputReference, Transaction}
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondDatum,
@@ -11,7 +11,7 @@ use borrow_request/utils.{
   get_bond_create_output, get_borrow_request_output, mint_only_one,
   request_output_valid,
 }
-use common/hash_inputs.{hash_head, hash_head_salt}
+use common/hash_inputs.{hash_sorted, hash_sorted_salt}
 use common/time.{get_current_epoch_with_ttl}
 use common/types.{ScriptKeyHash} as common_types
 
@@ -19,15 +19,16 @@ pub fn minting(
   cfg: BondIssueConfig,
   tx: Transaction,
   req_pid: PolicyId,
+  out_ref: OutputReference,
   sk: ScriptKeyHash,
 ) -> Bool {
   when
     list.foldr(
       tx.outputs,
       None,
-      fn(o, c) {
+      fn(o, z) {
         if o.address.payment_credential == ScriptCredential(sk) {
-          if c == None {
+          if z == None {
             expect oreq_dt: RequestDatum =
               when o.datum is {
                 InlineDatum(d) -> d
@@ -38,7 +39,7 @@ pub fn minting(
             fail @"only 1 request output is allowed"
           }
         } else {
-          c
+          z
         }
       },
     )
@@ -48,7 +49,9 @@ pub fn minting(
         (oreq_dt.issued == 0)?,
         (oreq_dt.symbol == req_pid)?,
         request_output_valid(value.lovelace_of(output.value), oreq_dt, cfg),
-        (oreq_dt.borrower == hash_head(tx.inputs))?,
+        (oreq_dt.borrower == hash_sorted(
+          list.find(tx.inputs, fn(i) { i.output_reference == out_ref }),
+        ))?,
         mint_only_one(tx, req_pid, oreq_dt.borrower),
       }
     _ -> fail @"only 1 request output is allowed"
@@ -78,6 +81,7 @@ pub fn spending_bond_create(
   tx: Transaction,
   ireq: Input,
   ireq_dt: RequestDatum,
+  out_ref: Option<Input>,
   bond_sk: ScriptKeyHash,
   nft_pid: PolicyId,
   bond_pid: PolicyId,
@@ -101,7 +105,7 @@ pub fn spending_bond_create(
     (outs.oreq_valid < 2)?,
     // trace @"Not found bond output"
     (outs.obond != None)?,
-    bond_output_valid(cfg, tx, ireq_dt, nft_pid, bond_pid, outs),
+    bond_output_valid(cfg, tx, ireq_dt, out_ref, nft_pid, bond_pid, outs),
   }
 }
 
@@ -109,13 +113,14 @@ fn bond_output_valid(
   cfg: BondIssueConfig,
   tx: Transaction,
   ireq_dt: RequestDatum,
+  out_ref: Option<Input>,
   nft_pid: PolicyId,
   bond_pid: PolicyId,
   outs: BondCreateOutput,
 ) -> Bool {
   // expect Some((_oreq_dt, _oreq)) = outs.oreq
   expect Some((obond_dt, obond)) = outs.obond
-  let bond_name = hash_head_salt(tx.inputs, ireq_dt.borrower)
+  let bond_name = hash_sorted_salt(out_ref, ireq_dt.borrower)
   let bond_qty_must_mint =
     if outs.oreq_valid == 0 {
       // bond create all remain

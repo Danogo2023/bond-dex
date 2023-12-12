@@ -5,14 +5,17 @@ use borrow_request/constraint
 use borrow_request/types.{
   BondCreate, RequestAction, RequestCreate, RequestUpdate,
 }
+use borrow_request/utils.{get_out_ref}
 use common/types.{ScriptKeyHash} as common_types
 use common/util.{get_spending_input}
 
 validator(cfg: BondIssueConfig) {
   fn mint(ac: RequestAction, ctx: ScriptContext) -> Bool {
-    expect Mint(pid) = ctx.purpose
     when ac is {
-      RequestCreate { sk } -> constraint.minting(cfg, ctx.transaction, pid, sk)
+      RequestCreate { out_ref, sk } -> {
+        expect Mint(pid) = ctx.purpose
+        constraint.minting(cfg, ctx.transaction, pid, out_ref, sk)
+      }
       _ -> fail @"invalid action"
     }
   }
@@ -25,23 +28,28 @@ validator(
   bond_pid: PolicyId,
 ) {
   fn spend(idt: RequestDatum, ac: RequestAction, ctx: ScriptContext) -> Bool {
-    if ac == RequestUpdate || ac == BondCreate {
-      let ireq = get_spending_input(ctx)
-      if ac == RequestUpdate {
-        constraint.spending_request_update(cfg, ctx.transaction, ireq, idt)
-      } else {
+    when ac is {
+      BondCreate { out_ref } -> {
+        let (ireq, out_ref_input) = get_out_ref(ctx, out_ref)
         constraint.spending_bond_create(
           cfg,
           ctx.transaction,
           ireq,
           idt,
+          out_ref_input,
           bond_sk,
           nft_pid,
           bond_pid,
         )
       }
-    } else {
-      fail @"invalid action"
+      RequestUpdate ->
+        constraint.spending_request_update(
+          cfg,
+          ctx.transaction,
+          get_spending_input(ctx),
+          idt,
+        )
+      _ -> fail @"invalid action"
     }
   }
 }

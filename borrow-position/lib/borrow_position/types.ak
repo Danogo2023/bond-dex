@@ -1,29 +1,53 @@
 use aiken/dict.{Dict}
-use aiken/transaction.{Output}
-use aiken/transaction/value.{AssetName}
+use aiken/transaction.{Output, OutputReference}
+use aiken/transaction/value.{AssetName, PolicyId}
 use bond_issue/types.{BondDatum, RequestDatum} as bond_issue_types
 use common/types.{ScriptKeyHash}
 
 pub type BondAction {
-  BondCreate { req_sk: ScriptKeyHash, bond_sk: ScriptKeyHash }
-  BondRedeem
+  // mint bond nft => BondCreate { out_ref, req_sk, bond_sk, bond_pid }
+  // mint bond token => BondCreate { out_ref, req_sk, bond_sk, nft_pid }
+  BondCreate {
+    out_ref: OutputReference,
+    req_sk: ScriptKeyHash,
+    bond_sk: ScriptKeyHash,
+    pid: PolicyId,
+  }
+  // burn bond nft => BondRedeem { bond_pid }
+  // burn bond token => BondRedeem { nft_pid }
+  // spending bond utxo => BondRedeem { nft_pid }
+  BondRedeem { pid: PolicyId }
   BondPayInterest
   BondChangeStakeKey
 }
 
-pub type BorrowRequestOutput {
+pub type AssetNames =
+  List<AssetName>
+
+pub type BondData =
+  Dict<AssetName, (BondDatum, Output)>
+
+pub type TokenDict =
+  Dict<AssetName, Int>
+
+pub type TokenList =
+  List<(AssetName, Int)>
+
+pub type BorrowRequestData =
+  Dict<AssetName, (RequestDatum, Output)>
+
+pub type MintName {
   count: Int,
-  tokens: List<AssetName>,
-  data: Dict<AssetName, (RequestDatum, Output)>,
+  names: AssetNames,
 }
 
-pub type BondOutput {
-  count: Int,
-  tokens: List<AssetName>,
-  data: Dict<AssetName, (BondDatum, Output)>,
+pub type PolicyMint {
+  nfts: TokenDict,
+  bonds: TokenDict,
 }
 
-pub type BondMint {
+pub type BurnToken {
   count: Int,
-  tokens: List<AssetName>,
+  names: AssetNames,
+  assets: TokenList,
 }
