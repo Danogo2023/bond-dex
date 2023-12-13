@@ -27,15 +27,15 @@ validator(
   nft_pid: PolicyId,
   bond_pid: PolicyId,
 ) {
-  fn spend(idt: RequestDatum, ac: RequestAction, ctx: ScriptContext) -> Bool {
+  fn spend(sdt: RequestDatum, ac: RequestAction, ctx: ScriptContext) -> Bool {
     when ac is {
       BondCreate { out_ref } -> {
-        let (ireq, out_ref_input) = get_out_ref(ctx, out_ref)
+        let (sreq, out_ref_input) = get_out_ref(ctx, out_ref)
         constraint.spending_bond_create(
           cfg,
           ctx.transaction,
-          ireq,
-          idt,
+          sreq,
+          sdt,
           out_ref_input,
           bond_sk,
           nft_pid,
@@ -47,7 +47,7 @@ validator(
           cfg,
           ctx.transaction,
           get_spending_input(ctx),
-          idt,
+          sdt,
         )
       _ -> fail @"invalid action"
     }
