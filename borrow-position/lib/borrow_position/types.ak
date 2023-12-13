@@ -1,6 +1,6 @@
 use aiken/dict.{Dict}
 use aiken/transaction.{Output, OutputReference}
-use aiken/transaction/value.{AssetName, PolicyId}
+use aiken/transaction/value.{AssetName, PolicyId, Value}
 use bond_issue/types.{BondDatum, RequestDatum} as bond_issue_types
 use common/types.{ScriptKeyHash}
 
@@ -15,7 +15,7 @@ pub type BondAction {
   }
   // burn bond nft => BondRedeem { bond_pid }
   // burn bond token => BondRedeem { nft_pid }
-  // spending bond utxo => BondRedeem { nft_pid }
+  // spending bond utxo => BondRedeem { nft_pid || bond_pid }
   BondRedeem { pid: PolicyId }
   BondPayInterest
   BondChangeStakeKey
@@ -51,3 +51,18 @@ pub type BurnToken {
   names: AssetNames,
   assets: TokenList,
 }
+
+pub type BondCount =
+  Int
+
+pub type BondFee =
+  Int
+
+pub type BondOutput =
+  Output
+
+pub type BondOutputItem =
+  (BondCount, Value, BondDatum, BondOutput, BondFee)
+
+pub type BondOutputDict =
+  Dict<ByteArray, BondOutputItem>

@@ -10,7 +10,7 @@ use borrow_position/types.{
   AssetNames, BondData, BorrowRequestData, BurnToken, MintName, PolicyMint,
   TokenDict,
 } as borrow_position_types
-use borrow_position/utils_nft.{get_policy_mint}
+use borrow_position/utils_nft
 use common/hash_inputs.{hash_sorted_salt}
 use common/types.{ScriptKeyHash} as common_types
 use common/util.{find_while}
@@ -111,28 +111,35 @@ pub fn get_bond_output(
   )
 }
 
+pub fn get_policy_mint(
+  mint: Value,
+  nft_pid: PolicyId,
+  bond_pid: PolicyId,
+) -> PolicyMint {
+  find_while(
+    dict.to_list(value.to_dict(mint)),
+    PolicyMint { nfts: dict.new(), bonds: dict.new() },
+    fn(i, z) {
+      let (k, v) = i
+      let r =
+        if k == nft_pid {
+          PolicyMint { ..z, nfts: v }
+        } else if k == bond_pid {
+          PolicyMint { ..z, bonds: v }
+        } else {
+          z
+        }
+      (!dict.is_empty(r.nfts) && !dict.is_empty(r.bonds), r)
+    },
+  )
+}
+
 pub fn get_mint(
   mint: Value,
   nft_pid: PolicyId,
   bond_pid: PolicyId,
 ) -> (MintName, TokenDict, TokenDict, AssetNames) {
-  let policy_mint =
-    find_while(
-      dict.to_list(value.to_dict(mint)),
-      PolicyMint { nfts: dict.new(), bonds: dict.new() },
-      fn(i, z) {
-        let (k, v) = i
-        let r =
-          if k == nft_pid {
-            PolicyMint { ..z, nfts: v }
-          } else if k == bond_pid {
-            PolicyMint { ..z, bonds: v }
-          } else {
-            z
-          }
-        (!dict.is_empty(r.nfts) && !dict.is_empty(r.bonds), r)
-      },
-    )
+  let policy_mint = get_policy_mint(mint, nft_pid, bond_pid)
   (
     dict.foldr(
       policy_mint.nfts,
@@ -191,7 +198,7 @@ pub fn fee_valid(
 
 pub fn get_burn(mint: Value, pid: PolicyId) -> BurnToken {
   dict.foldr(
-    get_policy_mint(mint, pid),
+    utils_nft.get_policy_mint(mint, pid),
     BurnToken { count: 0, names: [], assets: [] },
     fn(k, v, z) {
       if v < 0 {
@@ -240,7 +247,7 @@ fn get_output(o: Output, pid: PolicyId, z: BurnToken) -> BurnToken {
 
 pub fn get_name_burn(mint: Value, pid: PolicyId) -> AssetNames {
   dict.foldr(
-    get_policy_mint(mint, pid),
+    utils_nft.get_policy_mint(mint, pid),
     [],
     fn(k, v, z) {
       if v < 0 {
@@ -254,7 +261,7 @@ pub fn get_name_burn(mint: Value, pid: PolicyId) -> AssetNames {
 
 pub fn count_burn(mint: Value, pid: PolicyId) -> Int {
   dict.foldr(
-    get_policy_mint(mint, pid),
+    utils_nft.get_policy_mint(mint, pid),
     0,
     fn(_, v, z) {
       if v < 0 {

@@ -1,8 +1,10 @@
 use aiken/list
-use aiken/transaction.{OutputReference, Transaction}
+use aiken/transaction.{Input, OutputReference, Transaction}
+use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{PolicyId}
-use bond_issue/types.{BondIssueConfig} as bond_issue_types
+use bond_issue/types.{BondDatum, BondIssueConfig} as bond_issue_types
 use borrow_position/utils_nft
+use borrow_position/utils_spend
 use borrow_position/utils_token
 use common/types.{ScriptKeyHash} as common_types
 
@@ -27,9 +29,9 @@ pub fn minting_nft(
     (ireq.count > 0)?,
     (obond.count == ireq.count)?,
     // bond nft in output must matching with bond nft minting
-    (list.length(list.difference(mint_nft.names, obond.names)) <= 0)?,
+    (list.at(list.difference(mint_nft.names, obond.names), 0) == None)?,
     // bond name in bond output must matching with bond name of request input
-    (list.length(list.difference(ireq.names, obond.names)) <= 0)?,
+    (list.at(list.difference(ireq.names, obond.names), 0) == None)?,
   }
 }
 
@@ -50,7 +52,7 @@ pub fn burning_nft(
   let burned = list.difference(input, maintain)
   //
   // nft burned of output must matching with bond nft burning
-  (list.length(list.difference(burning, burned)) <= 0)?
+  (list.at(list.difference(burning, burned), 0) == None)?
 }
 
 pub fn minting_token(
@@ -79,11 +81,11 @@ pub fn minting_token(
     (ireq_token.count > 0)?,
     (obond_token.count == ireq_token.count)?,
     // bond nft in output must matching with bond nft minting
-    (list.length(list.difference(nft_mint.names, obond_token.names)) <= 0)?,
+    (list.at(list.difference(nft_mint.names, obond_token.names), 0) == None)?,
     // bond name in bond output must matching with bond name of request input
-    (list.length(list.difference(ireq_token.names, obond_token.names)) <= 0)?,
+    (list.at(list.difference(ireq_token.names, obond_token.names), 0) == None)?,
     // bond nft in output must matching with bond token minting
-    (list.length(list.difference(nft_mint.names, bond_names)) <= 0)?,
+    (list.at(list.difference(nft_mint.names, bond_names), 0) == None)?,
     // not found platform fee output
     (obond_fee != None)?,
     // must pay the correct fees to the platform
@@ -108,6 +110,62 @@ pub fn burning_token(
   let burned_nft = list.difference(input_nft, maintain_nft)
   and {
     (bond_burning.count > 0)?,
-    (list.length(list.difference(bond_burning.names, burned_nft)) <= 0)?,
+    (list.at(list.difference(bond_burning.names, burned_nft), 0) == None)?,
+  }
+}
+
+pub fn spending_pay_interest(
+  cfg: BondIssueConfig,
+  tx: Transaction,
+  sbond_addr: Address,
+) -> Bool {
+  // let ibond_lovelace = value.lovelace_of(sbond.output.value)
+  let (ibond_count, ibond_keys, ibond_utxos) =
+    utils_spend.get_bond_inputs(tx, sbond_addr)
+  let (obond_count, obond_keys, obond_utxos, ofee) =
+    utils_spend.get_bond_outputs(cfg, tx, sbond_addr)
+
+  and {
+    (ofee != None)?,
+    (ibond_count > 0)?,
+    (obond_count > 0)?,
+    (ibond_count == obond_count)?,
+    (list.at(list.difference(ibond_keys, obond_keys), 0) == None)?,
+    utils_spend.fee_pay_interest_valid(cfg, ibond_utxos, obond_utxos, ofee),
+  }
+}
+
+pub fn spending_change_stake_key(
+  tx: Transaction,
+  sbond: Input,
+  sbond_addr: Address,
+  sbond_dt: BondDatum,
+  req_pid: PolicyId,
+) -> Bool {
+  when
+    list.find(
+      tx.inputs,
+      fn(i) {
+        value.quantity_of(i.output.value, req_pid, sbond_dt.borrower) == 1
+      },
+    )
+  is {
+    Some(_) ->
+      utils_spend.change_stake_key_valid(tx, sbond.output, sbond_addr, sbond_dt)
+    _ -> fail @"not found borrower nft of bond utxo"
+  }
+}
+
+pub fn spending_redeem(
+  cfg: BondIssueConfig,
+  tx: Transaction,
+  sbond: Input,
+  sbond_addr: Address,
+  sbond_dt: BondDatum,
+  nft_pid: PolicyId,
+) -> Bool {
+  and {
+    utils_spend.bond_violate(cfg, tx, sbond.output, sbond_dt),
+    utils_spend.redeem_valid(tx, sbond.output, sbond_addr, sbond_dt, nft_pid),
   }
 }

@@ -146,8 +146,9 @@ fn get_name(
   z: AssetNames,
 ) -> AssetNames {
   let nft_assets = dict.to_list(value.tokens(o.value, nft_pid))
-  let count = list.length(nft_assets)
-  if count == 1 {
+  if list.at(nft_assets, 1) != None {
+    fail @"each bond utxo can only contain 1 nft"
+  } else if list.at(nft_assets, 0) != None {
     expect obond_dt: BondDatum =
       when o.datum is {
         InlineDatum(d) -> d
@@ -163,8 +164,6 @@ fn get_name(
     } else {
       fail @"unmatching bond_symbol"
     }
-  } else if count > 1 {
-    fail @"each bond utxo can only contain 1 nft"
   } else {
     z
   }
