@@ -88,7 +88,10 @@ pub fn spending_bond_create(
   bond_pid: PolicyId,
 ) -> Bool {
   let bond_credential = ScriptCredential(bond_sk)
+<<<<<<< borrow-request/lib/borrow_request/constraint.ak
+=======
   // đảm bảo trong inputs của giao dịch ko có bond utxo để trách nách phí phải trả
+>>>>>>> borrow-request/lib/borrow_request/constraint.ak
   expect None =
     list.find(
       tx.inputs,
