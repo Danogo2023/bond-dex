@@ -1,7 +1,6 @@
 // Ask Limit
 use aiken/bytearray
 use aiken/dict
-use aiken/interval.{Finite}
 use aiken/list
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
@@ -15,6 +14,7 @@ use bond/types.{
   AskLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
   OK,
 }
+use common/time.{tx_validity_valid}
 use common/util.{get_data} as common_utils
 
 fn matching_is_valid(
@@ -145,28 +145,14 @@ pub fn matching(
   owner: Address,
   spending: Address,
 ) -> Bool {
-  let validity_after_must_set =
-    when tx.validity_range.lower_bound.bound_type is {
-      Finite(x) -> x
-      _ -> 0
-    }
-  let validity_end_must_set =
-    when tx.validity_range.upper_bound.bound_type is {
-      Finite(x) -> x
-      _ -> 0
-    }
-  let owner_vk = spd_ask_datum.owner_vk
+  let tx_time =
+    tx_validity_valid(
+      tx,
+      conf.slot.slot_length,
+      conf.exchange.tx_buy_valid_slot,
+    )
   and {
-    (validity_after_must_set > 0)?,
-    (validity_end_must_set > 0)?,
-    (validity_end_must_set > validity_after_must_set)?,
-    (validity_end_must_set - validity_after_must_set <= when
-      conf.exchange.tx_buy_valid_slot
-    is {
-      Some(x) -> x
-      None -> 3 * 60
-    } * conf.slot.slot_length)?,
-    not(bytearray.is_empty(owner_vk))?,
+    not(bytearray.is_empty(spd_ask_datum.owner_vk))?,
     when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
       Some(ref_in_escrow) ->
         when get_data(tx.datums, ref_in_escrow.output.datum) is {
@@ -184,11 +170,8 @@ pub fn matching(
                   conf.bond,
                   value.lovelace_of(ref_in_escrow.output.value),
                   escrow_datum,
-                  validity_after_must_set,
-                  posix_time_to_relative_epoch(
-                    validity_after_must_set,
-                    conf.bond.epoch_config,
-                  ),
+                  tx_time,
+                  posix_time_to_relative_epoch(tx_time, conf.bond.epoch_config),
                   start_epoch,
                   end_epoch,
                 )
