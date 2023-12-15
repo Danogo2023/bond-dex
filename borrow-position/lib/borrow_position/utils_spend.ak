@@ -107,7 +107,7 @@ pub fn get_bond_outputs(
           )
         (z.1st + 1, [bond_key, ..z.2nd], bond_output, z.4th)
       } else if o.address == cfg.platform.address {
-        if z.4th == None {
+        if (z.4th == None)? {
           (z.1st, z.2nd, z.3rd, Some(o))
         } else {
           fail @"borrow_position/utils_spend.get_bond_outputs: only 1 platform fee output is allowed"
@@ -216,9 +216,7 @@ pub fn change_stake_key_valid(
             obond_dt.token_name == sbond_dt.token_name,
             obond_dt.borrower == sbond_dt.borrower,
           } {
-            if z.1st {
-              fail @"borrow_position/utils_spend.change_stake_key_valid: bond utxo must be unique"
-            } else {
+            if (z.1st == False)? {
               let datum_valid = and {
                   (obond_dt.epo_rewards == sbond_dt.epo_rewards)?,
                   (obond_dt.duration == sbond_dt.duration)?,
@@ -229,6 +227,8 @@ pub fn change_stake_key_valid(
                   (o.value == sbond.value)?,
                 }
               (False, (True, datum_valid))
+            } else {
+              fail @"borrow_position/utils_spend.change_stake_key_valid: bond utxo must be unique"
             }
           } else {
             (False, z)
@@ -238,7 +238,7 @@ pub fn change_stake_key_valid(
         }
       },
     )
-  if obond_found {
+  if obond_found? {
     obond_valid
   } else {
     fail @"borrow_position/utils_spend.change_stake_key_valid: bond utxo output invalid"
@@ -269,9 +269,7 @@ pub fn redeem_valid(
             dt.token_name == sbond_dt.token_name,
             dt.borrower == sbond_dt.borrower,
           } {
-            if z.1st {
-              fail @"borrow_position/utils_spend.redeem_valid: bond utxo must be unique"
-            } else {
+            if (z.1st == False)? {
               let balance = value.lovelace_of(sbond.value)
               let redeem_amt = sbond_dt.bond_amount - dt.bond_amount
               let redeem_val = balance / sbond_dt.bond_amount * redeem_amt
@@ -288,6 +286,8 @@ pub fn redeem_valid(
                     ))?,
                     (value.lovelace_of(o.value) == balance - redeem_val)?,
                   }, redeem_amt))
+            } else {
+              fail @"borrow_position/utils_spend.redeem_valid: bond utxo must be unique"
             }
           } else {
             (False, z)

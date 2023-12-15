@@ -11,12 +11,12 @@ use common/types.{ScriptKeyHash} as common_types
 pub fn minting_nft(
   tx: Transaction,
   out_ref: OutputReference,
-  req_sk: ScriptKeyHash,
-  bond_sk: ScriptKeyHash,
+  req_skh: ScriptKeyHash,
+  bond_skh: ScriptKeyHash,
   nft_pid: PolicyId,
 ) -> Bool {
-  let ireq = utils_nft.get_borrow_request_input(tx, out_ref, req_sk)
-  let obond = utils_nft.get_bond_output(tx, nft_pid, bond_sk)
+  let ireq = utils_nft.get_borrow_request_input(tx, out_ref, req_skh)
+  let obond = utils_nft.get_bond_output(tx, nft_pid, bond_skh)
   let mint_value = value.from_minted_value(tx.mint)
   let mint_nft = utils_nft.get_mint(mint_value, nft_pid)
   and {
@@ -59,15 +59,15 @@ pub fn minting_token(
   cfg: BondIssueConfig,
   tx: Transaction,
   out_ref: OutputReference,
-  req_sk: ScriptKeyHash,
-  bond_sk: ScriptKeyHash,
+  req_skh: ScriptKeyHash,
+  bond_skh: ScriptKeyHash,
   nft_pid: PolicyId,
   bond_pid: PolicyId,
 ) -> Bool {
   let (ireq_token, ireq_data) =
-    utils_token.get_borrow_request_input(tx, out_ref, req_sk)
+    utils_token.get_borrow_request_input(tx, out_ref, req_skh)
   let (obond_token, obond_data, obond_fee) =
-    utils_token.get_bond_output(cfg, tx, nft_pid, bond_sk)
+    utils_token.get_bond_output(cfg, tx, nft_pid, bond_skh)
   let mint_value = value.from_minted_value(tx.mint)
   let (nft_mint, _, bond_assets, bond_names) =
     utils_token.get_mint(mint_value, nft_pid, bond_pid)

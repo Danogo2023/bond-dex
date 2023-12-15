@@ -11,12 +11,12 @@ validator {
   fn mint_nft(ac: BondAction, ctx: ScriptContext) -> Bool {
     expect Mint(nft_pid) = ctx.purpose
     when ac is {
-      BondCreate { out_ref, req_sk, bond_sk, .. } ->
+      BondCreate { out_ref, req_skh, bond_skh, .. } ->
         constraint.minting_nft(
           ctx.transaction,
           out_ref,
-          req_sk,
-          bond_sk,
+          req_skh,
+          bond_skh,
           nft_pid,
         )
       BondRedeem { pid } ->
@@ -30,14 +30,14 @@ validator(cfg: BondIssueConfig) {
   fn mint_token(ac: BondAction, ctx: ScriptContext) -> Bool {
     expect Mint(bond_pid) = ctx.purpose
     when ac is {
-      BondCreate { out_ref, req_sk, bond_sk, pid } ->
+      BondCreate { out_ref, req_skh, bond_skh, pid: nft_pid } ->
         constraint.minting_token(
           cfg,
           ctx.transaction,
           out_ref,
-          req_sk,
-          bond_sk,
-          pid,
+          req_skh,
+          bond_skh,
+          nft_pid,
           bond_pid,
         )
       BondRedeem { pid } ->

@@ -69,9 +69,9 @@ pub fn get_bond_output(
   cfg: BondIssueConfig,
   tx: Transaction,
   nft_pid: PolicyId,
-  bond_sk: ScriptKeyHash,
+  bond_skh: ScriptKeyHash,
 ) -> (MintName, BondData, Option<Output>) {
-  let bond_credential = ScriptCredential(bond_sk)
+  let bond_credential = ScriptCredential(bond_skh)
   list.foldr(
     tx.outputs,
     (MintName { count: 0, names: [] }, dict.new(), None),
@@ -118,7 +118,7 @@ pub fn get_bond_output(
           fail log
         }
       } else if o.address == cfg.platform.address {
-        if ofee == None {
+        if (ofee == None)? {
           (mint, data, Some(o))
         } else {
           fail @"borrow_position/utils_token.get_bond_output: only 1 platform fee output is allowed"

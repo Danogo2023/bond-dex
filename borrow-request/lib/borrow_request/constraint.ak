@@ -20,9 +20,9 @@ pub fn minting(
   tx: Transaction,
   req_pid: PolicyId,
   out_ref: OutputReference,
-  sk: ScriptKeyHash,
+  req_skh: ScriptKeyHash,
 ) -> Bool {
-  let req_credential = ScriptCredential(sk)
+  let req_credential = ScriptCredential(req_skh)
   when
     list.foldr(
       tx.outputs,
@@ -85,37 +85,41 @@ pub fn spending_bond_create(
   sreq: Input,
   sreq_dt: RequestDatum,
   out_ref: Option<Input>,
-  bond_sk: ScriptKeyHash,
+  bond_skh: ScriptKeyHash,
   nft_pid: PolicyId,
   bond_pid: PolicyId,
 ) -> Bool {
-  let bond_credential = ScriptCredential(bond_sk)
-  expect None =
+  let bond_credential = ScriptCredential(bond_skh)
+  let bond_input =
     list.find(
       tx.inputs,
       fn(i) { i.output.address.payment_credential == bond_credential },
     )
-  //
-  let bond_addr =
-    Address {
-      payment_credential: bond_credential,
-      stake_credential: sreq.output.address.stake_credential,
-    }
-  let outs =
-    list.foldr(
-      tx.outputs,
-      BondCreateOutput { oreq_valid: 0, obond: None, mint_qty: 0 },
-      fn(o, z) {
-        get_bond_create_output(cfg, bond_addr, o, sreq.output, sreq_dt, z)
-      },
-    )
+  if (bond_input == None)? {
+    //
+    let bond_addr =
+      Address {
+        payment_credential: bond_credential,
+        stake_credential: sreq.output.address.stake_credential,
+      }
+    let outs =
+      list.foldr(
+        tx.outputs,
+        BondCreateOutput { oreq_valid: 0, obond: None, mint_qty: 0 },
+        fn(o, z) {
+          get_bond_create_output(cfg, bond_addr, o, sreq.output, sreq_dt, z)
+        },
+      )
 
-  and {
-    // trace @"borrow request output invalid"
-    (outs.oreq_valid < 2)?,
-    // trace @"Not found bond output"
-    (outs.obond != None)?,
-    bond_output_valid(cfg, tx, sreq_dt, out_ref, nft_pid, bond_pid, outs),
+    and {
+      // trace @"borrow request output invalid"
+      (outs.oreq_valid < 2)?,
+      // trace @"Not found bond output"
+      (outs.obond != None)?,
+      bond_output_valid(cfg, tx, sreq_dt, out_ref, nft_pid, bond_pid, outs),
+    }
+  } else {
+    fail @"borrow_request/constraint.spending_bond_create: bond utxo are not allowed in tx input"
   }
 }
 
