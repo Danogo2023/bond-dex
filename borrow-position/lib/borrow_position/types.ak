@@ -5,12 +5,12 @@ use bond_issue/types.{BondDatum, RequestDatum} as bond_issue_types
 use common/types.{ScriptKeyHash}
 
 pub type BondAction {
-  // mint bond nft => BondCreate { out_ref, req_sk, bond_sk, bond_pid }
-  // mint bond token => BondCreate { out_ref, req_sk, bond_sk, nft_pid }
+  // mint bond nft => BondCreate { out_ref, req_skh, bond_skh, bond_pid }
+  // mint bond token => BondCreate { out_ref, req_skh, bond_skh, nft_pid }
   BondCreate {
     out_ref: OutputReference,
-    req_sk: ScriptKeyHash,
-    bond_sk: ScriptKeyHash,
+    req_skh: ScriptKeyHash,
+    bond_skh: ScriptKeyHash,
     pid: PolicyId,
   }
   // burn bond nft => BondRedeem { bond_pid }

@@ -12,9 +12,9 @@ use common/util.{get_spending_input}
 validator(cfg: BondIssueConfig) {
   fn mint(ac: RequestAction, ctx: ScriptContext) -> Bool {
     when ac is {
-      RequestCreate { out_ref, sk } -> {
-        expect Mint(pid) = ctx.purpose
-        constraint.minting(cfg, ctx.transaction, pid, out_ref, sk)
+      RequestCreate { out_ref, sk: req_skh } -> {
+        expect Mint(req_pid) = ctx.purpose
+        constraint.minting(cfg, ctx.transaction, req_pid, out_ref, req_skh)
       }
       _ -> fail @"invalid action"
     }
@@ -23,7 +23,7 @@ validator(cfg: BondIssueConfig) {
 
 validator(
   cfg: BondIssueConfig,
-  bond_sk: ScriptKeyHash,
+  bond_skh: ScriptKeyHash,
   nft_pid: PolicyId,
   bond_pid: PolicyId,
 ) {
@@ -37,7 +37,7 @@ validator(
           sreq,
           sdt,
           out_ref_input,
-          bond_sk,
+          bond_skh,
           nft_pid,
           bond_pid,
         )

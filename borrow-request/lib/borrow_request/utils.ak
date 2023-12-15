@@ -81,11 +81,11 @@ pub fn mint_only_one(
 pub fn get_borrow_request_output(
   cfg: BondIssueConfig,
   o: Output,
-  ireq: Output,
-  ireq_dt: RequestDatum,
+  sreq: Output,
+  sreq_dt: RequestDatum,
   z: BorrowRequestOutput,
 ) -> BorrowRequestOutput {
-  if o.address.payment_credential == ireq.address.payment_credential {
+  if o.address.payment_credential == sreq.address.payment_credential {
     expect oreq_dt: RequestDatum =
       when o.datum is {
         InlineDatum(d) -> d
@@ -93,12 +93,12 @@ pub fn get_borrow_request_output(
           fail @"borrow_request/utils.get_borrow_request_output: only supports InlineDatum for request"
       }
     if and {
-      oreq_dt.symbol == ireq_dt.symbol,
-      oreq_dt.borrower == ireq_dt.borrower,
+      oreq_dt.symbol == sreq_dt.symbol,
+      oreq_dt.borrower == sreq_dt.borrower,
     } {
-      if z.oreq_valid == 0 {
+      if (z.oreq_valid == 0)? {
         if and {
-          (oreq_dt.issued == ireq_dt.issued)?,
+          (oreq_dt.issued == sreq_dt.issued)?,
           (o.address.stake_credential != None)?,
           request_output_valid(value.lovelace_of(o.value), oreq_dt, cfg),
         } {
@@ -109,15 +109,15 @@ pub fn get_borrow_request_output(
           BorrowRequestOutput { ..z, oreq_valid: 2 }
         }
       } else {
-        fail @"borrow_request/utils.get_bond_create_output: one borrow request input allows only one borrow request output"
+        fail @"borrow_request/utils.get_borrow_request_output: one borrow request input allows only one borrow request output"
       }
     } else {
       z
     }
   } else if !z.nft_valid && value.quantity_of(
     o.value,
-    ireq_dt.symbol,
-    ireq_dt.borrower,
+    sreq_dt.symbol,
+    sreq_dt.borrower,
   ) > 0 {
     BorrowRequestOutput { ..z, nft_valid: True }
   } else {
@@ -129,11 +129,11 @@ pub fn get_bond_create_output(
   cfg: BondIssueConfig,
   bond_addr: Address,
   o: Output,
-  ireq: Output,
-  ireq_dt: RequestDatum,
+  sreq: Output,
+  sreq_dt: RequestDatum,
   z: BondCreateOutput,
 ) -> BondCreateOutput {
-  if o.address.payment_credential == ireq.address.payment_credential {
+  if o.address.payment_credential == sreq.address.payment_credential {
     expect oreq_dt: RequestDatum =
       when o.datum is {
         InlineDatum(d) -> d
@@ -141,26 +141,26 @@ pub fn get_bond_create_output(
           fail @"borrow_request/utils.get_bond_create_output: only supports InlineDatum for borrow request"
       }
     if and {
-      oreq_dt.symbol == ireq_dt.symbol,
-      oreq_dt.borrower == ireq_dt.borrower,
+      oreq_dt.symbol == sreq_dt.symbol,
+      oreq_dt.borrower == sreq_dt.borrower,
     } {
-      if z.oreq_valid == 0 {
+      if (z.oreq_valid == 0)? {
         if and {
-          (o.address.stake_credential == ireq.address.stake_credential)?,
-          (oreq_dt.apr == ireq_dt.apr)?,
-          (oreq_dt.duration == ireq_dt.duration)?,
-          (oreq_dt.requested == ireq_dt.requested)?,
-          (oreq_dt.issued > ireq_dt.issued)?,
-          (oreq_dt.prepaid == ireq_dt.prepaid)?,
-          (oreq_dt.buffer == ireq_dt.buffer)?,
-          (oreq_dt.fee == ireq_dt.fee)?,
+          (o.address.stake_credential == sreq.address.stake_credential)?,
+          (oreq_dt.apr == sreq_dt.apr)?,
+          (oreq_dt.duration == sreq_dt.duration)?,
+          (oreq_dt.requested == sreq_dt.requested)?,
+          (oreq_dt.issued > sreq_dt.issued)?,
+          (oreq_dt.prepaid == sreq_dt.prepaid)?,
+          (oreq_dt.buffer == sreq_dt.buffer)?,
+          (oreq_dt.fee == sreq_dt.fee)?,
           request_output_valid(value.lovelace_of(o.value), oreq_dt, cfg),
         } {
           // trace @"borrow request output valid"
           BondCreateOutput {
             ..z,
             oreq_valid: 1,
-            mint_qty: oreq_dt.issued - ireq_dt.issued,
+            mint_qty: oreq_dt.issued - sreq_dt.issued,
           }
         } else {
           // trace @"borrow request output invalid"
@@ -179,8 +179,8 @@ pub fn get_bond_create_output(
         _ ->
           fail @"borrow_request/utils.get_bond_create_output: only supports InlineDatum for bond"
       }
-    if obond_dt.borrower == ireq_dt.borrower {
-      if z.obond == None {
+    if obond_dt.borrower == sreq_dt.borrower {
+      if (z.obond == None)? {
         BondCreateOutput { ..z, obond: Some((obond_dt, o)) }
       } else {
         fail @"borrow_request/utils.get_bond_create_output: one borrow request allows only one bond output"

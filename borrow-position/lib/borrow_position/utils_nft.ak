@@ -13,9 +13,9 @@ use common/util.{find_while}
 pub fn get_borrow_request_input(
   tx: Transaction,
   out_ref: OutputReference,
-  req_sk: ScriptKeyHash,
+  req_skh: ScriptKeyHash,
 ) -> MintName {
-  let req_credential = ScriptCredential(req_sk)
+  let req_credential = ScriptCredential(req_skh)
   let out_ref_input =
     list.find(tx.inputs, fn(i) { i.output_reference == out_ref })
   list.foldr(
@@ -43,9 +43,9 @@ pub fn get_borrow_request_input(
 pub fn get_bond_output(
   tx: Transaction,
   nft_pid: PolicyId,
-  bond_sk: ScriptKeyHash,
+  bond_skh: ScriptKeyHash,
 ) -> MintName {
-  let bond_credential = ScriptCredential(bond_sk)
+  let bond_credential = ScriptCredential(bond_skh)
   list.foldr(
     tx.outputs,
     MintName { count: 0, names: [] },
@@ -124,7 +124,7 @@ pub fn get_name_burn(mint: Value, nft_pid: PolicyId) -> AssetNames {
     [],
     fn(k, v, z) {
       if v < 0 {
-        if v == -1 {
+        if (v == -1)? {
           [k, ..z]
         } else {
           let log =
@@ -169,40 +169,40 @@ fn get_name(
   z: AssetNames,
 ) -> AssetNames {
   let nft_assets = dict.to_list(value.tokens(o.value, nft_pid))
-  if list.at(nft_assets, 1) != None {
-    fail @"borrow_position/utils_nft.get_name: each bond utxo can only contain 1 nft"
-  } else if
-  list.at(nft_assets, 0) != None{
-  
-    expect obond_dt: BondDatum =
-      when o.datum is {
-        InlineDatum(d) -> d
-        _ ->
-          fail @"borrow_position/utils_nft.get_name: only supports InlineDatum for bond"
-      }
-    if obond_dt.bond_symbol == bond_pid {
-      expect Some((nft_name, _)) = list.head(nft_assets)
-      if nft_name == obond_dt.token_name {
-        [nft_name, ..z]
+  if (list.at(nft_assets, 1) == None)? {
+    if list.at(nft_assets, 0) != None {
+      expect obond_dt: BondDatum =
+        when o.datum is {
+          InlineDatum(d) -> d
+          _ ->
+            fail @"borrow_position/utils_nft.get_name: only supports InlineDatum for bond"
+        }
+      if (obond_dt.bond_symbol == bond_pid)? {
+        expect Some((nft_name, _)) = list.head(nft_assets)
+        if (nft_name == obond_dt.token_name)? {
+          [nft_name, ..z]
+        } else {
+          let log =
+            @"borrow_position/utils_nft.get_name: unmatching token_name ("
+              |> string.concat(string.from_bytearray(nft_name))
+              |> string.concat(@"==")
+              |> string.concat(string.from_bytearray(obond_dt.token_name))
+              |> string.concat(@")")
+          fail log
+        }
       } else {
         let log =
-          @"borrow_position/utils_nft.get_name: unmatching token_name ("
-            |> string.concat(string.from_bytearray(nft_name))
+          @"borrow_position/utils_nft.get_name: unmatching bond_symbol ("
+            |> string.concat(string.from_bytearray(obond_dt.bond_symbol))
             |> string.concat(@"==")
-            |> string.concat(string.from_bytearray(obond_dt.token_name))
+            |> string.concat(string.from_bytearray(bond_pid))
             |> string.concat(@")")
         fail log
       }
     } else {
-      let log =
-        @"borrow_position/utils_nft.get_name: unmatching bond_symbol ("
-          |> string.concat(string.from_bytearray(obond_dt.bond_symbol))
-          |> string.concat(@"==")
-          |> string.concat(string.from_bytearray(bond_pid))
-          |> string.concat(@")")
-      fail log
+      z
     }
   } else {
-    z
+    fail @"borrow_position/utils_nft.get_name: each bond utxo can only contain 1 nft"
   }
 }
