@@ -33,11 +33,12 @@ pub fn minting(
             expect oreq_dt: RequestDatum =
               when o.datum is {
                 InlineDatum(d) -> d
-                _ -> fail @"only supports InlineDatum for request"
+                _ ->
+                  fail @"borrow_request/constraint.minting: only supports InlineDatum for request"
               }
             Some((oreq_dt, o))
           } else {
-            fail @"only 1 request output is allowed"
+            fail @"borrow_request/constraint.minting: only 1 request output is allowed"
           }
         } else {
           z
@@ -55,7 +56,8 @@ pub fn minting(
         ))?,
         mint_only_one(tx, req_pid, oreq_dt.borrower),
       }
-    _ -> fail @"only 1 request output is allowed"
+    _ ->
+      fail @"borrow_request/constraint.minting: only 1 request output is allowed"
   }
 }
 
@@ -126,7 +128,6 @@ fn bond_output_valid(
   bond_pid: PolicyId,
   outs: BondCreateOutput,
 ) -> Bool {
-  // expect Some((_oreq_dt, _oreq)) = outs.oreq
   expect Some((obond_dt, obond)) = outs.obond
   let bond_name = hash_sorted_salt(out_ref, sreq_dt.borrower)
   let bond_qty_must_mint =
@@ -137,7 +138,7 @@ fn bond_output_valid(
       // bond create partial remain
       outs.mint_qty
     }
-  let curr_epoch =
+  let epoch_curr =
     get_current_epoch_with_ttl(
       tx.validity_range,
       cfg.epoch,
@@ -154,7 +155,7 @@ fn bond_output_valid(
     (obond_dt.buffer == sreq_dt.buffer)?,
     (obond_dt.fee == sreq_dt.fee)?,
     // (obond_dt.borrower == sreq_dt.borrower)?,
-    (obond_dt.start == curr_epoch - cfg.epoch.epoch_boundary_as_epoch)?,
+    (obond_dt.start == epoch_curr - cfg.epoch.epoch_boundary_as_epoch)?,
     tx_mint_valid(tx, nft_pid, obond_dt),
     bond_value_valid(cfg, sreq_dt, nft_pid, obond_dt, obond),
   }

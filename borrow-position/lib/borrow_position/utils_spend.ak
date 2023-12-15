@@ -3,6 +3,7 @@ use aiken/dict
 use aiken/hash.{blake2b_256}
 use aiken/list
 use aiken/option
+use aiken/string
 use aiken/transaction.{InlineDatum, Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{PolicyId}
@@ -25,7 +26,8 @@ pub fn get_bond_inputs(
         expect dt: BondDatum =
           when i.output.datum is {
             InlineDatum(d) -> d
-            _ -> fail @"only supports InlineDatum for bond"
+            _ ->
+              fail @"borrow_position/utils_spend.get_bond_inputs: only supports InlineDatum for bond"
           }
         let bond_key =
           blake2b_256(
@@ -44,8 +46,12 @@ pub fn get_bond_inputs(
               i.output,
               0,
             ),
-            fn(_, _, _) {
-              fail @"bond utxo must be unique"
+            fn(k, _, _) {
+              let log =
+                @"borrow_position/utils_spend.get_bond_inputs: bond utxo must be unique (bond_key="
+                  |> string.concat(string.from_bytearray(k))
+                  |> string.concat(@")")
+              fail log
             },
             bytearray.compare,
           )
@@ -70,7 +76,8 @@ pub fn get_bond_outputs(
         expect dt: BondDatum =
           when o.datum is {
             InlineDatum(d) -> d
-            _ -> fail @"only supports InlineDatum for bond"
+            _ ->
+              fail @"borrow_position/utils_spend.get_bond_outputs: only supports InlineDatum for bond"
           }
         let bond_key =
           blake2b_256(
@@ -89,8 +96,12 @@ pub fn get_bond_outputs(
               o,
               0,
             ),
-            fn(_, _, _) {
-              fail @"bond utxo must be unique"
+            fn(k, _, _) {
+              let log =
+                @"borrow_position/utils_spend.get_bond_outputs: bond utxo must be unique (bond_key="
+                  |> string.concat(string.from_bytearray(k))
+                  |> string.concat(@")")
+              fail log
             },
             bytearray.compare,
           )
@@ -99,7 +110,7 @@ pub fn get_bond_outputs(
         if z.4th == None {
           (z.1st, z.2nd, z.3rd, Some(o))
         } else {
-          fail @"only 1 platform fee output is allowed"
+          fail @"borrow_position/utils_spend.get_bond_outputs: only 1 platform fee output is allowed"
         }
       } else {
         z
@@ -152,10 +163,16 @@ pub fn fee_pay_interest_valid(
                   ),
                 )
               } else {
-                fail @"minimum interest payments are not guaranteed"
+                let log =
+                  @"borrow_position/utils_spend.fee_pay_interest_valid: minimum interest payments are not guaranteed ("
+                    |> string.concat(string.from_int(interest))
+                    |> string.concat(@">=")
+                    |> string.concat(string.from_int(interest_min))
+                    |> string.concat(@")")
+                fail log
               }
             } else {
-              fail @"bond output invalid"
+              fail @"borrow_position/utils_spend.fee_pay_interest_valid: bond output invalid"
             }
           },
           bytearray.compare,
@@ -171,7 +188,8 @@ pub fn fee_pay_interest_valid(
         )
       (value.lovelace_of(o.value) >= total_fee)?
     }
-    _ -> fail @"not found platform fee output"
+    _ ->
+      fail @"borrow_position/utils_spend.fee_pay_interest_valid: not found platform fee output"
   }
 }
 
@@ -190,7 +208,8 @@ pub fn change_stake_key_valid(
           expect obond_dt: BondDatum =
             when o.datum is {
               InlineDatum(d) -> d
-              _ -> fail @"only supports InlineDatum for bond"
+              _ ->
+                fail @"borrow_position/utils_spend.change_stake_key_valid: only supports InlineDatum for bond"
             }
           if and {
             obond_dt.bond_symbol == sbond_dt.bond_symbol,
@@ -198,7 +217,7 @@ pub fn change_stake_key_valid(
             obond_dt.borrower == sbond_dt.borrower,
           } {
             if z.1st {
-              fail @"bond utxo must be unique"
+              fail @"borrow_position/utils_spend.change_stake_key_valid: bond utxo must be unique"
             } else {
               let datum_valid = and {
                   (obond_dt.epo_rewards == sbond_dt.epo_rewards)?,
@@ -222,7 +241,7 @@ pub fn change_stake_key_valid(
   if obond_found {
     obond_valid
   } else {
-    fail @"bond utxo output invalid"
+    fail @"borrow_position/utils_spend.change_stake_key_valid: bond utxo output invalid"
   }
 }
 
@@ -242,7 +261,8 @@ pub fn redeem_valid(
           expect dt: BondDatum =
             when o.datum is {
               InlineDatum(d) -> d
-              _ -> fail @"only supports InlineDatum for bond"
+              _ ->
+                fail @"borrow_position/utils_spend.redeem_valid: only supports InlineDatum for bond"
             }
           if and {
             dt.bond_symbol == sbond_dt.bond_symbol,
@@ -250,7 +270,7 @@ pub fn redeem_valid(
             dt.borrower == sbond_dt.borrower,
           } {
             if z.1st {
-              fail @"bond utxo must be unique"
+              fail @"borrow_position/utils_spend.redeem_valid: bond utxo must be unique"
             } else {
               let balance = value.lovelace_of(sbond.value)
               let redeem_amt = sbond_dt.bond_amount - dt.bond_amount
@@ -313,16 +333,25 @@ pub fn bond_violate(
     )
   let epoch_start = sbond_dt.start + cfg.epoch.epoch_boundary_as_epoch
   let epoch_end = epoch_start + sbond_dt.duration
-  if epoch_curr >= epoch_end {
-    True
-  } else {
-    let epoch_passed = epoch_curr - epoch_start + 1
-    // let epoch_remain = epoch_end - epoch_passed
-    let epoch_required_premium = epoch_passed + sbond_dt.buffer
-    let principal = sbond_dt.bond_amount * cfg.platform.bond_face_value
-    let balance = value.lovelace_of(sbond.value)
-    let paid = balance - principal
-    let paid_epoch = paid / value.lovelace_of(sbond_dt.epo_rewards)
-    (paid_epoch < epoch_required_premium)?
+  or {
+    (epoch_curr >= epoch_end)?,
+    epoch_required_premium_valid(cfg, sbond, sbond_dt, epoch_curr, epoch_start),
   }
+}
+
+fn epoch_required_premium_valid(
+  cfg: BondIssueConfig,
+  sbond: Output,
+  sbond_dt: BondDatum,
+  epoch_curr: Int,
+  epoch_start: Int,
+) -> Bool {
+  let epoch_passed = epoch_curr - epoch_start + 1
+  // let epoch_remain = epoch_end - epoch_passed
+  let epoch_required_premium = epoch_passed + sbond_dt.buffer
+  let principal = sbond_dt.bond_amount * cfg.platform.bond_face_value
+  let balance = value.lovelace_of(sbond.value)
+  let paid = balance - principal
+  let paid_epoch = paid / value.lovelace_of(sbond_dt.epo_rewards)
+  (paid_epoch < epoch_required_premium)?
 }

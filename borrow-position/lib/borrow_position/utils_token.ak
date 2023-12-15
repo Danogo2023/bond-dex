@@ -2,6 +2,7 @@ use aiken/bytearray
 use aiken/dict
 use aiken/list
 use aiken/option
+use aiken/string
 use aiken/transaction.{InlineDatum, Output, OutputReference, Transaction}
 use aiken/transaction/credential.{ScriptCredential}
 use aiken/transaction/value.{PolicyId, Value}
@@ -32,7 +33,8 @@ pub fn get_borrow_request_input(
         expect ireq_dt: RequestDatum =
           when o.output.datum is {
             InlineDatum(d) -> d
-            _ -> fail @"only supports InlineDatum for request"
+            _ ->
+              fail @"borrow_position/utils_token.get_borrow_request_input: only supports InlineDatum for request"
           }
         (
           MintName {
@@ -46,8 +48,12 @@ pub fn get_borrow_request_input(
             data,
             ireq_dt.borrower,
             (ireq_dt, o.output),
-            fn(_, _, _) {
-              fail @"only 1 borrow request input is allowed for 1 borrow nft"
+            fn(k, _, _) {
+              let log =
+                @"borrow_position/utils_token.get_borrow_request_input: only 1 borrow request input is allowed for 1 borrow nft (ireq_dt.borrower="
+                  |> string.concat(string.from_bytearray(k))
+                  |> string.concat(@")")
+              fail log
             },
             bytearray.compare,
           ),
@@ -75,7 +81,8 @@ pub fn get_bond_output(
         expect obond_dt: BondDatum =
           when o.datum is {
             InlineDatum(d) -> d
-            _ -> fail @"only supports InlineDatum for bond"
+            _ ->
+              fail @"borrow_position/utils_token.get_bond_output: only supports InlineDatum for bond"
           }
         let nft_qty = value.quantity_of(o.value, nft_pid, obond_dt.token_name)
         if (nft_qty == 1)? {
@@ -88,21 +95,33 @@ pub fn get_bond_output(
               data,
               obond_dt.borrower,
               (obond_dt, o),
-              fn(_, _, _) {
-                fail @"only 1 nft mining is allowed"
+              fn(k, _, _) {
+                let log =
+                  @"borrow_position/utils_token.get_bond_output: only 1 nft mining is allowed (obond_dt.borrower="
+                    |> string.concat(string.from_bytearray(k))
+                    |> string.concat(@")")
+                fail log
               },
               bytearray.compare,
             ),
             ofee,
           )
         } else {
-          fail @"each bond utxo must contains 1 bond nft"
+          let log =
+            @"borrow_position/utils_token.get_bond_output: each bond utxo must contains 1 bond nft ("
+              |> string.concat(string.from_bytearray(nft_pid))
+              |> string.concat(@".")
+              |> string.concat(string.from_bytearray(obond_dt.token_name))
+              |> string.concat(@"=")
+              |> string.concat(string.from_int(nft_qty))
+              |> string.concat(@")")
+          fail log
         }
       } else if o.address == cfg.platform.address {
         if ofee == None {
           (mint, data, Some(o))
         } else {
-          fail @"only 1 platform fee output is allowed"
+          fail @"borrow_position/utils_token.get_bond_output: only 1 platform fee output is allowed"
         }
       } else {
         z
@@ -148,7 +167,13 @@ pub fn get_mint(
         if (v == 1)? {
           MintName { count: z.count + v, names: [k, ..z.names] }
         } else {
-          fail @"only 1 bond nft can be mined"
+          let log =
+            @"borrow_position/utils_token.get_mint: only 1 bond nft can be mined ("
+              |> string.concat(string.from_bytearray(k))
+              |> string.concat(@"=")
+              |> string.concat(string.from_int(v))
+              |> string.concat(@")")
+          fail log
         }
       },
     ),
@@ -176,19 +201,26 @@ pub fn fee_valid(
           Some((ireq_dt, ireq)) -> {
             let mint_bond_amount =
               option.or_else(dict.get(bond_mint, obond_dt.token_name), 0)
-            if mint_bond_amount == obond_dt.bond_amount {
+            if (mint_bond_amount == obond_dt.bond_amount)? {
               if
-              obond.address.stake_credential == ireq.address.stake_credential{
+              (obond.address.stake_credential == ireq.address.stake_credential)?{
               
                 z + value.lovelace_of(obond_dt.epo_rewards) * ireq_dt.prepaid * ireq_dt.fee / cfg.basis.base
               } else {
-                fail @"stake key of bond output not matching with stake key of borrow request input"
+                fail @"borrow_position/utils_token.fee_valid: stake key of bond output not matching with stake key of borrow request input"
               }
             } else {
-              fail @"bond token mint amount invalid"
+              let log =
+                @"borrow_position/utils_token.fee_valid: bond token mint amount invalid ("
+                  |> string.concat(string.from_int(mint_bond_amount))
+                  |> string.concat(@"==")
+                  |> string.concat(string.from_int(obond_dt.bond_amount))
+                  |> string.concat(@")")
+              fail log
             }
           }
-          _ -> fail @"not found borrow request input valid"
+          _ ->
+            fail @"borrow_position/utils_token.fee_valid: not found borrow request input valid"
         }
       },
     )

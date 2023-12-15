@@ -152,7 +152,8 @@ pub fn spending_change_stake_key(
   is {
     Some(_) ->
       utils_spend.change_stake_key_valid(tx, sbond.output, sbond_addr, sbond_dt)
-    _ -> fail @"not found borrower nft of bond utxo"
+    _ ->
+      fail @"borrow_position/constraint.spending_change_stake_key: not found borrower nft of bond utxo"
   }
 }
 
