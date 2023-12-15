@@ -1,5 +1,6 @@
 use aiken/dict
 use aiken/list
+use aiken/string
 use aiken/transaction.{InlineDatum, Output, OutputReference, Transaction}
 use aiken/transaction/credential.{ScriptCredential}
 use aiken/transaction/value.{PolicyId, Value}
@@ -25,7 +26,8 @@ pub fn get_borrow_request_input(
         expect ireq_dt: RequestDatum =
           when o.output.datum is {
             InlineDatum(d) -> d
-            _ -> fail @"only supports InlineDatum for request"
+            _ ->
+              fail @"borrow_position/utils_nft.get_borrow_request_input: only supports InlineDatum for request"
           }
         MintName {
           count: z.count + 1,
@@ -52,7 +54,8 @@ pub fn get_bond_output(
         expect obond_dt: BondDatum =
           when o.datum is {
             InlineDatum(d) -> d
-            _ -> fail @"only supports InlineDatum for bond"
+            _ ->
+              fail @"borrow_position/utils_nft.get_bond_output: only supports InlineDatum for bond"
           }
         let nft_qty = value.quantity_of(o.value, nft_pid, obond_dt.token_name)
         if (nft_qty == 1)? {
@@ -61,7 +64,15 @@ pub fn get_bond_output(
             names: [obond_dt.token_name, ..z.names],
           }
         } else {
-          fail @"each bond utxo must contains 1 bond nft"
+          let log =
+            @"borrow_position/utils_nft.get_bond_output: each bond utxo must contains 1 bond nft ("
+              |> string.concat(string.from_bytearray(nft_pid))
+              |> string.concat(@".")
+              |> string.concat(string.from_bytearray(obond_dt.token_name))
+              |> string.concat(@"=")
+              |> string.concat(string.from_int(nft_qty))
+              |> string.concat(@")")
+          fail log
         }
       } else {
         z
@@ -95,7 +106,13 @@ pub fn get_mint(mint: Value, nft_pid: PolicyId) -> MintName {
       if (v == 1)? {
         MintName { count: z.count + v, names: [k, ..z.names] }
       } else {
-        fail @"only 1 bond nft can be minting"
+        let log =
+          @"borrow_position/utils_nft.get_mint: only 1 bond nft can be minting ("
+            |> string.concat(string.from_bytearray(k))
+            |> string.concat(@"=")
+            |> string.concat(string.from_int(v))
+            |> string.concat(@")")
+        fail log
       }
     },
   )
@@ -110,7 +127,13 @@ pub fn get_name_burn(mint: Value, nft_pid: PolicyId) -> AssetNames {
         if v == -1 {
           [k, ..z]
         } else {
-          fail @"only 1 bond nft can be burn"
+          let log =
+            @"borrow_position/utils_nft.get_name_burn: only 1 bond nft can be burn ("
+              |> string.concat(string.from_bytearray(k))
+              |> string.concat(@"=")
+              |> string.concat(string.from_int(v))
+              |> string.concat(@")")
+          fail log
         }
       } else {
         z
@@ -147,22 +170,37 @@ fn get_name(
 ) -> AssetNames {
   let nft_assets = dict.to_list(value.tokens(o.value, nft_pid))
   if list.at(nft_assets, 1) != None {
-    fail @"each bond utxo can only contain 1 nft"
-  } else if list.at(nft_assets, 0) != None {
+    fail @"borrow_position/utils_nft.get_name: each bond utxo can only contain 1 nft"
+  } else if
+  list.at(nft_assets, 0) != None{
+  
     expect obond_dt: BondDatum =
       when o.datum is {
         InlineDatum(d) -> d
-        _ -> fail @"only supports InlineDatum for bond"
+        _ ->
+          fail @"borrow_position/utils_nft.get_name: only supports InlineDatum for bond"
       }
     if obond_dt.bond_symbol == bond_pid {
       expect Some((nft_name, _)) = list.head(nft_assets)
       if nft_name == obond_dt.token_name {
         [nft_name, ..z]
       } else {
-        fail @"unmatching token_name"
+        let log =
+          @"borrow_position/utils_nft.get_name: unmatching token_name ("
+            |> string.concat(string.from_bytearray(nft_name))
+            |> string.concat(@"==")
+            |> string.concat(string.from_bytearray(obond_dt.token_name))
+            |> string.concat(@")")
+        fail log
       }
     } else {
-      fail @"unmatching bond_symbol"
+      let log =
+        @"borrow_position/utils_nft.get_name: unmatching bond_symbol ("
+          |> string.concat(string.from_bytearray(obond_dt.bond_symbol))
+          |> string.concat(@"==")
+          |> string.concat(string.from_bytearray(bond_pid))
+          |> string.concat(@")")
+      fail log
     }
   } else {
     z

@@ -89,7 +89,8 @@ pub fn get_borrow_request_output(
     expect oreq_dt: RequestDatum =
       when o.datum is {
         InlineDatum(d) -> d
-        _ -> fail @"only supports InlineDatum for request"
+        _ ->
+          fail @"borrow_request/utils.get_borrow_request_output: only supports InlineDatum for request"
       }
     if and {
       oreq_dt.symbol == ireq_dt.symbol,
@@ -108,7 +109,7 @@ pub fn get_borrow_request_output(
           BorrowRequestOutput { ..z, oreq_valid: 2 }
         }
       } else {
-        fail @"one borrow request input allows only one borrow request output"
+        fail @"borrow_request/utils.get_bond_create_output: one borrow request input allows only one borrow request output"
       }
     } else {
       z
@@ -136,7 +137,8 @@ pub fn get_bond_create_output(
     expect oreq_dt: RequestDatum =
       when o.datum is {
         InlineDatum(d) -> d
-        _ -> fail @"only supports InlineDatum for borrow request"
+        _ ->
+          fail @"borrow_request/utils.get_bond_create_output: only supports InlineDatum for borrow request"
       }
     if and {
       oreq_dt.symbol == ireq_dt.symbol,
@@ -165,7 +167,7 @@ pub fn get_bond_create_output(
           BondCreateOutput { ..z, oreq_valid: 2 }
         }
       } else {
-        fail @"one borrow request input allows only one borrow request output"
+        fail @"borrow_request/utils.get_bond_create_output: one borrow request input allows only one borrow request output"
       }
     } else {
       z
@@ -174,13 +176,14 @@ pub fn get_bond_create_output(
     expect obond_dt: BondDatum =
       when o.datum is {
         InlineDatum(d) -> d
-        _ -> fail @"only supports InlineDatum for bond"
+        _ ->
+          fail @"borrow_request/utils.get_bond_create_output: only supports InlineDatum for bond"
       }
     if obond_dt.borrower == ireq_dt.borrower {
       if z.obond == None {
         BondCreateOutput { ..z, obond: Some((obond_dt, o)) }
       } else {
-        fail @"one borrow request allows only one bond output"
+        fail @"borrow_request/utils.get_bond_create_output: one borrow request allows only one bond output"
       }
     } else {
       z
