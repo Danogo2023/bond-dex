@@ -1,0 +1,36 @@
+
+    ┍━ borrow_request/request_nft_test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │ PASS [mem:  322902, cpu:  125976129] succ_when_all_rules_are_satisfied
+    │ PASS [mem:  362048, cpu:  147705325] succ_when_seed_input_isnt_first
+    │ PASS [mem:  231196, cpu:   91470985] fail_when_wrong_seed
+    │ ↳ Expected on incorrect Constr variant
+    │ PASS [mem:  359446, cpu:  140157756] fail_when_minting_no_nft
+    │ ↳ qty_valid == 2 ? False
+    │ PASS [mem:  388649, cpu:  151300521] fail_when_minting_incorrect_nft_name
+    │ ↳ qty_valid == 2 ? False
+    │ PASS [mem:  335861, cpu:  132764709] fail_when_minting_double_nft
+    │ ↳ qty invalid
+    │ PASS [mem:  358881, cpu:  139581158] fail_when_not_minting_borrower_nft
+    │ ↳ qty_valid == 2 ? False
+    │ PASS [mem:  404063, cpu:  158831007] succ_when_minting_other_tokens_additionally
+    │ PASS [mem:  342416, cpu:  132841519] succ_when_doesnt_set_stake_credential
+    │ PASS [mem:  370500, cpu:  142389295] succ_when_setting_apr_lower_than_min_apr
+    │ PASS [mem:  371328, cpu:  142741401] succ_when_setting_duration_lowwer_than_min_duration
+    │ PASS [mem:  366514, cpu:  140874737] succ_when_setting_incorrect_symbol
+    │ PASS [mem:  367710, cpu:  141277661] succ_when_setting_incorrect_borrower
+    │ PASS [mem:  375352, cpu:  143982809] succ_when_setting_requested_lower_than_min_requested
+    │ PASS [mem:  370102, cpu:  142083509] succ_when_setting_negative_issued
+    │ PASS [mem:  370102, cpu:  142083509] succ_when_setting_positive_issued
+    │ PASS [mem:  418920, cpu:  159344800] succ_when_setting_epo_rewards_lower_than_expected
+    │ PASS [mem:  379672, cpu:  145420141] succ_when_setting_buffer_lower_than_min_buffer
+    │ PASS [mem:  378808, cpu:  145180155] succ_when_setting_fee_lower_than_min_fee
+    │ PASS [mem:  440299, cpu:  169907696] succ_when_setting_deposit_ada_lower_than_expected
+    │ PASS [mem:  211156, cpu:   82147393] succ_when_doesnt_create_borrow_request
+    │ ↳ borrow_request/request_nft.create: only 1 request output is allowed
+    │ PASS [mem:  338054, cpu:  131228867] succ_when_borrow_request_has_no_datum
+    │ PASS [mem:  338054, cpu:  131228867] succ_when_borrow_request_has_invalid_datum
+    │ PASS [mem:  360010, cpu:  135817000] fail_when_attempting_double_sastification
+    │ ↳ must only one request output
+    │ PASS [mem: 3658370, cpu: 1320958613] succ_on_large_inputs
+    │ PASS [mem: 3670432, cpu: 1401116491] succ_on_large_outputs
+    ┕━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 26 tests | 26 passed | 0 failed

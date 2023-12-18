@@ -3,16 +3,10 @@ use aiken/transaction.{
   Datum, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
   TransactionId, placeholder,
 }
-use aiken/transaction/credential.{
-  Address, Inline, VerificationKeyCredential, from_script, from_verification_key,
-  with_delegation_key,
-}
-use aiken/transaction/value.{
-  AssetName, PolicyId, ada_asset_name, ada_policy_id, add, from_asset,
-  from_lovelace, from_minted_value, quantity_of, to_minted_value, zero,
-}
+use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
+use aiken/transaction/value.{AssetName, PolicyId}
 use bond_issue/types.{BondIssueConfig, PlatformConfig, RequestDatum}
-use borrow_request/borrower_nft
+use borrow_request/request_nft
 use common/fixture.{get_epoch_config_mainnet}
 use common/hash_out_refs.{hash_out_ref}
 use common/time.{BasisPoints, get_slot_config_network_mainnet}
@@ -21,6 +15,8 @@ use common/time.{BasisPoints, get_slot_config_network_mainnet}
 const user_stake_cred = "user_stake_key"
 
 const user_payment_cred = "user_payment_key"
+
+const req_pid = "req_pid"
 
 const borrower_pid = "borrower_pid"
 
@@ -60,48 +56,111 @@ test fail_when_wrong_seed() fail {
 test fail_when_minting_no_nft() {
   let tx =
     build_tx(None)
-      |> fn(t) { Transaction { ..t, mint: zero() |> to_minted_value() } }
-  !validate(tx, None)
-}
-
-test fail_when_minting_incorrect_nft_name() {
-  let tx =
-    build_tx(None)
-      |> fn(t) {
+      |> fn(t: Transaction) {
+           expect [input] = t.inputs
+           let borrower = hash_out_ref(input.output_reference)
            Transaction {
              ..t,
-             mint: from_asset(borrower_pid, "other_nft", 1)
-               |> to_minted_value(),
+             mint: value.zero()
+               |> value.add(borrower_pid, borrower, 1)
+               |> value.to_minted_value(),
            }
          }
   !validate(tx, None)
 }
 
-test fail_when_minting_double_nft() {
+test fail_when_minting_incorrect_borrower_nft_name() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
-           expect [i] = t.inputs
-           let borrower = hash_out_ref(i.output_reference)
+           expect [input] = t.inputs
+           let borrower = hash_out_ref(input.output_reference)
            Transaction {
              ..t,
-             mint: from_asset(borrower_pid, borrower, 2)
-               |> to_minted_value(),
+             mint: value.from_asset(req_pid, borrower, 1)
+               |> value.add(borrower_pid, "other_nft", 1)
+               |> value.to_minted_value(),
            }
          }
   !validate(tx, None)
 }
 
-test fail_when_minting_other_tokens_additionally() {
+test fail_when_minting_incorrect_request_nft_name() {
+  let tx =
+    build_tx(None)
+      |> fn(t: Transaction) {
+           expect [input] = t.inputs
+           let borrower = hash_out_ref(input.output_reference)
+           Transaction {
+             ..t,
+             mint: value.from_asset(req_pid, "other_nft", 1)
+               |> value.add(borrower_pid, borrower, 1)
+               |> value.to_minted_value(),
+           }
+         }
+  !validate(tx, None)
+}
+
+test fail_when_output_incorrect_request_nft_name() {
+  let tx =
+    build_tx(None)
+      |> fn(t: Transaction) {
+           expect [input] = t.inputs
+           let borrow_request_out = build_borrow_request_output(#"")
+           let borrower = hash_out_ref(input.output_reference)
+           Transaction {
+             ..t,
+             outputs: [
+               borrow_request_out,
+               input.output
+                 |> set_asset(borrower_pid, borrower, 1),
+             ],
+           }
+         }
+  !validate(tx, None)
+}
+
+test fail_when_minting_double_nft() fail {
+  let tx =
+    build_tx(None)
+      |> fn(t: Transaction) {
+           expect [input] = t.inputs
+           let borrower = hash_out_ref(input.output_reference)
+           Transaction {
+             ..t,
+             mint: value.from_asset(req_pid, borrower, 2)
+               |> value.add(borrower_pid, borrower, 1)
+               |> value.to_minted_value(),
+           }
+         }
+  !validate(tx, None)
+}
+
+test fail_when_not_minting_borrower_nft() {
+  let tx =
+    build_tx(None)
+      |> fn(t: Transaction) {
+           expect [input] = t.inputs
+           let borrower = hash_out_ref(input.output_reference)
+           Transaction {
+             ..t,
+             mint: value.from_asset(req_pid, borrower, 1)
+               |> value.to_minted_value(),
+           }
+         }
+  !validate(tx, None)
+}
+
+test succ_when_minting_other_tokens_additionally() {
   let tx =
     build_tx(None)
       |> fn(t) {
            Transaction {
              ..t,
              mint: t.mint
-               |> from_minted_value()
-               |> add(borrower_pid, "other_token", 1)
-               |> to_minted_value(),
+               |> value.from_minted_value()
+               |> value.add(req_pid, "other_token", 1)
+               |> value.to_minted_value(),
            }
          }
   validate(tx, None)
@@ -109,7 +168,7 @@ test fail_when_minting_other_tokens_additionally() {
 
 // Borrow Request UTxO
 
-test fail_when_doesnt_set_stake_credential() {
+test succ_when_doesnt_set_stake_credential() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -123,10 +182,10 @@ test fail_when_doesnt_set_stake_credential() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_apr_lower_than_min_apr() {
+test succ_when_setting_apr_lower_than_min_apr() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -141,10 +200,10 @@ test fail_when_setting_apr_lower_than_min_apr() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_duration_lowwer_than_min_duration() {
+test succ_when_setting_duration_lowwer_than_min_duration() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -159,10 +218,10 @@ test fail_when_setting_duration_lowwer_than_min_duration() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_incorrect_symbol() {
+test succ_when_setting_incorrect_symbol() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -171,15 +230,15 @@ test fail_when_setting_incorrect_symbol() {
              ..t,
              outputs: [
                borrow_request_out
-                 |> set_symbol("not_borrower_pid"),
+                 |> set_symbol("not_req_pid"),
                user_out,
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_incorrect_borrower() {
+test succ_when_setting_incorrect_borrower() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -193,10 +252,10 @@ test fail_when_setting_incorrect_borrower() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_requested_lower_than_min_requested() {
+test succ_when_setting_requested_lower_than_min_requested() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -211,10 +270,10 @@ test fail_when_setting_requested_lower_than_min_requested() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_negative_issued() {
+test succ_when_setting_negative_issued() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -228,10 +287,10 @@ test fail_when_setting_negative_issued() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_positive_issued() {
+test succ_when_setting_positive_issued() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -245,10 +304,10 @@ test fail_when_setting_positive_issued() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_epo_rewards_lower_than_expected() {
+test succ_when_setting_epo_rewards_lower_than_expected() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -271,10 +330,10 @@ test fail_when_setting_epo_rewards_lower_than_expected() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_buffer_lower_than_min_buffer() {
+test succ_when_setting_buffer_lower_than_min_buffer() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -289,10 +348,10 @@ test fail_when_setting_buffer_lower_than_min_buffer() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_fee_lower_than_min_fee() {
+test succ_when_setting_fee_lower_than_min_fee() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -307,10 +366,10 @@ test fail_when_setting_fee_lower_than_min_fee() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_setting_deposit_ada_lower_than_expected() {
+test succ_when_setting_deposit_ada_lower_than_expected() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -321,8 +380,8 @@ test fail_when_setting_deposit_ada_lower_than_expected() {
              outputs: [
                borrow_request_out
                  |> set_asset(
-                      ada_policy_id,
-                      ada_asset_name,
+                      value.ada_policy_id,
+                      value.ada_asset_name,
                       get_borrow_request_min_ada(
                         odatum.epo_rewards,
                         odatum.prepaid,
@@ -332,17 +391,51 @@ test fail_when_setting_deposit_ada_lower_than_expected() {
              ],
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
-test fail_when_doesnt_create_borrow_request() fail {
+test succ_when_doesnt_create_borrow_request() fail {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
            expect [_, user_out] = t.outputs
            Transaction { ..t, outputs: [user_out] }
          }
-  !validate(tx, None)
+  validate(tx, None)
+}
+
+test succ_when_borrow_request_has_no_datum() {
+  let tx =
+    build_tx(None)
+      |> fn(t: Transaction) {
+           expect [borrow_request_out, user_out] = t.outputs
+           Transaction {
+             ..t,
+             outputs: [borrow_request_out |> set_datum(NoDatum), user_out],
+           }
+         }
+  validate(tx, None)
+}
+
+type UnkownDatum {
+  owner: ByteArray,
+}
+
+test succ_when_borrow_request_has_invalid_datum() {
+  let tx =
+    build_tx(None)
+      |> fn(t: Transaction) {
+           expect [borrow_request_out, user_out] = t.outputs
+           Transaction {
+             ..t,
+             outputs: [
+               borrow_request_out
+                 |> set_datum(InlineDatum(UnkownDatum { owner: "unknown_pk" })),
+               user_out,
+             ],
+           }
+         }
+  validate(tx, None)
 }
 
 // Attacks
@@ -366,40 +459,6 @@ test fail_when_attempting_double_sastification() fail {
   !validate(tx, None)
 }
 
-test fail_when_borrow_request_has_no_datum() fail {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
-           expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [borrow_request_out |> set_datum(NoDatum), user_out],
-           }
-         }
-  !validate(tx, None)
-}
-
-type UnkownDatum {
-  owner: ByteArray,
-}
-
-test fail_when_borrow_request_has_invalid_datum() fail {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
-           expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_datum(InlineDatum(UnkownDatum { owner: "unknown_pk" })),
-               user_out,
-             ],
-           }
-         }
-  !validate(tx, None)
-}
-
 // Benchmarks
 test succ_on_large_inputs() {
   let tx =
@@ -415,9 +474,11 @@ test succ_on_large_inputs() {
                           index,
                         ),
                         output: Output {
-                          address: from_verification_key(user_payment_cred)
-                            |> with_delegation_key(user_stake_cred),
-                          value: from_lovelace(1238),
+                          address: credential.from_verification_key(
+                            user_payment_cred,
+                          )
+                            |> credential.with_delegation_key(user_stake_cred),
+                          value: value.from_lovelace(1238),
                           datum: NoDatum,
                           reference_script: None,
                         },
@@ -432,8 +493,9 @@ test succ_on_large_inputs() {
 
            Transaction {
              ..placeholder(),
-             mint: from_asset(borrower_pid, borrower, 1)
-               |> to_minted_value(),
+             mint: value.from_asset(req_pid, borrower, 1)
+               |> value.add(borrower_pid, borrower, 1)
+               |> value.to_minted_value(),
              inputs: inputs,
              outputs: [
                borrow_request_out,
@@ -454,9 +516,11 @@ test succ_on_large_outputs() {
                |> map(
                     fn(_) {
                       Output {
-                        address: from_verification_key(user_payment_cred)
-                          |> with_delegation_key(user_stake_cred),
-                        value: from_lovelace(1238),
+                        address: credential.from_verification_key(
+                          user_payment_cred,
+                        )
+                          |> credential.with_delegation_key(user_stake_cred),
+                        value: value.from_lovelace(1238),
                         datum: NoDatum,
                         reference_script: None,
                       }
@@ -473,10 +537,10 @@ fn set_asset(self: Output, policy_id: PolicyId, token_name: ByteArray, qty: Int)
   Output {
     ..self,
     value: self.value
-      |> add(
+      |> value.add(
            policy_id,
            token_name,
-           qty - quantity_of(self.value, policy_id, token_name),
+           qty - value.quantity_of(self.value, policy_id, token_name),
          ),
   }
 }
@@ -581,9 +645,9 @@ fn build_user_input() {
   Input {
     output_reference: OutputReference(TransactionId("user_tx"), 1),
     output: Output {
-      address: from_verification_key(user_payment_cred)
-        |> with_delegation_key(user_stake_cred),
-      value: from_lovelace(1029382),
+      address: credential.from_verification_key(user_payment_cred)
+        |> credential.with_delegation_key(user_stake_cred),
+      value: value.from_lovelace(1029382),
       datum: NoDatum,
       reference_script: None,
     },
@@ -618,14 +682,15 @@ fn build_borrow_request_output(borrower: PolicyId) {
   let fee = 500
   let epo_rewards = get_min_epo_rewards(cfg, requested, issued, apr)
   Output {
-    address: from_script(req_skh)
-      |> with_delegation_key(user_stake_cred),
-    value: from_lovelace(get_borrow_request_min_ada(epo_rewards, prepaid)),
+    address: credential.from_script(req_skh)
+      |> credential.with_delegation_key(user_stake_cred),
+    value: value.from_lovelace(get_borrow_request_min_ada(epo_rewards, prepaid))
+      |> value.add(req_pid, borrower, 1),
     datum: InlineDatum(
       RequestDatum {
         apr,
         duration,
-        symbol: borrower_pid,
+        symbol: req_pid,
         borrower,
         requested,
         issued,
@@ -652,7 +717,9 @@ fn build_tx(seed: Option<Input>) -> Transaction {
   let borrow_request_out = build_borrow_request_output(borrower)
   Transaction {
     ..placeholder(),
-    mint: from_asset(borrower_pid, borrower, 1) |> to_minted_value(),
+    mint: value.from_asset(req_pid, borrower, 1)
+      |> value.add(borrower_pid, borrower, 1)
+      |> value.to_minted_value,
     inputs: inputs,
     outputs: [
       borrow_request_out,
@@ -670,7 +737,7 @@ fn build_cfg() {
     platform: PlatformConfig {
       bond_face_value: 100_000_000,
       fee: 500,
-      address: from_script("collector_addr"),
+      address: credential.from_script("collector_addr"),
       tx_ttl: 3 * 60,
       min_buffer: 6,
       prepaid_plus: 3,
@@ -690,5 +757,5 @@ fn validate(tx: Transaction, seed_out_ref: Option<OutputReference>) {
       }
       Some(out_ref) -> out_ref
     }
-  borrower_nft.create(build_cfg(), tx, borrower_pid, seed, req_skh)
+  request_nft.create(tx, req_pid, seed, req_skh, borrower_pid)
 }
