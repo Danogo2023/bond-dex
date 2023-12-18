@@ -1,13 +1,13 @@
 use aiken/dict
 use aiken/interval
 use aiken/transaction.{
-  Datum, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
-  TransactionId,
+  Datum, InlineDatum, Input, NoDatum, Output, OutputReference, ScriptContext,
+  Spend, Transaction, TransactionId,
 }
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{Value}
 use bond_issue/types.{BondDatum, BondIssueConfig, PlatformConfig, RequestDatum}
-use borrow_request/constraint
+use borrow_request/bond_create
 use common/time.{
   BasisPoints, get_epoch_config_preview, get_slot_config_network_preview,
   slot_to_begin_posix_time,
@@ -42,7 +42,7 @@ test fail_check() {
         bond_face_value: 100_000_000,
         fee: 500,
         address: fee_addr,
-        tx_ttl: Some(6 * 60),
+        tx_ttl: 6 * 60,
         min_buffer: 6,
         prepaid_plus: 3,
         min_requested: 100,
@@ -58,14 +58,15 @@ test fail_check() {
   let borrow_request_addr =
     credential.from_script(borrow_request_pkh)
       |> credential.with_delegation_key(borrow_request_skh)
-  let req_pid = #"7ba0bf00b89ea52f04e204550c1a38a5b2f411ea90cdc690f048c329"
+  let req_pid = #"7ba0bf00b89ea52f04e204550c1a38a5b2f411ea90cdc690f048c328"
+  let borrower_pid = #"7ba0bf00b89ea52f04e204550c1a38a5b2f411ea90cdc690f048c329"
   let borrower_nft =
     #"d53d658b5f7eac3f741389135662a2bf9f2475844141705a5c0514f81e47f9bf"
   let sreq_dt =
     RequestDatum {
       apr: 656,
       duration: 72,
-      symbol: req_pid,
+      symbol: borrower_pid,
       borrower: borrower_nft,
       requested: 400,
       issued: 0,
@@ -83,7 +84,7 @@ test fail_check() {
       #"23850612667a59e236ceeea412440b446fa697f2b988eb05e070aaa18c8cad0f",
       0,
       borrow_request_addr,
-      value.from_lovelace(323506845),
+      value.from_lovelace(323506845) |> value.add(req_pid, borrower_nft, 1),
       InlineDatum(sreq_dt),
     )
 
@@ -143,6 +144,7 @@ test fail_check() {
       datum: NoDatum,
       reference_script: None,
     }
+  let issue_qty = 100
   let output_02 =
     Output {
       address: bond_addr,
@@ -154,7 +156,7 @@ test fail_check() {
           duration: 72,
           bond_symbol: bond_pid,
           token_name: bond_name,
-          bond_amount: 100,
+          bond_amount: issue_qty,
           buffer: 6,
           fee: 500,
           borrower: borrower_nft,
@@ -166,15 +168,16 @@ test fail_check() {
   let output_03 =
     Output {
       address: borrow_request_addr,
-      value: value.from_lovelace(242630136),
+      value: value.from_lovelace(242630136)
+        |> value.add(req_pid, borrower_nft, 1),
       datum: InlineDatum(
         RequestDatum {
           apr: 656,
           duration: 72,
-          symbol: req_pid,
+          symbol: borrower_pid,
           borrower: borrower_nft,
-          requested: 400,
-          issued: 100,
+          requested: sreq_dt.requested,
+          issued: sreq_dt.issued + issue_qty,
           epo_rewards: 26958904,
           prepaid: 9,
           buffer: 6,
@@ -191,7 +194,7 @@ test fail_check() {
       reference_script: None,
     }
   let mint_tokens =
-    value.from_asset(bond_pid, bond_name, 100)
+    value.from_asset(bond_pid, bond_name, issue_qty)
       |> value.add(nft_pid, bond_name, 1)
       |> value.to_minted_value()
   let tx_time =
@@ -216,15 +219,8 @@ test fail_check() {
         hash: #"0000000000000000000000000000000000000000000000000000000000000000",
       },
     }
+  let ctx =
+    ScriptContext { transaction: tx, purpose: Spend(input_01.output_reference) }
 
-  constraint.spending_bond_create(
-    cfg,
-    tx,
-    input_01,
-    sreq_dt,
-    Some(input_01),
-    bond_pkh,
-    nft_pid,
-    bond_pid,
-  )
+  bond_create.spending(cfg, ctx, sreq_dt, bond_pkh, nft_pid, bond_pid, req_pid)
 }

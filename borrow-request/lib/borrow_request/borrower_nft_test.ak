@@ -12,9 +12,9 @@ use aiken/transaction/value.{
   from_lovelace, from_minted_value, quantity_of, to_minted_value, zero,
 }
 use bond_issue/types.{BondIssueConfig, PlatformConfig, RequestDatum}
-use borrow_request/constraint
+use borrow_request/borrower_nft
 use common/fixture.{get_epoch_config_mainnet}
-use common/hash_inputs.{hash_head, hash_sorted}
+use common/hash_out_refs.{hash_out_ref}
 use common/time.{BasisPoints, get_slot_config_network_mainnet}
 
 // ========= Params ==========
@@ -22,7 +22,7 @@ const user_stake_cred = "user_stake_key"
 
 const user_payment_cred = "user_payment_key"
 
-const minting_policy_id = "minting_policy_id"
+const borrower_pid = "borrower_pid"
 
 const borrow_request_skh = "borrowing_script_pkh"
 
@@ -70,7 +70,7 @@ test fail_when_minting_incorrect_nft_name() {
       |> fn(t) {
            Transaction {
              ..t,
-             mint: from_asset(minting_policy_id, "other_nft", 1)
+             mint: from_asset(borrower_pid, "other_nft", 1)
                |> to_minted_value(),
            }
          }
@@ -80,10 +80,12 @@ test fail_when_minting_incorrect_nft_name() {
 test fail_when_minting_double_nft() {
   let tx =
     build_tx(None)
-      |> fn(t) {
+      |> fn(t: Transaction) {
+           expect [i] = t.inputs
+           let borrower = hash_out_ref(i.output_reference)
            Transaction {
              ..t,
-             mint: from_asset(minting_policy_id, hash_head(t.inputs), 2)
+             mint: from_asset(borrower_pid, borrower, 2)
                |> to_minted_value(),
            }
          }
@@ -98,11 +100,11 @@ test fail_when_minting_other_tokens_additionally() {
              ..t,
              mint: t.mint
                |> from_minted_value()
-               |> add(minting_policy_id, "other_token", 1)
+               |> add(borrower_pid, "other_token", 1)
                |> to_minted_value(),
            }
          }
-  !validate(tx, None)
+  validate(tx, None)
 }
 
 // Borrow Request UTxO
@@ -169,7 +171,7 @@ test fail_when_setting_incorrect_symbol() {
              ..t,
              outputs: [
                borrow_request_out
-                 |> set_symbol("not_minting_policy_id"),
+                 |> set_symbol("not_borrower_pid"),
                user_out,
              ],
            }
@@ -424,19 +426,19 @@ test succ_on_large_inputs() {
                   )
            expect [input] = t.inputs
            let inputs = t.inputs |> concat(dusts)
-           let borrower = hash_sorted(Some(input))
+           let borrower = hash_out_ref(input.output_reference)
            let borrow_request_out = build_borrow_request_output(borrower)
            let user_in: Input = build_user_input()
 
            Transaction {
              ..placeholder(),
-             mint: from_asset(minting_policy_id, borrower, 1)
+             mint: from_asset(borrower_pid, borrower, 1)
                |> to_minted_value(),
              inputs: inputs,
              outputs: [
                borrow_request_out,
                user_in.output
-                 |> set_asset(minting_policy_id, borrower, 1),
+                 |> set_asset(borrower_pid, borrower, 1),
              ],
            }
          }
@@ -623,7 +625,7 @@ fn build_borrow_request_output(borrower: PolicyId) {
       RequestDatum {
         apr,
         duration,
-        symbol: minting_policy_id,
+        symbol: borrower_pid,
         borrower,
         requested,
         issued,
@@ -646,16 +648,16 @@ fn build_tx(seed: Option<Input>) -> Transaction {
       None -> user_in
       Some(in) -> in
     }
-  let borrower = hash_sorted(Some(seed_input))
+  let borrower = hash_out_ref(seed_input.output_reference)
   let borrow_request_out = build_borrow_request_output(borrower)
   Transaction {
     ..placeholder(),
-    mint: from_asset(minting_policy_id, borrower, 1) |> to_minted_value(),
+    mint: from_asset(borrower_pid, borrower, 1) |> to_minted_value(),
     inputs: inputs,
     outputs: [
       borrow_request_out,
       user_in.output
-        |> set_asset(minting_policy_id, borrower, 1),
+        |> set_asset(borrower_pid, borrower, 1),
     ],
   }
 }
@@ -669,7 +671,7 @@ fn build_cfg() {
       bond_face_value: 100_000_000,
       fee: 500,
       address: from_script("collector_addr"),
-      tx_ttl: None,
+      tx_ttl: 3 * 60,
       min_buffer: 6,
       prepaid_plus: 3,
       min_requested: 100,
@@ -688,11 +690,5 @@ fn validate(tx: Transaction, seed_out_ref: Option<OutputReference>) {
       }
       Some(out_ref) -> out_ref
     }
-  constraint.minting(
-    build_cfg(),
-    tx,
-    minting_policy_id,
-    seed,
-    borrow_request_skh,
-  )
+  borrower_nft.create(build_cfg(), tx, borrower_pid, seed, borrow_request_skh)
 }

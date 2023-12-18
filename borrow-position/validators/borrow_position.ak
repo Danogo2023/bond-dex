@@ -1,7 +1,11 @@
 use aiken/transaction.{Mint, ScriptContext}
 use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondDatum, BondIssueConfig} as bond_issue_types
-use borrow_position/constraint
+use borrow_position/bond_nft
+use borrow_position/bond_token
+use borrow_position/change_stake_key
+use borrow_position/pay_interest
+use borrow_position/redeem
 use borrow_position/types.{
   BondAction, BondChangeStakeKey, BondCreate, BondPayInterest, BondRedeem,
 }
@@ -10,17 +14,10 @@ use common/util.{get_spending_input}
 validator {
   fn mint_nft(ac: BondAction, ctx: ScriptContext) -> Bool {
     expect Mint(nft_pid) = ctx.purpose
+    let tx = ctx.transaction
     when ac is {
-      BondCreate { out_ref, req_skh, bond_skh, .. } ->
-        constraint.minting_nft(
-          ctx.transaction,
-          out_ref,
-          req_skh,
-          bond_skh,
-          nft_pid,
-        )
-      BondRedeem { pid } ->
-        constraint.burning_nft(ctx.transaction, nft_pid, pid)
+      BondCreate { bond_skh, .. } -> bond_nft.minting(tx, bond_skh, nft_pid)
+      BondRedeem { .. } -> bond_nft.burning(tx, nft_pid)
       _ -> fail @"invalid action"
     }
   }
@@ -29,51 +26,26 @@ validator {
 validator(cfg: BondIssueConfig) {
   fn mint_token(ac: BondAction, ctx: ScriptContext) -> Bool {
     expect Mint(bond_pid) = ctx.purpose
+    let tx = ctx.transaction
     when ac is {
-      BondCreate { out_ref, req_skh, bond_skh, pid: nft_pid } ->
-        constraint.minting_token(
-          cfg,
-          ctx.transaction,
-          out_ref,
-          req_skh,
-          bond_skh,
-          nft_pid,
-          bond_pid,
-        )
-      BondRedeem { pid } ->
-        constraint.burning_token(ctx.transaction, pid, bond_pid)
+      BondCreate { req_skh, bond_skh, .. } ->
+        bond_token.minting(cfg, tx, req_skh, bond_skh, bond_pid)
+      BondRedeem { .. } -> bond_token.burning(tx, bond_pid)
       _ -> fail @"invalid action"
     }
   }
 }
 
-validator(cfg: BondIssueConfig, req_pid: PolicyId, nft_pid: PolicyId) {
+validator(cfg: BondIssueConfig, borrower_pid: PolicyId, nft_pid: PolicyId) {
   fn spend(sdt: BondDatum, ac: BondAction, ctx: ScriptContext) -> Bool {
+    let sbond = get_spending_input(ctx).output
+    let addr = sbond.address
+    let tx = ctx.transaction
     when ac is {
-      BondRedeem { .. } | BondPayInterest | BondChangeStakeKey -> {
-        let sbond = get_spending_input(ctx)
-        let sbond_addr = sbond.output.address
-        if ac == BondPayInterest {
-          constraint.spending_pay_interest(cfg, ctx.transaction, sbond_addr)
-        } else if ac == BondChangeStakeKey {
-          constraint.spending_change_stake_key(
-            ctx.transaction,
-            sbond,
-            sbond_addr,
-            sdt,
-            req_pid,
-          )
-        } else {
-          constraint.spending_redeem(
-            cfg,
-            ctx.transaction,
-            sbond,
-            sbond_addr,
-            sdt,
-            nft_pid,
-          )
-        }
-      }
+      BondRedeem { .. } -> redeem.spending(cfg, tx, sbond, addr, sdt, nft_pid)
+      BondPayInterest -> pay_interest.spending(cfg, tx, addr, nft_pid)
+      BondChangeStakeKey ->
+        change_stake_key.spending(tx, sbond, addr, sdt, borrower_pid, nft_pid)
       _ -> fail @"invalid action"
     }
   }
