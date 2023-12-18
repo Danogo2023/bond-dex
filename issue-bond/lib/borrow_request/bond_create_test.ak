@@ -7,6 +7,8 @@ use aiken/transaction.{
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{Value}
 use bond_issue/types.{BondDatum, BondIssueConfig, PlatformConfig, RequestDatum}
+use borrow_position/bond_nft
+use borrow_position/bond_token
 use borrow_request/bond_create
 use common/time.{
   BasisPoints, get_epoch_config_preview, get_slot_config_network_preview,
@@ -220,5 +222,17 @@ test fail_check() {
   let ctx =
     ScriptContext { transaction: tx, purpose: Spend(input_01.output_reference) }
 
-  bond_create.spending(cfg, ctx, sreq_dt, bond_skh, nft_pid, bond_pid, req_pid)
+  and {
+    bond_nft.minting(tx, bond_skh, nft_pid),
+    bond_token.minting(cfg, tx, req_skh, bond_skh, bond_pid),
+    bond_create.spending(
+      cfg,
+      ctx,
+      sreq_dt,
+      bond_skh,
+      nft_pid,
+      bond_pid,
+      req_pid,
+    ),
+  }
 }
