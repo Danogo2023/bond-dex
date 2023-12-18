@@ -1,23 +1,19 @@
 use aiken/transaction.{Output, OutputReference}
-use bond_issue/types.{BondDatum} as bond_issue_types
+use aiken/transaction/value.{PolicyId}
 use common/types.{ScriptKeyHash}
 
-pub type BorrowRequestOutput {
-  // oreq_valid = 0 => not found
-  // oreq_valid = 1 => found and valid
-  // oreq_valid = 2 => found and invalid
-  oreq_valid: Int,
-  nft_valid: Bool,
-}
+// (output_request_valid, found_borrower_nft)
+pub type BorrowRequestOutput =
+  (Bool, Bool)
 
-pub type BondCreateOutput {
-  oreq_valid: Int,
-  obond: Option<(BondDatum, Output)>,
-  mint_qty: Int,
-}
+// (request_valid, bond_output, mint_qty)
+pub type BondCreateOutput =
+  (Bool, Option<Output>, Int)
 
 pub type RequestAction {
-  RequestCreate { out_ref: OutputReference, sk: ScriptKeyHash }
+  // mint request nft => RequestCreate { out_ref, req_skh, borrower_pid }
+  // mint borrower nft => RequestCreate { out_ref, req_skh, request_pid }
+  RequestCreate { out_ref: OutputReference, sk: ScriptKeyHash, pid: PolicyId }
   RequestUpdate
-  BondCreate { out_ref: OutputReference }
+  BondCreate
 }

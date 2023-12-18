@@ -1,7 +1,5 @@
-use aiken/dict.{Dict}
-use aiken/transaction.{Output, OutputReference}
-use aiken/transaction/value.{AssetName, PolicyId, Value}
-use bond_issue/types.{BondDatum, RequestDatum} as bond_issue_types
+use aiken/transaction.{OutputReference}
+use aiken/transaction/value.{PolicyId}
 use common/types.{ScriptKeyHash}
 
 pub type BondAction {
@@ -20,49 +18,3 @@ pub type BondAction {
   BondPayInterest
   BondChangeStakeKey
 }
-
-pub type AssetNames =
-  List<AssetName>
-
-pub type BondData =
-  Dict<AssetName, (BondDatum, Output)>
-
-pub type TokenDict =
-  Dict<AssetName, Int>
-
-pub type TokenList =
-  List<(AssetName, Int)>
-
-pub type BorrowRequestData =
-  Dict<AssetName, (RequestDatum, Output)>
-
-pub type MintName {
-  count: Int,
-  names: AssetNames,
-}
-
-pub type PolicyMint {
-  nfts: TokenDict,
-  bonds: TokenDict,
-}
-
-pub type BurnToken {
-  count: Int,
-  names: AssetNames,
-  assets: TokenList,
-}
-
-pub type BondCount =
-  Int
-
-pub type BondFee =
-  Int
-
-pub type BondOutput =
-  Output
-
-pub type BondOutputItem =
-  (BondCount, Value, BondDatum, BondOutput, BondFee)
-
-pub type BondOutputDict =
-  Dict<ByteArray, BondOutputItem>

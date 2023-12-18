@@ -1,0 +1,247 @@
+with hash_input
+    ┍━ borrow_request/request_nft_test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │ PASS [mem:  433870, cpu:  165994124] succ_when_all_rules_are_satisfied
+    │ PASS [mem:  473016, cpu:  187723320] succ_when_seed_input_isnt_first
+    │ PASS [mem:  362640, cpu:  140849095] fail_when_wrong_seed
+    │ ↳ Expected on incorrect Constr variant
+    │ PASS [mem:  436525, cpu:  165696697] fail_when_minting_no_nft
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  467051, cpu:  177841179] fail_when_minting_incorrect_nft_name
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  497621, cpu:  189867285] fail_when_minting_double_nft
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  506596, cpu:  194614925] fail_when_minting_other_tokens_additionally
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  244649, cpu:   92816948] fail_when_doesnt_set_stake_credential
+    │ ↳ output.address.stake_credential != None ? False
+    │ PASS [mem:  315587, cpu:  117964004] fail_when_setting_apr_lower_than_min_apr
+    │ ↳ oreq_dt.apr >= cfg.platform.min_apr ? False
+    │ PASS [mem:  326454, cpu:  121888145] fail_when_setting_duration_lowwer_than_min_duration
+    │ ↳ oreq_dt.duration >= cfg.platform.min_duration ? False
+    │ PASS [mem:  278033, cpu:  104308885] fail_when_setting_incorrect_symbol
+    │ ↳ oreq_dt.symbol == req_pid ? False
+    │ PASS [mem:  443770, cpu:  168282597] fail_when_setting_incorrect_borrower
+    │ ↳ oreq_dt.borrower == hash_input(get_borrow_nft(tx.inputs, out_ref)) ? False
+    │ PASS [mem:  338949, cpu:  126374770] fail_when_setting_requested_lower_than_min_requested
+    │ ↳ oreq_dt.requested >= cfg.platform.min_requested ? False
+    │ PASS [mem:  277626, cpu:  103990126] fail_when_setting_negative_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  277626, cpu:  103990126] fail_when_setting_positive_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  454935, cpu:  169603507] fail_when_setting_epo_rewards_lower_than_expected
+    │ ↳ oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch ? False
+    │ PASS [mem:  353104, cpu:  131438683] fail_when_setting_buffer_lower_than_min_buffer
+    │ ↳ oreq_dt.buffer >= cfg.platform.min_buffer ? False
+    │ PASS [mem:  386009, cpu:  143766470] fail_when_setting_fee_lower_than_min_fee
+    │ ↳ oreq_dt.fee >= cfg.platform.fee ? False
+    │ PASS [mem:  484822, cpu:  183286084] fail_when_setting_deposit_ada_lower_than_expected
+    │ ↳ required_premium >= oreq_dt.epo_rewards * oreq_dt.prepaid ? False
+    │ PASS [mem:  189830, cpu:   70799630] fail_when_doesnt_create_borrow_request
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  340156, cpu:  126812479] fail_when_attempting_double_sastification
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  190698, cpu:   74821076] fail_when_borrow_request_has_no_datum
+    │ ↳ borrow_request/constraint.minting: only supports InlineDatum for request
+    │ PASS [mem:  210956, cpu:   79978464] fail_when_borrow_request_has_invalid_datum
+    │ PASS [mem: 3733742, cpu: 1346114578] succ_on_large_inputs
+    │ PASS [mem: 3781400, cpu: 1441134486] succ_on_large_outputs
+    ┕━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25 tests | 25 passed | 0 failed
+
+with hash_out_ref
+    ┍━ borrow_request/request_nft_test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │ PASS [mem:  430774, cpu:  165142248] succ_when_all_rules_are_satisfied
+    │ PASS [mem:  469920, cpu:  186871444] succ_when_seed_input_isnt_first
+    │ PASS [mem:  362640, cpu:  140849095] fail_when_wrong_seed
+    │ ↳ Expected on incorrect Constr variant
+    │ PASS [mem:  433429, cpu:  164844821] fail_when_minting_no_nft
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  463955, cpu:  176989303] fail_when_minting_incorrect_nft_name
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  496325, cpu:  189429409] fail_when_minting_double_nft
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  503500, cpu:  193763049] fail_when_minting_other_tokens_additionally
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  243449, cpu:   92540948] fail_when_doesnt_set_stake_credential
+    │ ↳ output.address.stake_credential != None ? False
+    │ PASS [mem:  314387, cpu:  117688004] fail_when_setting_apr_lower_than_min_apr
+    │ ↳ oreq_dt.apr >= cfg.platform.min_apr ? False
+    │ PASS [mem:  325254, cpu:  121612145] fail_when_setting_duration_lowwer_than_min_duration
+    │ ↳ oreq_dt.duration >= cfg.platform.min_duration ? False
+    │ PASS [mem:  276833, cpu:  104032885] fail_when_setting_incorrect_symbol
+    │ ↳ oreq_dt.symbol == req_pid ? False
+    │ PASS [mem:  440674, cpu:  167430721] fail_when_setting_incorrect_borrower
+    │ ↳ oreq_dt.borrower == hash_out_ref(get_input_out_ref(tx.inputs, out_ref)) ? False
+    │ PASS [mem:  337749, cpu:  126098770] fail_when_setting_requested_lower_than_min_requested
+    │ ↳ oreq_dt.requested >= cfg.platform.min_requested ? False
+    │ PASS [mem:  276426, cpu:  103714126] fail_when_setting_negative_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  276426, cpu:  103714126] fail_when_setting_positive_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  453735, cpu:  169327507] fail_when_setting_epo_rewards_lower_than_expected
+    │ ↳ oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch ? False
+    │ PASS [mem:  351904, cpu:  131162683] fail_when_setting_buffer_lower_than_min_buffer
+    │ ↳ oreq_dt.buffer >= cfg.platform.min_buffer ? False
+    │ PASS [mem:  384809, cpu:  143490470] fail_when_setting_fee_lower_than_min_fee
+    │ ↳ oreq_dt.fee >= cfg.platform.fee ? False
+    │ PASS [mem:  483622, cpu:  183010084] fail_when_setting_deposit_ada_lower_than_expected
+    │ ↳ required_premium >= oreq_dt.epo_rewards * oreq_dt.prepaid ? False
+    │ PASS [mem:  189830, cpu:   70799630] fail_when_doesnt_create_borrow_request
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  340156, cpu:  126812479] fail_when_attempting_double_sastification
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  190698, cpu:   74821076] fail_when_borrow_request_has_no_datum
+    │ ↳ borrow_request/constraint.minting: only supports InlineDatum for request
+    │ PASS [mem:  190956, cpu:   75378464] fail_when_borrow_request_has_invalid_datum
+    │ PASS [mem: 3729746, cpu: 1345055702] succ_on_large_inputs
+    │ PASS [mem: 3778304, cpu: 1440282610] succ_on_large_outputs
+    ┕━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25 tests | 25 passed | 0 failed
+
+without check tx.inputs
+    ┍━ borrow_request/request_nft_test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │ PASS [mem:  418230, cpu:  159540986] succ_when_all_rules_are_satisfied
+    │ PASS [mem:  452382, cpu:  178377050] succ_when_seed_input_isnt_first
+    │ PASS [mem:  381526, cpu:  146026210] fail_when_wrong_seed
+    │ ↳ oreq_dt.borrower == hash_out_ref(out_ref) ? False
+    │ PASS [mem:  420885, cpu:  159243559] fail_when_minting_no_nft
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  451411, cpu:  171388041] fail_when_minting_incorrect_nft_name
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  483781, cpu:  183828147] fail_when_minting_double_nft
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  490956, cpu:  188161787] fail_when_minting_other_tokens_additionally
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  243449, cpu:   92540948] fail_when_doesnt_set_stake_credential
+    │ ↳ output.address.stake_credential != None ? False
+    │ PASS [mem:  314087, cpu:  117619004] fail_when_setting_apr_lower_than_min_apr
+    │ ↳ oreq_dt.apr >= cfg.platform.min_apr ? False
+    │ PASS [mem:  324954, cpu:  121543145] fail_when_setting_duration_lowwer_than_min_duration
+    │ ↳ oreq_dt.duration >= cfg.platform.min_duration ? False
+    │ PASS [mem:  276533, cpu:  103963885] fail_when_setting_incorrect_symbol
+    │ ↳ oreq_dt.symbol == req_pid ? False
+    │ PASS [mem:  427830, cpu:  161760459] fail_when_setting_incorrect_borrower
+    │ ↳ oreq_dt.borrower == hash_out_ref(out_ref) ? False
+    │ PASS [mem:  337449, cpu:  126029770] fail_when_setting_requested_lower_than_min_requested
+    │ ↳ oreq_dt.requested >= cfg.platform.min_requested ? False
+    │ PASS [mem:  276126, cpu:  103645126] fail_when_setting_negative_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  276126, cpu:  103645126] fail_when_setting_positive_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  453435, cpu:  169258507] fail_when_setting_epo_rewards_lower_than_expected
+    │ ↳ oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch ? False
+    │ PASS [mem:  351604, cpu:  131093683] fail_when_setting_buffer_lower_than_min_buffer
+    │ ↳ oreq_dt.buffer >= cfg.platform.min_buffer ? False
+    │ PASS [mem:  384509, cpu:  143421470] fail_when_setting_fee_lower_than_min_fee
+    │ ↳ oreq_dt.fee >= cfg.platform.fee ? False
+    │ PASS [mem:  483322, cpu:  182941084] fail_when_setting_deposit_ada_lower_than_expected
+    │ ↳ required_premium >= oreq_dt.epo_rewards * oreq_dt.prepaid ? False
+    │ PASS [mem:  189830, cpu:   70799630] fail_when_doesnt_create_borrow_request
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  340156, cpu:  126812479] fail_when_attempting_double_sastification
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  190698, cpu:   74821076] fail_when_borrow_request_has_no_datum
+    │ ↳ borrow_request/constraint.minting: only supports InlineDatum for request
+    │ PASS [mem:  190956, cpu:   75378464] fail_when_borrow_request_has_invalid_datum
+    │ PASS [mem: 3717202, cpu: 1339454440] succ_on_large_inputs
+    │ PASS [mem: 3765760, cpu: 1434681348] succ_on_large_outputs
+    ┕━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25 tests | 25 passed | 0 failed
+
+without check tx.inputs and remove fn get_input_out_ref
+    ┍━ borrow_request/request_nft_test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │ PASS [mem:  418230, cpu:  159540986] succ_when_all_rules_are_satisfied
+    │ PASS [mem:  452382, cpu:  178377050] succ_when_seed_input_isnt_first
+    │ PASS [mem:  381526, cpu:  146026210] fail_when_wrong_seed
+    │ ↳ oreq_dt.borrower == hash_out_ref(out_ref) ? False
+    │ PASS [mem:  420885, cpu:  159243559] fail_when_minting_no_nft
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  451411, cpu:  171388041] fail_when_minting_incorrect_nft_name
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  483781, cpu:  183828147] fail_when_minting_double_nft
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  490956, cpu:  188161787] fail_when_minting_other_tokens_additionally
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  243449, cpu:   92540948] fail_when_doesnt_set_stake_credential
+    │ ↳ output.address.stake_credential != None ? False
+    │ PASS [mem:  314087, cpu:  117619004] fail_when_setting_apr_lower_than_min_apr
+    │ ↳ oreq_dt.apr >= cfg.platform.min_apr ? False
+    │ PASS [mem:  324954, cpu:  121543145] fail_when_setting_duration_lowwer_than_min_duration
+    │ ↳ oreq_dt.duration >= cfg.platform.min_duration ? False
+    │ PASS [mem:  276533, cpu:  103963885] fail_when_setting_incorrect_symbol
+    │ ↳ oreq_dt.symbol == req_pid ? False
+    │ PASS [mem:  427830, cpu:  161760459] fail_when_setting_incorrect_borrower
+    │ ↳ oreq_dt.borrower == hash_out_ref(out_ref) ? False
+    │ PASS [mem:  337449, cpu:  126029770] fail_when_setting_requested_lower_than_min_requested
+    │ ↳ oreq_dt.requested >= cfg.platform.min_requested ? False
+    │ PASS [mem:  276126, cpu:  103645126] fail_when_setting_negative_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  276126, cpu:  103645126] fail_when_setting_positive_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  453435, cpu:  169258507] fail_when_setting_epo_rewards_lower_than_expected
+    │ ↳ oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch ? False
+    │ PASS [mem:  351604, cpu:  131093683] fail_when_setting_buffer_lower_than_min_buffer
+    │ ↳ oreq_dt.buffer >= cfg.platform.min_buffer ? False
+    │ PASS [mem:  384509, cpu:  143421470] fail_when_setting_fee_lower_than_min_fee
+    │ ↳ oreq_dt.fee >= cfg.platform.fee ? False
+    │ PASS [mem:  483322, cpu:  182941084] fail_when_setting_deposit_ada_lower_than_expected
+    │ ↳ required_premium >= oreq_dt.epo_rewards * oreq_dt.prepaid ? False
+    │ PASS [mem:  189830, cpu:   70799630] fail_when_doesnt_create_borrow_request
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  340156, cpu:  126812479] fail_when_attempting_double_sastification
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  190698, cpu:   74821076] fail_when_borrow_request_has_no_datum
+    │ ↳ borrow_request/constraint.minting: only supports InlineDatum for request
+    │ PASS [mem:  190956, cpu:   75378464] fail_when_borrow_request_has_invalid_datum
+    │ PASS [mem: 3717202, cpu: 1339454440] succ_on_large_inputs
+    │ PASS [mem: 3765760, cpu: 1434681348] succ_on_large_outputs
+    ┕━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25 tests | 25 passed | 0 failed
+
+without check tx.inputs and move mint_only_one internal
+
+    ┍━ borrow_request/request_nft_test ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │ PASS [mem:  418230, cpu:  159540986] succ_when_all_rules_are_satisfied
+    │ PASS [mem:  452382, cpu:  178377050] succ_when_seed_input_isnt_first
+    │ PASS [mem:  381526, cpu:  146026210] fail_when_wrong_seed
+    │ ↳ oreq_dt.borrower == hash_out_ref(out_ref) ? False
+    │ PASS [mem:  420885, cpu:  159243559] fail_when_minting_no_nft
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  451411, cpu:  171388041] fail_when_minting_incorrect_nft_name
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  483781, cpu:  183828147] fail_when_minting_double_nft
+    │ ↳ mint_nft == 1 ? False
+    │ PASS [mem:  490956, cpu:  188161787] fail_when_minting_other_tokens_additionally
+    │ ↳ mint_count == 1 ? False
+    │ PASS [mem:  243449, cpu:   92540948] fail_when_doesnt_set_stake_credential
+    │ ↳ output.address.stake_credential != None ? False
+    │ PASS [mem:  314087, cpu:  117619004] fail_when_setting_apr_lower_than_min_apr
+    │ ↳ oreq_dt.apr >= cfg.platform.min_apr ? False
+    │ PASS [mem:  324954, cpu:  121543145] fail_when_setting_duration_lowwer_than_min_duration
+    │ ↳ oreq_dt.duration >= cfg.platform.min_duration ? False
+    │ PASS [mem:  276533, cpu:  103963885] fail_when_setting_incorrect_symbol
+    │ ↳ oreq_dt.symbol == req_pid ? False
+    │ PASS [mem:  427830, cpu:  161760459] fail_when_setting_incorrect_borrower
+    │ ↳ oreq_dt.borrower == hash_out_ref(out_ref) ? False
+    │ PASS [mem:  337449, cpu:  126029770] fail_when_setting_requested_lower_than_min_requested
+    │ ↳ oreq_dt.requested >= cfg.platform.min_requested ? False
+    │ PASS [mem:  276126, cpu:  103645126] fail_when_setting_negative_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  276126, cpu:  103645126] fail_when_setting_positive_issued
+    │ ↳ oreq_dt.issued == 0 ? False
+    │ PASS [mem:  453435, cpu:  169258507] fail_when_setting_epo_rewards_lower_than_expected
+    │ ↳ oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch ? False
+    │ PASS [mem:  351604, cpu:  131093683] fail_when_setting_buffer_lower_than_min_buffer
+    │ ↳ oreq_dt.buffer >= cfg.platform.min_buffer ? False
+    │ PASS [mem:  384509, cpu:  143421470] fail_when_setting_fee_lower_than_min_fee      
+    │ ↳ oreq_dt.fee >= cfg.platform.fee ? False
+    │ PASS [mem:  483322, cpu:  182941084] fail_when_setting_deposit_ada_lower_than_expected
+    │ ↳ required_premium >= oreq_dt.epo_rewards * oreq_dt.prepaid ? False
+    │ PASS [mem:  189830, cpu:   70799630] fail_when_doesnt_create_borrow_request
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  340156, cpu:  126812479] fail_when_attempting_double_sastification
+    │ ↳ borrow_request/constraint.minting: only 1 request output is allowed
+    │ PASS [mem:  190698, cpu:   74821076] fail_when_borrow_request_has_no_datum
+    │ ↳ borrow_request/constraint.minting: only supports InlineDatum for request
+    │ PASS [mem:  190956, cpu:   75378464] fail_when_borrow_request_has_invalid_datum
+    │ PASS [mem: 3717202, cpu: 1339454440] succ_on_large_inputs
+    │ PASS [mem: 3765760, cpu: 1434681348] succ_on_large_outputs
+    ┕━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25 tests | 25 passed | 0 failed
+
+
