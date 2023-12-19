@@ -1,4 +1,4 @@
-# bond_limit_bid
+# Danogo Bond Exchanges: Bid Making Optim Bond
 
 Write validators in the `validators` folder, and supporting functions in the `lib` folder using `.ak` as a file extension.
 

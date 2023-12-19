@@ -1,11 +1,11 @@
-name = "danogo2023/bonds/limit-ask"
+name = "danogo2023/bonds/optim-limit-ask"
 version = "1.0.0"
 license = "Apache-2.0"
-description = "Aiken contracts for danogo bonds ask limit"
+description = "Danogo Bond Exchanges: Ask Limit Optim Bond"
 
 [repository]
 user = "danogo2023/bonds"
-project = "limit-ask"
+project = "optim-limit-ask"
 platform = "github"
 
 [[dependencies]]

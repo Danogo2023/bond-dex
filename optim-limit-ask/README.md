@@ -1,4 +1,4 @@
-# bond_limit_ask
+# Danogo Bond Exchanges: Ask Limit Optim Bond
 
 Write validators in the `validators` folder, and supporting functions in the `lib` folder using `.ak` as a file extension.
 

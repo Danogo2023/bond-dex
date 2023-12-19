@@ -1,11 +1,11 @@
-name = "danogo2023/bonds/making-bid"
+name = "danogo2023/bonds/optim-limit-bid"
 version = "1.0.0"
 license = "Apache-2.0"
-description = "Aiken contracts for danogo bonds bid making"
+description = "Danogo Bond Exchanges: Bid Limit Optim Bond"
 
 [repository]
 user = "danogo2023/bonds"
-project = "making-bid"
+project = "optim-limit-bid"
 platform = "github"
 
 [[dependencies]]
