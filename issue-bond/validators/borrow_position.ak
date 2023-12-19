@@ -29,7 +29,7 @@ validator(cfg: BondIssueConfig) {
     let tx = ctx.transaction
     when ac is {
       BondCreate { req_skh, bond_skh, .. } ->
-        bond_token.minting(cfg, tx, req_skh, bond_skh, bond_pid)
+        bond_token.minting_without_fee(cfg, tx, req_skh, bond_skh, bond_pid)
       BondRedeem { .. } -> bond_token.burning(tx, bond_pid)
       _ -> fail @"invalid action"
     }
@@ -42,10 +42,12 @@ validator(cfg: BondIssueConfig, borrower_pid: PolicyId, nft_pid: PolicyId) {
     let addr = sbond.address
     let tx = ctx.transaction
     when ac is {
-      BondRedeem { .. } -> redeem.spending(cfg, tx, sbond, addr, sdt, nft_pid)
-      BondPayInterest -> pay_interest.spending(cfg, tx, addr, nft_pid)
+      BondRedeem { .. } ->
+        redeem.spending_with_fee(cfg, tx, sbond, addr, sdt, nft_pid)
+      BondPayInterest ->
+        pay_interest.spending_without_fee(cfg, tx, sbond, addr, sdt, nft_pid)
       BondChangeStakeKey ->
-        change_stake_key.spending(tx, sbond, addr, sdt, borrower_pid, nft_pid)
+        change_stake_key.spending(tx, sbond, addr, sdt, nft_pid, borrower_pid)
       _ -> fail @"invalid action"
     }
   }

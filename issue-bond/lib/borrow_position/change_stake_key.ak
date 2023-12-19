@@ -9,8 +9,8 @@ pub fn spending(
   sbond: Output,
   sbond_addr: Address,
   sbond_dt: BondDatum,
-  borrower_pid: PolicyId,
   nft_pid: PolicyId,
+  borrower_pid: PolicyId,
 ) -> Bool {
   when
     list.find(
@@ -34,33 +34,23 @@ pub fn constraint(
   nft_pid: PolicyId,
 ) -> Bool {
   when
-    list.foldl(
+    list.filter(
       tx.outputs,
-      None,
-      fn(o, z) {
-        if and {
-          o.address.payment_credential == sbond_addr.payment_credential,
-          value.quantity_of(o.value, nft_pid, sbond_dt.token_name) == 1,
-        } {
-          if (z == None)? {
-            Some(o)
-          } else {
-            fail @"borrow_position/change_stake_key.constraint: one bond input must only a bond output allowed"
-          }
-        } else {
-          z
-        }
+      fn(o) {
+        o.address.payment_credential == sbond_addr.payment_credential && //
+        value.quantity_of(o.value, nft_pid, sbond_dt.token_name) == 1
       },
     )
   is {
-    Some(o) -> {
+    [obond] -> {
       expect obond_dt: BondDatum =
-        when o.datum is {
+        when obond.datum is {
           InlineDatum(d) -> d
           _ ->
             fail @"borrow_position/change_stake_key.constraint: only supports InlineDatum for bond"
         }
       and {
+        (obond.address.stake_credential != None)?,
         (obond_dt.bond_symbol == sbond_dt.bond_symbol)?,
         (obond_dt.token_name == sbond_dt.token_name)?,
         (obond_dt.borrower == sbond_dt.borrower)?,
@@ -70,7 +60,7 @@ pub fn constraint(
         (obond_dt.buffer == sbond_dt.buffer)?,
         (obond_dt.fee == sbond_dt.fee)?,
         (obond_dt.start == sbond_dt.start)?,
-        (o.value == sbond.value)?,
+        (obond.value == sbond.value)?,
       }
     }
     _ ->

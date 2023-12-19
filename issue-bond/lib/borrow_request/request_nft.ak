@@ -43,8 +43,6 @@ pub fn create_simple(
 
   let borrower = hash_out_ref(get_input_out_ref(tx.inputs, out_ref))
   list.has(mint_names, borrower)?
-  // let mint_qty = value.quantity_of(value.from_minted_value(tx.mint), req_pid, borrower)
-  // (mint_qty == 1)?
 }
 
 pub fn create(
@@ -74,7 +72,6 @@ pub fn create(
   when req_outputs is {
     [o] -> {
       let borrower = hash_out_ref(get_input_out_ref(tx.inputs, out_ref))
-      // let oreq_request_nft_qty = value.quantity_of(o.value, req_pid, borrower)
       let mint_qty_valid =
         dict.foldr(
           value.from_minted_value(tx.mint) |> value.to_dict,

@@ -25,4 +25,5 @@ pub type BondIssueAction {
   BondRedeem { pid: PolicyId }
   BondPayInterest
   BondChangeStakeKey
+  ClaimFee
 }
