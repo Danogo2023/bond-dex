@@ -235,16 +235,10 @@ fn bond_value_valid(
   let obond_principal = obond_dt.bond_amount * cfg.platform.bond_face_value
   let obond_epo_rewards =
     obond_principal * sreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch
+  let required_premium = obond_epo_rewards * sreq_dt.prepaid
   and {
     (value.lovelace_of(obond_dt.epo_rewards) == obond_epo_rewards)?,
-    bond_asset_valid(
-      nft_pid,
-      obond_dt,
-      obond,
-      obond_principal + obond_epo_rewards * sreq_dt.prepaid * (
-        cfg.basis.base - obond_dt.fee
-      ) / cfg.basis.base,
-    ),
+    bond_asset_valid(nft_pid, obond_dt, obond, obond_principal + required_premium),
   }
 }
 
