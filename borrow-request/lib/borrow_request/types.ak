@@ -13,7 +13,11 @@ pub type BondCreateOutput =
 pub type RequestAction {
   // mint request nft => RequestCreate { out_ref, req_skh, borrower_pid }
   // mint borrower nft => RequestCreate { out_ref, req_skh, request_pid }
-  RequestCreate { out_ref: OutputReference, sk: ScriptKeyHash, pid: PolicyId }
+  RequestCreate {
+    out_ref: OutputReference,
+    req_skh: ScriptKeyHash,
+    pid: PolicyId,
+  }
   RequestUpdate
   BondCreate
 }

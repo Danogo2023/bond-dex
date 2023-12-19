@@ -37,7 +37,7 @@ validator(cfg: BondIssueConfig) {
 }
 
 validator(cfg: BondIssueConfig, borrower_pid: PolicyId, nft_pid: PolicyId) {
-  fn spend(sdt: BondDatum, ac: BondAction, ctx: ScriptContext) -> Bool {
+  fn spend_position(sdt: BondDatum, ac: BondAction, ctx: ScriptContext) -> Bool {
     let sbond = get_spending_input(ctx).output
     let addr = sbond.address
     let tx = ctx.transaction

@@ -44,7 +44,11 @@ validator(
   bond_pid: PolicyId,
   req_pid: PolicyId,
 ) {
-  fn spend(sdt: RequestDatum, ac: RequestAction, ctx: ScriptContext) -> Bool {
+  fn spend_request(
+    sdt: RequestDatum,
+    ac: RequestAction,
+    ctx: ScriptContext,
+  ) -> Bool {
     when ac is {
       BondCreate ->
         bond_create.spending(

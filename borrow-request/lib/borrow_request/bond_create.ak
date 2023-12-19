@@ -1,5 +1,6 @@
 use aiken/dict
 use aiken/list
+use aiken/math
 use aiken/option
 use aiken/transaction.{
   InlineDatum, Input, Output, ScriptContext, Spend, Transaction, ValidityRange,
@@ -115,6 +116,17 @@ pub fn get_create_output(
             (oreq_dt.buffer == sreq_dt.buffer)?,
             (oreq_dt.fee == sreq_dt.fee)?,
             //
+            (oreq_dt.apr >= cfg.platform.min_apr)?,
+            (oreq_dt.duration >= cfg.platform.min_duration)?,
+            (oreq_dt.requested >= cfg.platform.min_requested)?,
+            (oreq_dt.buffer >= cfg.platform.min_buffer)?,
+            (oreq_dt.prepaid >= math.min(
+              oreq_dt.buffer + cfg.platform.prepaid_plus,
+              oreq_dt.duration,
+            ))?,
+            (oreq_dt.prepaid <= oreq_dt.duration)?,
+            (oreq_dt.fee >= cfg.platform.fee)?,
+            (oreq_dt.requested >= oreq_dt.issued)?,
             (oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
             (value.lovelace_of(o.value) >= oreq_dt.epo_rewards * oreq_dt.prepaid)?,
           }
