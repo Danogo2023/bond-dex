@@ -5,7 +5,9 @@ use borrow_position/bond_nft
 use borrow_position/bond_token
 use borrow_position/change_stake_key
 use borrow_position/pay_interest
-use borrow_position/redeem
+use borrow_position/redeem_bond
+use borrow_position/redeem_fee
+use borrow_position/redeem_force
 use borrow_request/bond_create
 use borrow_request/borrower_nft
 use borrow_request/request_nft
@@ -14,7 +16,7 @@ use common/types.{ScriptKeyHash} as common_types
 use common/util.{get_spending_input}
 use issue_bond/types.{
   BondChangeStakeKey, BondCreate, BondIssueAction, BondPayInterest, BondRedeem,
-  RequestCreate, RequestUpdate,
+  ForceRedeem, RedeemFee, RequestCreate, RequestUpdate,
 } as issue_bond_types
 
 validator {
@@ -42,7 +44,12 @@ validator(cfg: BondIssueConfig) {
   }
 }
 
-validator(cfg: BondIssueConfig, borrower_pid: PolicyId, nft_pid: PolicyId) {
+validator(
+  cfg: BondIssueConfig,
+  borrower_pid: PolicyId,
+  nft_pid: PolicyId,
+  num_epoch_force: Int,
+) {
   fn spend_position(
     sdt: BondDatum,
     ac: BondIssueAction,
@@ -53,11 +60,22 @@ validator(cfg: BondIssueConfig, borrower_pid: PolicyId, nft_pid: PolicyId) {
     let tx = ctx.transaction
     when ac is {
       BondRedeem { .. } ->
-        redeem.spending_with_fee(cfg, tx, sbond, addr, sdt, nft_pid)
+        redeem_bond.spending_with_fee(cfg, tx, sbond, addr, sdt, nft_pid)
       BondPayInterest ->
         pay_interest.spending_without_fee(cfg, tx, sbond, addr, sdt, nft_pid)
       BondChangeStakeKey ->
         change_stake_key.spending(tx, sbond, addr, sdt, nft_pid, borrower_pid)
+      RedeemFee -> redeem_fee.spending(cfg, tx, sbond, addr, sdt, nft_pid)
+      ForceRedeem ->
+        redeem_force.spending(
+          cfg,
+          tx,
+          sbond,
+          addr,
+          sdt,
+          nft_pid,
+          num_epoch_force,
+        )
       _ -> fail @"invalid action"
     }
   }

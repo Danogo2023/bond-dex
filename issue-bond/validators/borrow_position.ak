@@ -5,9 +5,11 @@ use borrow_position/bond_nft
 use borrow_position/bond_token
 use borrow_position/change_stake_key
 use borrow_position/pay_interest
-use borrow_position/redeem
+use borrow_position/redeem_bond
+use borrow_position/redeem_fee
 use borrow_position/types.{
   BondAction, BondChangeStakeKey, BondCreate, BondPayInterest, BondRedeem,
+  RedeemFee,
 }
 use common/util.{get_spending_input}
 
@@ -43,11 +45,12 @@ validator(cfg: BondIssueConfig, borrower_pid: PolicyId, nft_pid: PolicyId) {
     let tx = ctx.transaction
     when ac is {
       BondRedeem { .. } ->
-        redeem.spending_with_fee(cfg, tx, sbond, addr, sdt, nft_pid)
+        redeem_bond.spending_with_fee(cfg, tx, sbond, addr, sdt, nft_pid)
       BondPayInterest ->
         pay_interest.spending_without_fee(cfg, tx, sbond, addr, sdt, nft_pid)
       BondChangeStakeKey ->
         change_stake_key.spending(tx, sbond, addr, sdt, nft_pid, borrower_pid)
+      RedeemFee -> redeem_fee.spending(cfg, tx, sbond, addr, sdt, nft_pid)
       _ -> fail @"invalid action"
     }
   }
