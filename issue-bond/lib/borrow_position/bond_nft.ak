@@ -54,7 +54,7 @@ pub fn burning(tx: Transaction, nft_pid: PolicyId) -> Bool {
       value.from_minted_value(tx.mint) |> value.tokens(nft_pid),
       [],
       fn(n, q, z) {
-        if (q != -1)? {
+        if (q == -1)? {
           [n, ..z]
         } else {
           fail

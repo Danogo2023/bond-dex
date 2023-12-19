@@ -13,7 +13,7 @@ pub fn burning(tx: Transaction, req_pid: PolicyId) -> Bool {
       value.from_minted_value(tx.mint) |> value.tokens(req_pid),
       [],
       fn(n, q, z) {
-        if (q != -1)? {
+        if (q == -1)? {
           [n, ..z]
         } else {
           fail
@@ -87,10 +87,10 @@ pub fn create(
                 z,
                 fn(n, q, xs) {
                   if n == borrower {
-                    if q == 1 {
+                    if (q == 1)? {
                       xs + 1
                     } else {
-                      fail @"qty invalid"
+                      fail
                     }
                   } else {
                     xs
