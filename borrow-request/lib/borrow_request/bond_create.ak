@@ -105,6 +105,19 @@ pub fn get_create_output(
           }
         let oreq_valid = and {
             (z.1st == False)?,
+            //
+            (sreq_dt.apr >= cfg.platform.min_apr)?,
+            (sreq_dt.duration >= cfg.platform.min_duration)?,
+            (sreq_dt.requested >= cfg.platform.min_requested)?,
+            (sreq_dt.buffer >= cfg.platform.min_buffer)?,
+            (sreq_dt.prepaid >= math.min(
+              sreq_dt.buffer + cfg.platform.prepaid_plus,
+              sreq_dt.duration,
+            ))?,
+            (sreq_dt.prepaid <= sreq_dt.duration)?,
+            (sreq_dt.fee >= cfg.platform.fee)?,
+            (sreq_dt.requested >= sreq_dt.issued)?,
+            //
             (oreq_dt.symbol == sreq_dt.symbol)?,
             (oreq_dt.borrower == sreq_dt.borrower)?,
             (oreq_dt.apr == sreq_dt.apr)?,
@@ -116,17 +129,6 @@ pub fn get_create_output(
             (oreq_dt.buffer == sreq_dt.buffer)?,
             (oreq_dt.fee == sreq_dt.fee)?,
             //
-            (oreq_dt.apr >= cfg.platform.min_apr)?,
-            (oreq_dt.duration >= cfg.platform.min_duration)?,
-            (oreq_dt.requested >= cfg.platform.min_requested)?,
-            (oreq_dt.buffer >= cfg.platform.min_buffer)?,
-            (oreq_dt.prepaid >= math.min(
-              oreq_dt.buffer + cfg.platform.prepaid_plus,
-              oreq_dt.duration,
-            ))?,
-            (oreq_dt.prepaid <= oreq_dt.duration)?,
-            (oreq_dt.fee >= cfg.platform.fee)?,
-            (oreq_dt.requested >= oreq_dt.issued)?,
             (oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
             (value.lovelace_of(o.value) >= oreq_dt.epo_rewards * oreq_dt.prepaid)?,
           }

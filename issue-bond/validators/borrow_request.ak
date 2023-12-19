@@ -44,7 +44,7 @@ validator(
   bond_pid: PolicyId,
   req_pid: PolicyId,
 ) {
-  fn spend_request(
+  fn spend(
     sdt: RequestDatum,
     ac: RequestAction,
     ctx: ScriptContext,
