@@ -33,7 +33,7 @@ fn build_input(
   }
 }
 
-test fail_check() {
+test succ_bond_create() {
   let fee_addr = credential.from_script("collector_addr")
   let cfg =
     BondIssueConfig {
@@ -53,15 +53,15 @@ test fail_check() {
       },
     }
   let owner_addr = credential.from_verification_key("owner")
-  let req_skh = #"54f0dac05dc1b598a9ba832119eec817d31c92802ebbdfbdce3a4473"
+  let req_skh = #"4c0df7526072e3200e2796d3b900078625685cb1ebf3fcf4c29eba32"
   let req_stake = #"2b9f6ee3e1dd784ebba52ba98634ea52f1d78a3601ef20f0bf6b7e80"
   let req_addr =
     credential.from_script(req_skh)
       |> credential.with_delegation_key(req_stake)
-  let req_pid = #"7ba0bf00b89ea52f04e204550c1a38a5b2f411ea90cdc690f048c328"
-  let borrower_pid = #"7ba0bf00b89ea52f04e204550c1a38a5b2f411ea90cdc690f048c329"
+  let req_pid = #"74b89307994e186eac325f7245fe1a9d9efa6bab0b786afed50eeec1"
+  let borrower_pid = #"894677d0c96689ed3101394aa1dc35c1a6de99082e5b5cb229b69bd4"
   let borrower_nft =
-    #"d53d658b5f7eac3f741389135662a2bf9f2475844141705a5c0514f81e47f9bf"
+    #"f4eb6725314d9c04be6c02d1e80d30f27dd2d438b5d935bd1402df603e55cb0e"
   let sreq_dt =
     RequestDatum {
       apr: 656,
@@ -75,13 +75,13 @@ test fail_check() {
       buffer: 6,
       fee: 500,
     }
-  let bond_skh = #"0916747413f64a22577b05b207c609d53fa1f110589bd61775770b5c"
+  let bond_skh = #"0c870a14186f553f2cc76884cf395286a39ed93550707181a365dcf8"
   let bond_addr =
     credential.from_script(bond_skh)
       |> credential.with_delegation_key(req_stake)
   let input_01 =
     build_input(
-      #"23850612667a59e236ceeea412440b446fa697f2b988eb05e070aaa18c8cad0f",
+      #"2c7c0ba54d6bfa9ea2ed24789d960e92d75602f5956b7b404fa9c2377808d208",
       0,
       req_addr,
       value.from_lovelace(323506845) |> value.add(req_pid, borrower_nft, 1),
@@ -92,67 +92,67 @@ test fail_check() {
     Input {
       output_reference: OutputReference(
         TransactionId(
-          #"9e182879131766dafaa0fe44b77efc748779247cac68ae6ebc948b0465731e10",
+          #"2c7c0ba54d6bfa9ea2ed24789d960e92d75602f5956b7b404fa9c2377808d208",
         ),
-        1,
+        2,
       ),
       output: Output {
         address: owner_addr,
-        value: value.from_lovelace(3416127),
+        value: value.from_lovelace(18488827229),
         datum: NoDatum,
         reference_script: None,
       },
     }
-  let input_03 =
-    Input {
-      output_reference: OutputReference(
-        TransactionId(
-          #"1d7e40357b586802a38243a77216ec6f8c5106ae928e1452f6706c41c9e67078",
-        ),
-        1,
-      ),
-      output: Output {
-        address: owner_addr,
-        value: value.from_lovelace(4675851207),
-        datum: NoDatum,
-        reference_script: None,
-      },
-    }
-  let input_04 =
-    Input {
-      output_reference: OutputReference(
-        TransactionId(
-          #"23850612667a59e236ceeea412440b446fa697f2b988eb05e070aaa18c8cad0f",
-        ),
-        1,
-      ),
-      output: Output {
-        address: owner_addr,
-        value: value.from_lovelace(9147333849),
-        datum: NoDatum,
-        reference_script: None,
-      },
-    }
-  let nft_pid = #"f0225dc689075f723faad666a16febada1d692f12eda5de2c2c7c7cc"
-  let bond_pid = #"294967f6df83712494e176cf40b6d89690b0b0e3a286216710f1d7e7"
+  // let input_03 =
+  //   Input {
+  //     output_reference: OutputReference(
+  //       TransactionId(
+  //         #"1d7e40357b586802a38243a77216ec6f8c5106ae928e1452f6706c41c9e67078",
+  //       ),
+  //       1,
+  //     ),
+  //     output: Output {
+  //       address: owner_addr,
+  //       value: value.from_lovelace(4675851207),
+  //       datum: NoDatum,
+  //       reference_script: None,
+  //     },
+  //   }
+  // let input_04 =
+  //   Input {
+  //     output_reference: OutputReference(
+  //       TransactionId(
+  //         #"23850612667a59e236ceeea412440b446fa697f2b988eb05e070aaa18c8cad0f",
+  //       ),
+  //       1,
+  //     ),
+  //     output: Output {
+  //       address: owner_addr,
+  //       value: value.from_lovelace(9147333849),
+  //       datum: NoDatum,
+  //       reference_script: None,
+  //     },
+  //   }
+  let nft_pid = #"b08ea97cd6804da26cf4cd4a346340222244f6e9c63fc2af7e24bd45"
+  let bond_pid = #"d4cb2133c49544f3f4aed61adf33d0aa70451bc0640e95381ef3356d"
   let bond_name =
-    #"79b18aded9e04c72f38e5fa8c4b31a0f3dc83d47f9ad5cdc2eed3f22f477247e"
+    #"56a951688173fc7332fd488f0254e4a2e2a23374f2ee1004af51cc0da34306a6"
   let output_01 =
     Output {
       address: fee_addr,
-      value: value.from_lovelace(4043836),
+      value: value.from_lovelace(969750),
       datum: NoDatum,
       reference_script: None,
     }
-  let issue_qty = 100
+  let issue_qty = 5
   let output_02 =
     Output {
       address: bond_addr,
-      value: value.from_lovelace(10076832873)
+      value: value.from_lovelace(503841644)
         |> value.add(nft_pid, bond_name, 1),
       datum: InlineDatum(
         BondDatum {
-          epo_rewards: value.from_lovelace(8986301),
+          epo_rewards: value.from_lovelace(449315),
           duration: 72,
           bond_symbol: bond_pid,
           token_name: bond_name,
@@ -160,7 +160,7 @@ test fail_check() {
           buffer: 6,
           fee: 500,
           borrower: borrower_nft,
-          start: 30409,
+          start: 30589,
         },
       ),
       reference_script: None,
@@ -168,7 +168,7 @@ test fail_check() {
   let output_03 =
     Output {
       address: req_addr,
-      value: value.from_lovelace(242630136)
+      value: value.from_lovelace(319463010)
         |> value.add(req_pid, borrower_nft, 1),
       datum: InlineDatum(
         RequestDatum {
@@ -178,7 +178,7 @@ test fail_check() {
           borrower: borrower_nft,
           requested: sreq_dt.requested,
           issued: sreq_dt.issued + issue_qty,
-          epo_rewards: 26958904,
+          epo_rewards: 35495890,
           prepaid: 9,
           buffer: 6,
           fee: 500,
@@ -189,7 +189,7 @@ test fail_check() {
   let output_04 =
     Output {
       address: owner_addr,
-      value: value.from_lovelace(3826431183),
+      value: value.from_lovelace(17985570093),
       datum: NoDatum,
       reference_script: None,
     }
@@ -199,12 +199,13 @@ test fail_check() {
       |> value.to_minted_value()
   let tx_time =
     interval.between(
-      slot_to_begin_posix_time(35979329, cfg.slot),
-      slot_to_begin_posix_time(35979509, cfg.slot),
+      slot_to_begin_posix_time(36304324, cfg.slot),
+      slot_to_begin_posix_time(36304684, cfg.slot),
     )
   let tx =
     Transaction {
-      inputs: [input_01, input_02, input_03, input_04],
+      // inputs: [input_01, input_02, input_03, input_04],
+      inputs: [input_01, input_02],
       reference_inputs: [],
       outputs: [output_01, output_02, output_03, output_04],
       fee: value.zero(),
