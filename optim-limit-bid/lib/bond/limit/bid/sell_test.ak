@@ -756,7 +756,7 @@ test sell_fail_output_qty() {
   )
 }
 
-test sell_fail_validity_after_not_set() {
+test sell_fail_validity_after_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()

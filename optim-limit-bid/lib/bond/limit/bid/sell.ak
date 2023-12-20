@@ -1,26 +1,23 @@
 // Bid Limit
 use aiken/bytearray
 use aiken/dict
-use aiken/interval.{Finite}
 use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/constraint.{
-  get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
-  posix_time_to_relative_epoch,
-}
+use bond/constraint.{get_escrow_info, get_escrow_ref_inputs, get_price_of_bond}
 use bond/limit/bid/utils.{collect_biz_tx_info}
 use bond/types.{
   BidLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
   OK,
 }
+use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
 use common/util.{get_data} as common_utils
 
 fn matching_correct(
   tx: Transaction,
   conf: ConfigLimit,
-  spd_bid_datum: BidLimit,
+  sbid_dt: BidLimit,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -35,7 +32,7 @@ fn matching_correct(
     get_price_of_bond(
       escrow_info.received_at_maturity_one_bond,
       escrow_info.day_to_maturity,
-      spd_bid_datum.requested_yield,
+      sbid_dt.requested_yield,
       conf.bond.basis_points_ref_unit,
     ) * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
@@ -48,7 +45,7 @@ fn matching_correct(
     received_diff * conf.exchange.buyer_fee / conf.bond.basis_points_ref_unit
   let exchange_fee_total_tmp = exchange_fee_buyer + exchange_fee_seller
   let seller_receive_total = received_with_yield - exchange_fee_seller
-  let sc_out_remain = spd_bid_datum.quantity - buyer_receive_bonds_qty
+  let sc_out_remain = sbid_dt.quantity - buyer_receive_bonds_qty
   let (buyer_receive_lovelace, exchange_fee_total) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
@@ -109,27 +106,18 @@ fn matching_correct(
 pub fn matching(
   tx: Transaction,
   conf: ConfigLimit,
-  spd_bid_datum: BidLimit,
+  sbid_dt: BidLimit,
   owner: Address,
   spending: Address,
 ) -> Bool {
-  let validity_after_must_set =
-    when tx.validity_range.lower_bound.bound_type is {
-      Finite(x) -> x
-      _ -> 0
-    }
-  let (owner_vk, spd_quantity, spd_to_epoch, spd_from_epoch) =
-    (
-      spd_bid_datum.owner_vk,
-      spd_bid_datum.quantity,
-      spd_bid_datum.to_epoch,
-      spd_bid_datum.from_epoch,
-    )
+  let tx_time_valid =
+    tx_validity_valid(tx.validity_range, conf.slot.slot_length, Some(60 * 60))
+
   and {
-    (spd_quantity > 0)?,
-    (spd_to_epoch >= spd_from_epoch)?,
-    (validity_after_must_set > 0)?,
-    not(bytearray.is_empty(owner_vk))? && //
+    (sbid_dt.quantity > 0)?,
+    (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
+    (tx_time_valid > 0)?,
+    not(bytearray.is_empty(sbid_dt.owner_vk))?,
     when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
       Some(ref_in_escrow) ->
         when get_data(tx.datums, ref_in_escrow.output.datum) is {
@@ -137,7 +125,7 @@ pub fn matching(
             expect escrow_datum: EscrowDatum = d
             let current_epoch =
               posix_time_to_relative_epoch(
-                validity_after_must_set,
+                tx_time_valid,
                 conf.bond.epoch_config,
               )
             let start_epoch =
@@ -145,8 +133,8 @@ pub fn matching(
             let end_epoch = start_epoch + escrow_datum.duration
             and {
               (end_epoch >= current_epoch)?,
-              (end_epoch >= spd_from_epoch)?,
-              (end_epoch <= spd_to_epoch)?,
+              (end_epoch >= sbid_dt.from_epoch)?,
+              (end_epoch <= sbid_dt.to_epoch)?,
               (escrow_datum.bond_amount > 0)?,
               (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
               (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
@@ -155,7 +143,7 @@ pub fn matching(
                   conf.bond,
                   value.lovelace_of(ref_in_escrow.output.value),
                   escrow_datum,
-                  validity_after_must_set,
+                  tx_time_valid,
                   current_epoch,
                   start_epoch,
                   end_epoch,
@@ -175,7 +163,7 @@ pub fn matching(
                       spending,
                       tx.datums,
                       escrow_info,
-                      spd_bid_datum,
+                      sbid_dt,
                     )
                   and {
                     biz_tx_info_valid,
@@ -211,12 +199,12 @@ pub fn matching(
                           (list.length(sc_out_utxos) <= 1)?,
                           (owner_output_len <= 1)?,
                           (ou.owner.bond_qty > 0)?,
-                          (ou.owner.bond_qty <= spd_quantity)?,
+                          (ou.owner.bond_qty <= sbid_dt.quantity)?,
                           (ou.owner.bond_qty <= escrow_datum.bond_amount)?,
                           matching_correct(
                             tx,
                             conf,
-                            spd_bid_datum,
+                            sbid_dt,
                             in,
                             ou,
                             escrow_info,

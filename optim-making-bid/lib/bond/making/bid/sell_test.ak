@@ -2,7 +2,6 @@
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/credential.{from_script}
 use aiken/transaction/value
-use bond/making/bid/sell
 use bond/constraint.{get_price_of_bond}
 use bond/fixture.{
   calc_escrow_full_info, gen_ask_making_datum, gen_bid_making_datum, gen_input,
@@ -14,6 +13,7 @@ use bond/fixture.{
   get_fraud_address, get_input_escrow, get_not_bond_policy_id,
   get_not_escrow_policy_id, get_seller_address,
 }
+use bond/making/bid/sell
 
 test sell_succ_full() {
   let time_of_tx = 1681095094000
@@ -751,7 +751,7 @@ test sell_fail_output_qty() {
   )
 }
 
-test sell_fail_validity_after_not_set() {
+test sell_fail_validity_after_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_buyer_address()

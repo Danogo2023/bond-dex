@@ -2674,7 +2674,7 @@ test buy_fail_invalid_revert_address() {
   )
 }
 
-test buy_fail_partial_validity_end_not_set() {
+test buy_fail_partial_validity_end_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2804,7 +2804,7 @@ test buy_fail_partial_validity_end_not_set() {
   )
 }
 
-test buy_fail_full_validity_end_not_set_1() {
+test buy_fail_full_validity_end_not_set_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2934,7 +2934,7 @@ test buy_fail_full_validity_end_not_set_1() {
   )
 }
 
-test buy_fail_full_validity_end_not_set_2() {
+test buy_fail_full_validity_end_not_set_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3061,7 +3061,7 @@ test buy_fail_full_validity_end_not_set_2() {
   )
 }
 
-test buy_fail_partial_validity_end_invalid_aft() {
+test buy_fail_partial_validity_end_invalid_aft() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3191,7 +3191,7 @@ test buy_fail_partial_validity_end_invalid_aft() {
   )
 }
 
-test buy_fail_full_validity_end_invalid_aft_1() {
+test buy_fail_full_validity_end_invalid_aft_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3321,7 +3321,7 @@ test buy_fail_full_validity_end_invalid_aft_1() {
   )
 }
 
-test buy_fail_full_validity_end_invalid_aft_2() {
+test buy_fail_full_validity_end_invalid_aft_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3448,7 +3448,7 @@ test buy_fail_full_validity_end_invalid_aft_2() {
   )
 }
 
-test buy_fail_partial_validity_end_invalid_pre() {
+test buy_fail_partial_validity_end_invalid_pre() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3578,7 +3578,7 @@ test buy_fail_partial_validity_end_invalid_pre() {
   )
 }
 
-test buy_fail_full_validity_end_invalid_pre_1() {
+test buy_fail_full_validity_end_invalid_pre_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3708,7 +3708,7 @@ test buy_fail_full_validity_end_invalid_pre_1() {
   )
 }
 
-test buy_fail_full_validity_end_invalid_pre_2() {
+test buy_fail_full_validity_end_invalid_pre_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
