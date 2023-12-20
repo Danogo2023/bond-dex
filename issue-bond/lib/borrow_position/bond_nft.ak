@@ -40,8 +40,8 @@ pub fn minting(
       (#"", None),
       fn(i, z) {
         if and {
-          (i.output_reference == out_ref)?,
-          (i.output.address.payment_credential == req_pk)?,
+          i.output_reference == out_ref,
+          i.output.address.payment_credential == req_pk,
         } {
           expect sreq_dt: RequestDatum =
             when i.output.datum is {
