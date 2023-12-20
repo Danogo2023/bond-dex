@@ -26,6 +26,7 @@ validator {
     when ac is {
       BondCreate { bond_skh, .. } -> bond_nft.minting(tx, bond_skh, nft_pid)
       BondRedeem { .. } -> bond_nft.burning(tx, nft_pid)
+      RedeemFee | ForceRedeem -> bond_nft.burning(tx, nft_pid)
       _ -> fail @"invalid action"
     }
   }
@@ -62,7 +63,7 @@ validator(
       BondRedeem { .. } ->
         redeem_bond.spending_with_fee(cfg, tx, sbond, addr, sdt, nft_pid)
       BondPayInterest ->
-        pay_interest.spending_without_fee(cfg, tx, sbond, addr, sdt, nft_pid)
+        pay_interest.spending_without_fee(tx, sbond, addr, sdt, nft_pid)
       BondChangeStakeKey ->
         change_stake_key.spending(tx, sbond, addr, sdt, nft_pid, borrower_pid)
       RedeemFee -> redeem_fee.spending(cfg, tx, sbond, addr, sdt, nft_pid)
@@ -89,6 +90,7 @@ validator {
       RequestCreate { out_ref, .. } ->
         request_nft.create_simple(tx, req_pid, out_ref)
       BondCreate { .. } -> request_nft.burning(tx, req_pid)
+      RequestUpdate -> request_nft.burning(tx, req_pid)
       _ -> fail @"invalid action"
     }
   }
@@ -97,7 +99,6 @@ validator {
 validator {
   fn mint_borrower(ac: BondIssueAction, ctx: ScriptContext) -> Bool {
     when ac is {
-      // pid: req_pid
       RequestCreate { out_ref, .. } -> {
         expect Mint(borrower_pid) = ctx.purpose
         borrower_nft.create_simple(ctx.transaction, borrower_pid, out_ref)
@@ -131,13 +132,7 @@ validator(
           req_pid,
         )
       RequestUpdate ->
-        request_update.spending(
-          cfg,
-          ctx.transaction,
-          get_spending_input(ctx),
-          sdt,
-          req_pid,
-        )
+        request_update.spending(cfg, ctx.transaction, sdt, req_pid)
       _ -> fail @"invalid action"
     }
   }

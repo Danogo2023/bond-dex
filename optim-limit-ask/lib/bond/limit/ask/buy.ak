@@ -5,16 +5,13 @@ use aiken/list
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/constraint.{
-  get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
-  posix_time_to_relative_epoch,
-}
+use bond/constraint.{get_escrow_info, get_escrow_ref_inputs, get_price_of_bond}
 use bond/limit/ask/utils.{collect_biz_tx_info}
 use bond/types.{
   AskLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
   OK,
 }
-use common/time.{tx_validity_valid}
+use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
 use common/util.{get_data} as common_utils
 
 fn matching_is_valid(
@@ -149,7 +146,7 @@ pub fn matching(
     tx_validity_valid(
       tx.validity_range,
       conf.slot.slot_length,
-      conf.exchange.tx_buy_valid_slot,
+      conf.exchange.tx_buy_ttl,
     )
   and {
     not(bytearray.is_empty(spd_ask_datum.owner_vk))?,

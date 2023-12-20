@@ -1,6 +1,7 @@
 use aiken/list
 use aiken/math
-use aiken/transaction.{InlineDatum, Input, Output, Transaction}
+use aiken/transaction.{InlineDatum, Transaction}
+use aiken/transaction/credential.{ScriptCredential, VerificationKeyCredential}
 use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondIssueConfig, RequestDatum} as bond_issue_types
 use borrow_request/types.{BorrowRequestOutput}
@@ -8,21 +9,22 @@ use borrow_request/types.{BorrowRequestOutput}
 pub fn spending(
   cfg: BondIssueConfig,
   tx: Transaction,
-  sreq: Input,
   sreq_dt: RequestDatum,
   req_pid: PolicyId,
 ) -> Bool {
-  let (found_oreq, found_borrower) =
-    get_request_output(cfg, tx, sreq.output, sreq_dt, req_pid)
+  let (oreq_found, borrower_found) =
+    get_request_output(cfg, tx, sreq_dt, req_pid)
+  let nft_burn_qty =
+    value.quantity_of(
+      value.from_minted_value(tx.mint),
+      req_pid,
+      sreq_dt.borrower,
+    )
   and {
-    found_borrower,
+    borrower_found,
     or {
-      found_oreq == True,
-      (value.quantity_of(
-        value.from_minted_value(tx.mint),
-        req_pid,
-        sreq_dt.borrower,
-      ) == 1)?,
+      oreq_found == True,
+      (nft_burn_qty == -1)?,
     },
   }
 }
@@ -30,7 +32,6 @@ pub fn spending(
 pub fn get_request_output(
   cfg: BondIssueConfig,
   tx: Transaction,
-  sreq: Output,
   sreq_dt: RequestDatum,
   req_pid: PolicyId,
 ) -> BorrowRequestOutput {
@@ -39,7 +40,10 @@ pub fn get_request_output(
     (False, False),
     fn(o, z) {
       if and {
-        o.address.payment_credential == sreq.address.payment_credential,
+        when o.address.payment_credential is {
+          VerificationKeyCredential(_) -> False
+          ScriptCredential(_) -> True
+        },
         value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1,
       } {
         expect oreq_dt: RequestDatum =

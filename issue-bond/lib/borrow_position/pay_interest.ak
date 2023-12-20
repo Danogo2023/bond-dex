@@ -7,7 +7,6 @@ use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondDatum, BondIssueConfig} as bond_issue_types
 
 pub fn spending_without_fee(
-  _cfg: BondIssueConfig,
   tx: Transaction,
   sbond: Output,
   sbond_addr: Address,
@@ -61,7 +60,7 @@ pub fn spending_without_fee(
   }
 }
 
-pub fn spending(
+pub fn spending_with_fee(
   cfg: BondIssueConfig,
   tx: Transaction,
   sbond_addr: Address,

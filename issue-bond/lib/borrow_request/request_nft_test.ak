@@ -151,7 +151,7 @@ test fail_when_not_minting_borrower_nft() {
   !validate(tx, None)
 }
 
-test succ_when_minting_other_tokens_additionally() {
+test fail_when_minting_other_tokens_additionally() {
   let tx =
     build_tx(None)
       |> fn(t) {
@@ -168,7 +168,7 @@ test succ_when_minting_other_tokens_additionally() {
 
 // Borrow Request UTxO
 
-test succ_when_doesnt_set_stake_credential() {
+test fail_when_doesnt_set_stake_credential() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -185,7 +185,7 @@ test succ_when_doesnt_set_stake_credential() {
   validate(tx, None)
 }
 
-test succ_when_setting_apr_lower_than_min_apr() {
+test fail_when_setting_apr_lower_than_min_apr() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -203,7 +203,7 @@ test succ_when_setting_apr_lower_than_min_apr() {
   validate(tx, None)
 }
 
-test succ_when_setting_duration_lowwer_than_min_duration() {
+test fail_when_setting_duration_lowwer_than_min_duration() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -221,7 +221,7 @@ test succ_when_setting_duration_lowwer_than_min_duration() {
   validate(tx, None)
 }
 
-test succ_when_setting_incorrect_symbol() {
+test fail_when_setting_incorrect_symbol() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -238,7 +238,7 @@ test succ_when_setting_incorrect_symbol() {
   validate(tx, None)
 }
 
-test succ_when_setting_incorrect_borrower() {
+test fail_when_setting_incorrect_borrower() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -255,7 +255,7 @@ test succ_when_setting_incorrect_borrower() {
   validate(tx, None)
 }
 
-test succ_when_setting_requested_lower_than_min_requested() {
+test fail_when_setting_requested_lower_than_min_requested() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -273,7 +273,7 @@ test succ_when_setting_requested_lower_than_min_requested() {
   validate(tx, None)
 }
 
-test succ_when_setting_negative_issued() {
+test fail_when_setting_negative_issued() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -290,7 +290,7 @@ test succ_when_setting_negative_issued() {
   validate(tx, None)
 }
 
-test succ_when_setting_positive_issued() {
+test fail_when_setting_positive_issued() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -307,7 +307,7 @@ test succ_when_setting_positive_issued() {
   validate(tx, None)
 }
 
-test succ_when_setting_epo_rewards_lower_than_expected() {
+test fail_when_setting_epo_rewards_lower_than_expected() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -333,7 +333,7 @@ test succ_when_setting_epo_rewards_lower_than_expected() {
   validate(tx, None)
 }
 
-test succ_when_setting_buffer_lower_than_min_buffer() {
+test fail_when_setting_buffer_lower_than_min_buffer() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -351,7 +351,7 @@ test succ_when_setting_buffer_lower_than_min_buffer() {
   validate(tx, None)
 }
 
-test succ_when_setting_fee_lower_than_min_fee() {
+test fail_when_setting_fee_lower_than_min_fee() {
   let cfg: BondIssueConfig = build_cfg()
   let tx =
     build_tx(None)
@@ -369,7 +369,7 @@ test succ_when_setting_fee_lower_than_min_fee() {
   validate(tx, None)
 }
 
-test succ_when_setting_deposit_ada_lower_than_expected() {
+test fail_when_setting_deposit_ada_lower_than_expected() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -394,17 +394,17 @@ test succ_when_setting_deposit_ada_lower_than_expected() {
   validate(tx, None)
 }
 
-test succ_when_doesnt_create_borrow_request() fail {
+test fail_when_doesnt_create_borrow_request() fail {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
            expect [_, user_out] = t.outputs
            Transaction { ..t, outputs: [user_out] }
          }
-  validate(tx, None)
+  !validate(tx, None)
 }
 
-test succ_when_borrow_request_has_no_datum() {
+test fail_when_borrow_request_has_no_datum() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
@@ -421,7 +421,7 @@ type UnkownDatum {
   owner: ByteArray,
 }
 
-test succ_when_borrow_request_has_invalid_datum() {
+test fail_when_borrow_request_has_invalid_datum() {
   let tx =
     build_tx(None)
       |> fn(t: Transaction) {
