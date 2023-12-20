@@ -6,11 +6,7 @@ use bond/types.{AskLimit, Buy, ConfigLimit, TradeAction, Update}
 use common/util.{get_spending_input, must_be_signed_by}
 
 validator(conf: ConfigLimit) {
-  fn ask_20230829(
-    datum: AskLimit,
-    action: TradeAction,
-    ctx: ScriptContext,
-  ) -> Bool {
+  fn ask(datum: AskLimit, action: TradeAction, ctx: ScriptContext) -> Bool {
     let tx = ctx.transaction
     let owner_address =
       Address {

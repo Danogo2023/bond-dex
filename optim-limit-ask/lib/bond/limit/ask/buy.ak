@@ -147,7 +147,7 @@ pub fn matching(
 ) -> Bool {
   let tx_time =
     tx_validity_valid(
-      tx,
+      tx.validity_range,
       conf.slot.slot_length,
       conf.exchange.tx_buy_valid_slot,
     )
