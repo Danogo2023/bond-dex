@@ -8,11 +8,7 @@ use bond/types.{BidMaking, ConfigMaking, Sell, TradeAction, Update}
 use common/util.{get_spending_input, must_be_signed_by} as common_utils
 
 validator(conf: ConfigMaking) {
-  fn bid_20230921(
-    datum: BidMaking,
-    action: TradeAction,
-    ctx: ScriptContext,
-  ) -> Bool {
+  fn bid(datum: BidMaking, action: TradeAction, ctx: ScriptContext) -> Bool {
     let tx = ctx.transaction
     let owner_sk =
       when datum.owner_sk is {

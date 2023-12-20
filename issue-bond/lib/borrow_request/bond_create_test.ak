@@ -148,7 +148,7 @@ test succ_bond_create() {
   let output_02 =
     Output {
       address: bond_addr,
-      value: value.from_lovelace(503841644)
+      value: value.from_lovelace(504290959)
         |> value.add(nft_pid, bond_name, 1),
       datum: InlineDatum(
         BondDatum {
