@@ -1,4 +1,4 @@
-use aiken/list.{concat, indexed_map, map, push, repeat}
+use aiken/list.{concat, indexed_map, map, repeat}
 use aiken/transaction.{
   Datum, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
   TransactionId, placeholder,
@@ -24,446 +24,514 @@ const req_skh = "borrowing_script_pkh"
 
 // ========= Tests ==========
 test succ_when_all_rules_are_satisfied() {
-  let tx = build_tx(None)
-  validate(tx, None)
-}
-
-test succ_when_seed_input_isnt_first() {
-  let seed_input =
-    Input {
-      ..build_user_input(),
-      output_reference: OutputReference(TransactionId("seed_tx"), 1337),
-    }
-
-  let tx =
-    build_tx(Some(seed_input))
-      |> fn(t) {
-           Transaction {
-             ..t,
-             inputs: t.inputs |> push(seed_input) |> push(build_user_input()),
-           }
-         }
-  validate(tx, Some(seed_input.output_reference))
-}
-
-test fail_when_wrong_seed() fail {
-  let unknown_ref = OutputReference(TransactionId("unknown"), 2)
-  let tx = build_tx(None)
-  validate(tx, Some(unknown_ref))
+  let (tx, spending_request) = build_tx()
+  validate(tx, spending_request)
 }
 
 // Minting
 test fail_when_minting_no_nft() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [input] = t.inputs
            let borrower = hash_out_ref(input.output_reference)
-           Transaction {
-             ..t,
-             mint: value.zero()
-               |> value.add(borrower_pid, borrower, 1)
-               |> value.to_minted_value(),
-           }
+           (
+             Transaction {
+               ..t,
+               mint: value.zero()
+                 |> value.add(borrower_pid, borrower, 1)
+                 |> value.to_minted_value(),
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  !validate(tx, sreq)
 }
 
+// mint hay ko mint borrow request ko phải quyết định ởi policy scipt này nhé Toanh
 test fail_when_minting_incorrect_borrower_nft_name() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [input] = t.inputs
            let borrower = hash_out_ref(input.output_reference)
-           Transaction {
-             ..t,
-             mint: value.from_asset(req_pid, borrower, 1)
-               |> value.add(borrower_pid, "other_nft", 1)
-               |> value.to_minted_value(),
-           }
+           (
+             Transaction {
+               ..t,
+               mint: value.from_asset(req_pid, borrower, 1)
+                 |> value.add(borrower_pid, "other_nft", 1)
+                 |> value.to_minted_value(),
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  validate(tx, sreq)
 }
 
 test fail_when_minting_incorrect_request_nft_name() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [input] = t.inputs
            let borrower = hash_out_ref(input.output_reference)
-           Transaction {
-             ..t,
-             mint: value.from_asset(req_pid, "other_nft", 1)
-               |> value.add(borrower_pid, borrower, 1)
-               |> value.to_minted_value(),
-           }
+           (
+             Transaction {
+               ..t,
+               mint: value.from_asset(req_pid, "other_nft", 1)
+                 |> value.add(borrower_pid, borrower, 1)
+                 |> value.to_minted_value(),
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_output_incorrect_request_nft_name() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_output_incorrect_request_nft_name() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [input] = t.inputs
            let borrow_request_out = build_borrow_request_output(#"")
            let borrower = hash_out_ref(input.output_reference)
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out,
-               input.output
-                 |> set_asset(borrower_pid, borrower, 1),
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out,
+                 input.output
+                   |> set_asset(borrower_pid, borrower, 1),
+               ],
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_minting_double_nft() fail {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_minting_double_nft() {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [input] = t.inputs
            let borrower = hash_out_ref(input.output_reference)
-           Transaction {
-             ..t,
-             mint: value.from_asset(req_pid, borrower, 2)
-               |> value.add(borrower_pid, borrower, 1)
-               |> value.to_minted_value(),
-           }
+           (
+             Transaction {
+               ..t,
+               mint: value.from_asset(req_pid, borrower, 2)
+                 |> value.add(borrower_pid, borrower, 1)
+                 |> value.to_minted_value(),
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  !validate(tx, sreq)
 }
 
+// mint hay ko mint borrow request ko phải quyết định ởi policy scipt này nhé Toanh
 test fail_when_not_minting_borrower_nft() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [input] = t.inputs
            let borrower = hash_out_ref(input.output_reference)
-           Transaction {
-             ..t,
-             mint: value.from_asset(req_pid, borrower, 1)
-               |> value.to_minted_value(),
-           }
+           (
+             Transaction {
+               ..t,
+               mint: value.from_asset(req_pid, borrower, 1)
+                 |> value.to_minted_value(),
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  validate(tx, sreq)
 }
 
 test fail_when_minting_other_tokens_additionally() {
-  let tx =
-    build_tx(None)
-      |> fn(t) {
-           Transaction {
-             ..t,
-             mint: t.mint
-               |> value.from_minted_value()
-               |> value.add(req_pid, "other_token", 1)
-               |> value.to_minted_value(),
-           }
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
+           (
+             Transaction {
+               ..t,
+               mint: t.mint
+                 |> value.from_minted_value()
+                 |> value.add(req_pid, "other_token", 1)
+                 |> value.to_minted_value(),
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  validate(tx, sreq)
 }
 
 // Borrow Request UTxO
 
-test fail_when_doesnt_set_stake_credential() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_doesnt_set_stake_credential() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_stake_credential(None),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_stake_credential(None),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_apr_lower_than_min_apr() {
+test fail_when_setting_apr_lower_than_min_apr() fail {
   let cfg: BondIssueConfig = build_cfg()
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_apr(cfg.platform.min_apr - 1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_apr(cfg.platform.min_apr - 1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_duration_lowwer_than_min_duration() {
+test fail_when_setting_duration_lowwer_than_min_duration() fail {
   let cfg: BondIssueConfig = build_cfg()
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_duration(cfg.platform.min_duration - 1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_duration(cfg.platform.min_duration - 1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_incorrect_symbol() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_setting_incorrect_symbol() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_symbol("not_req_pid"),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_symbol("not_req_pid"),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_incorrect_borrower() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_setting_incorrect_borrower() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_borrower("not_nft_name"),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_borrower("not_nft_name"),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_requested_lower_than_min_requested() {
+test fail_when_setting_requested_lower_than_min_requested() fail {
   let cfg: BondIssueConfig = build_cfg()
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_requested(cfg.platform.min_requested - 1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_requested(cfg.platform.min_requested - 1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_negative_issued() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_setting_negative_issued() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_issued(-1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_issued(-1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_positive_issued() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_setting_positive_issued() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_issued(1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_issued(1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_epo_rewards_lower_than_expected() {
+test fail_when_setting_epo_rewards_lower_than_expected() fail {
   let cfg: BondIssueConfig = build_cfg()
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
            expect odatum: RequestDatum = get_datum(borrow_request_out)
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_epo_rewards(
-                      get_min_epo_rewards(
-                        cfg,
-                        odatum.requested,
-                        odatum.issued,
-                        odatum.apr,
-                      ) - 1,
-                    ),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_epo_rewards(
+                        get_min_epo_rewards(
+                          cfg,
+                          odatum.requested,
+                          odatum.issued,
+                          odatum.apr,
+                        ) - 1,
+                      ),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_buffer_lower_than_min_buffer() {
+test fail_when_setting_buffer_lower_than_min_buffer() fail {
   let cfg: BondIssueConfig = build_cfg()
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_buffer(cfg.platform.min_buffer - 1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_buffer(cfg.platform.min_buffer - 1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_fee_lower_than_min_fee() {
+test fail_when_setting_fee_lower_than_min_fee() fail {
   let cfg: BondIssueConfig = build_cfg()
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_fee(cfg.platform.fee - 1),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_fee(cfg.platform.fee - 1),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_setting_deposit_ada_lower_than_expected() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_setting_deposit_ada_lower_than_expected() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
            expect odatum: RequestDatum = get_datum(borrow_request_out)
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_asset(
-                      value.ada_policy_id,
-                      value.ada_asset_name,
-                      get_borrow_request_min_ada(
-                        odatum.epo_rewards,
-                        odatum.prepaid,
-                      ) - 1,
-                    ),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_asset(
+                        value.ada_policy_id,
+                        value.ada_asset_name,
+                        get_borrow_request_min_ada(
+                          odatum.epo_rewards,
+                          odatum.prepaid,
+                        ) - 1,
+                      ),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  !validate(tx, sreq)
 }
 
 test fail_when_doesnt_create_borrow_request() fail {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [_, user_out] = t.outputs
-           Transaction { ..t, outputs: [user_out] }
+           (Transaction { ..t, outputs: [user_out] }, sreq)
          }
-  !validate(tx, None)
+  !validate(tx, sreq)
 }
 
-test fail_when_borrow_request_has_no_datum() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_borrow_request_has_no_datum() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [borrow_request_out |> set_datum(NoDatum), user_out],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [borrow_request_out |> set_datum(NoDatum), user_out],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  validate(tx, sreq)
 }
 
 type UnkownDatum {
   owner: ByteArray,
 }
 
-test fail_when_borrow_request_has_invalid_datum() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+test fail_when_borrow_request_has_invalid_datum() fail {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out
-                 |> set_datum(InlineDatum(UnkownDatum { owner: "unknown_pk" })),
-               user_out,
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out
+                   |> set_datum(InlineDatum(UnkownDatum { owner: "unknown_pk" })),
+                 user_out,
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  validate(tx, sreq)
 }
 
 // Attacks
 test fail_when_attempting_double_sastification() fail {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            expect [borrow_request_out, user_out] = t.outputs
-           Transaction {
-             ..t,
-             outputs: [
-               borrow_request_out,
-               user_out,
-               borrow_request_out
-                 |> set_prepaid(0)
-                 |> set_issued(10000)
-                 |> set_fee(0),
-             ],
-           }
+           (
+             Transaction {
+               ..t,
+               outputs: [
+                 borrow_request_out,
+                 user_out,
+                 borrow_request_out
+                   |> set_prepaid(0)
+                   |> set_issued(10000)
+                   |> set_fee(0),
+               ],
+             },
+             sreq,
+           )
          }
-  !validate(tx, None)
+  !validate(tx, sreq)
 }
 
 // Benchmarks
 test succ_on_large_inputs() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            let dusts =
              repeat("normal_tx", 100)
                |> indexed_map(
@@ -491,26 +559,30 @@ test succ_on_large_inputs() {
            let borrow_request_out = build_borrow_request_output(borrower)
            let user_in: Input = build_user_input()
 
-           Transaction {
-             ..placeholder(),
-             mint: value.from_asset(req_pid, borrower, 1)
-               |> value.add(borrower_pid, borrower, 1)
-               |> value.to_minted_value(),
-             inputs: inputs,
-             outputs: [
-               borrow_request_out,
-               user_in.output
-                 |> set_asset(borrower_pid, borrower, 1),
-             ],
-           }
+           (
+             Transaction {
+               ..placeholder(),
+               mint: value.from_asset(req_pid, borrower, 1)
+                 |> value.add(borrower_pid, borrower, 1)
+                 |> value.to_minted_value(),
+               inputs: inputs,
+               outputs: [
+                 borrow_request_out,
+                 user_in.output
+                   |> set_asset(borrower_pid, borrower, 1),
+               ],
+             },
+             sreq,
+           )
          }
-  validate(tx, None)
+  validate(tx, sreq)
 }
 
 test succ_on_large_outputs() {
-  let tx =
-    build_tx(None)
-      |> fn(t: Transaction) {
+  let (tx, sreq) =
+    build_tx()
+      |> fn(args: (Transaction, Input)) {
+           let (t, sreq) = args
            let dusts =
              repeat("normal_tx", 100)
                |> map(
@@ -526,9 +598,9 @@ test succ_on_large_outputs() {
                       }
                     },
                   )
-           Transaction { ..t, outputs: t.outputs |> concat(dusts) }
+           (Transaction { ..t, outputs: t.outputs |> concat(dusts) }, sreq)
          }
-  validate(tx, None)
+  validate(tx, sreq)
 }
 
 // ========= Helpers ==========
@@ -690,7 +762,7 @@ fn build_borrow_request_output(borrower: PolicyId) {
       RequestDatum {
         apr,
         duration,
-        symbol: req_pid,
+        symbol: borrower_pid,
         borrower,
         requested,
         issued,
@@ -704,29 +776,25 @@ fn build_borrow_request_output(borrower: PolicyId) {
   }
 }
 
-fn build_tx(seed: Option<Input>) -> Transaction {
+fn build_tx() {
   let user_in = build_user_input()
-  let inputs =
-    [user_in]
-  let seed_input =
-    when seed is {
-      None -> user_in
-      Some(in) -> in
-    }
-  let borrower = hash_out_ref(seed_input.output_reference)
+  let borrower = hash_out_ref(user_in.output_reference)
   let borrow_request_out = build_borrow_request_output(borrower)
-  Transaction {
-    ..placeholder(),
-    mint: value.from_asset(req_pid, borrower, 1)
-      |> value.add(borrower_pid, borrower, 1)
-      |> value.to_minted_value,
-    inputs: inputs,
-    outputs: [
-      borrow_request_out,
-      user_in.output
-        |> set_asset(borrower_pid, borrower, 1),
-    ],
-  }
+  (
+    Transaction {
+      ..placeholder(),
+      mint: value.from_asset(req_pid, borrower, 1)
+        |> value.add(borrower_pid, borrower, 1)
+        |> value.to_minted_value,
+      inputs: [user_in],
+      outputs: [
+        borrow_request_out,
+        user_in.output
+          |> set_asset(borrower_pid, borrower, 1),
+      ],
+    },
+    user_in,
+  )
 }
 
 fn build_cfg() {
@@ -748,14 +816,13 @@ fn build_cfg() {
   }
 }
 
-fn validate(tx: Transaction, seed_out_ref: Option<OutputReference>) {
-  let seed =
-    when seed_out_ref is {
-      None -> {
-        expect [input, ..] = tx.inputs
-        input.output_reference
-      }
-      Some(out_ref) -> out_ref
-    }
-  request_nft.minting(tx, req_skh, req_pid, borrower_pid, seed)
+fn validate(tx: Transaction, spending_request: Input) {
+  request_nft.minting(
+    build_cfg(),
+    tx,
+    req_skh,
+    req_pid,
+    borrower_pid,
+    spending_request.output_reference,
+  )
 }

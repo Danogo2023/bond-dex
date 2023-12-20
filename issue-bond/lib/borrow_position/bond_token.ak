@@ -52,6 +52,7 @@ pub fn minting_without_fee(
             }
           if and {
             // (value.quantity_of(i.output.value, req_pid, sreq_dt.borrower) == 1)?,
+            (i.output.address.stake_credential != None)?,
             (sreq_dt.apr >= cfg.platform.min_apr)?,
             (sreq_dt.duration >= cfg.platform.min_duration)?,
             (sreq_dt.requested >= cfg.platform.min_requested)?,
