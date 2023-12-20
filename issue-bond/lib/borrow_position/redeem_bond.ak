@@ -113,22 +113,20 @@ pub fn redeem_with_fee_valid(
         let redeem_amt = sbond_dt.bond_amount - obond_dt.bond_amount
         let redeem_principal = redeem_amt * cfg.platform.bond_face_value
         let redeem_val = sbond_interest_paid * redeem_amt / sbond_dt.bond_amount
-        let obond_dt_valid = and {
-            (obond_dt.bond_symbol == sbond_dt.bond_symbol)?,
-            (obond_dt.token_name == sbond_dt.token_name)?,
-            (obond_dt.borrower == sbond_dt.borrower)?,
-            (obond_dt.epo_rewards == sbond_dt.epo_rewards)?,
-            (obond_dt.duration == sbond_dt.duration)?,
-            (obond_dt.bond_amount < sbond_dt.bond_amount)?,
-            (obond_dt.buffer == sbond_dt.buffer)?,
-            (obond_dt.fee == sbond_dt.fee)?,
-            (obond_dt.start == sbond_dt.start)?,
-            (value.without_lovelace(obond.value) == sbond_assets)?,
-            (value.lovelace_of(obond.value) == sbond_balance - redeem_principal - redeem_val)?,
-            (ofee >= redeem_val * sbond_dt.fee / cfg.basis.base)?,
-          }
-
-        if obond_dt_valid {
+        if and {
+          (obond_dt.bond_symbol == sbond_dt.bond_symbol)?,
+          (obond_dt.token_name == sbond_dt.token_name)?,
+          (obond_dt.borrower == sbond_dt.borrower)?,
+          (obond_dt.epo_rewards == sbond_dt.epo_rewards)?,
+          (obond_dt.duration == sbond_dt.duration)?,
+          (obond_dt.bond_amount < sbond_dt.bond_amount)?,
+          (obond_dt.buffer == sbond_dt.buffer)?,
+          (obond_dt.fee == sbond_dt.fee)?,
+          (obond_dt.start == sbond_dt.start)?,
+          (value.without_lovelace(obond.value) == sbond_assets)?,
+          (value.lovelace_of(obond.value) == sbond_balance - redeem_principal - redeem_val)?,
+          (ofee >= redeem_val * sbond_dt.fee / cfg.basis.base)?,
+        } {
           redeem_amt
         } else {
           fail

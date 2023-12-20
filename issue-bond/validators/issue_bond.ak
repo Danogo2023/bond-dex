@@ -19,13 +19,13 @@ use issue_bond/types.{
   ForceRedeem, RedeemFee, RequestCreate, RequestUpdate,
 } as issue_bond_types
 
-validator(_cfg: BondIssueConfig) {
+validator(cfg: BondIssueConfig) {
   fn mint_request(ac: BondIssueAction, ctx: ScriptContext) -> Bool {
     expect Mint(req_pid) = ctx.purpose
     let tx = ctx.transaction
     when ac is {
       RequestCreate { out_ref, req_skh, pid: borrower_pid } ->
-        request_nft.minting(tx, req_skh, req_pid, borrower_pid, out_ref)
+        request_nft.minting(cfg, tx, req_skh, req_pid, borrower_pid, out_ref)
       BondCreate {
         out_ref: _out_ref,
         req_skh: _req_skh,
@@ -38,12 +38,13 @@ validator(_cfg: BondIssueConfig) {
   }
 }
 
-validator(_cfg: BondIssueConfig) {
+validator(cfg: BondIssueConfig) {
   fn mint_borrower(ac: BondIssueAction, ctx: ScriptContext) -> Bool {
     when ac is {
       RequestCreate { out_ref, req_skh, pid: req_pid } -> {
         expect Mint(borrower_pid) = ctx.purpose
         borrower_nft.minting(
+          cfg,
           ctx.transaction,
           req_skh,
           req_pid,

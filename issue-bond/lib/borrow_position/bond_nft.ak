@@ -49,6 +49,7 @@ pub fn minting(
               _ -> fail @"only supports InlineDatum for borrow request"
             }
           if and {
+            (i.output.address.stake_credential != None)?,
             (sreq_dt.apr >= cfg.platform.min_apr)?,
             (sreq_dt.duration >= cfg.platform.min_duration)?,
             (sreq_dt.requested >= cfg.platform.min_requested)?,

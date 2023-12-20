@@ -94,10 +94,7 @@ pub fn get_create_output(
     outputs,
     (False, None, sreq_dt.requested - sreq_dt.issued),
     fn(o, z) {
-      if and {
-        o.address == sreq_addr,
-        value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1,
-      } {
+      if o.address == sreq_addr {
         expect oreq_dt: RequestDatum =
           when o.datum is {
             InlineDatum(d) -> d
@@ -105,6 +102,8 @@ pub fn get_create_output(
           }
         let oreq_valid = and {
             (z.1st == False)?,
+            //
+            (value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1)?,
             //
             (sreq_dt.apr >= cfg.platform.min_apr)?,
             (sreq_dt.duration >= cfg.platform.min_duration)?,
@@ -117,6 +116,7 @@ pub fn get_create_output(
             (sreq_dt.prepaid <= sreq_dt.duration)?,
             (sreq_dt.fee >= cfg.platform.fee)?,
             (sreq_dt.requested >= sreq_dt.issued)?,
+            (sreq_dt.issued >= 0)?,
             //
             (oreq_dt.symbol == sreq_dt.symbol)?,
             (oreq_dt.borrower == sreq_dt.borrower)?,
@@ -125,6 +125,7 @@ pub fn get_create_output(
             (oreq_dt.requested == sreq_dt.requested)?,
             (oreq_dt.issued <= oreq_dt.requested)?,
             (oreq_dt.issued > sreq_dt.issued)?,
+            (oreq_dt.issued >= 0)?,
             (oreq_dt.prepaid == sreq_dt.prepaid)?,
             (oreq_dt.buffer == sreq_dt.buffer)?,
             (oreq_dt.fee == sreq_dt.fee)?,
@@ -238,7 +239,12 @@ fn bond_value_valid(
   let required_premium = obond_epo_rewards * sreq_dt.prepaid
   and {
     (value.lovelace_of(obond_dt.epo_rewards) == obond_epo_rewards)?,
-    bond_asset_valid(nft_pid, obond_dt, obond, obond_principal + required_premium),
+    bond_asset_valid(
+      nft_pid,
+      obond_dt,
+      obond,
+      obond_principal + required_premium,
+    ),
   }
 }
 
