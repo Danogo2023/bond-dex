@@ -757,5 +757,5 @@ fn validate(tx: Transaction, seed_out_ref: Option<OutputReference>) {
       }
       Some(out_ref) -> out_ref
     }
-  request_nft.create(tx, req_pid, seed, req_skh, borrower_pid)
+  request_nft.minting(tx, req_skh, req_pid, borrower_pid, seed)
 }

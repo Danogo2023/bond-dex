@@ -224,8 +224,24 @@ test succ_bond_create() {
     ScriptContext { transaction: tx, purpose: Spend(input_01.output_reference) }
 
   and {
-    bond_nft.minting(tx, bond_skh, nft_pid),
-    bond_token.minting(cfg, tx, req_skh, bond_skh, bond_pid),
+    bond_nft.minting(
+      cfg,
+      tx,
+      req_skh,
+      bond_skh,
+      nft_pid,
+      req_pid,
+      input_01.output_reference,
+    ),
+    bond_token.minting_without_fee(
+      cfg,
+      tx,
+      req_skh,
+      bond_skh,
+      nft_pid,
+      bond_pid,
+      input_01.output_reference,
+    ),
     bond_create.spending(
       cfg,
       ctx,
