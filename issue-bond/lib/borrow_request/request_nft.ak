@@ -1,8 +1,9 @@
 use aiken/dict
 use aiken/list
-use aiken/transaction.{OutputReference, Transaction}
+use aiken/transaction.{InlineDatum, OutputReference, Transaction}
 use aiken/transaction/credential.{ScriptCredential}
 use aiken/transaction/value.{PolicyId}
+use bond_issue/types.{RequestDatum} as bond_issue_types
 use borrow_request/utils.{get_input_out_ref}
 use common/hash_out_refs.{hash_out_ref}
 use common/types.{ScriptKeyHash} as common_types
@@ -20,90 +21,45 @@ pub fn burning(tx: Transaction, req_pid: PolicyId) -> Bool {
         }
       },
     )
-  (list.at(burn_names, 0) != None)?
+  (list.length(burn_names) == 1)?
 }
 
-pub fn create_simple(
+pub fn minting(
   tx: Transaction,
-  req_pid: PolicyId,
-  out_ref: OutputReference,
-) -> Bool {
-  let mint_names =
-    dict.foldl(
-      value.from_minted_value(tx.mint) |> value.tokens(req_pid),
-      [],
-      fn(n, q, z) {
-        if (q == 1)? {
-          [n, ..z]
-        } else {
-          fail
-        }
-      },
-    )
-
-  let borrower = hash_out_ref(get_input_out_ref(tx.inputs, out_ref))
-  list.has(mint_names, borrower)?
-}
-
-pub fn create(
-  tx: Transaction,
-  req_pid: PolicyId,
-  out_ref: OutputReference,
   req_skh: ScriptKeyHash,
+  req_pid: PolicyId,
   borrower_pid: PolicyId,
+  out_ref: OutputReference,
 ) -> Bool {
-  let req_credential = ScriptCredential(req_skh)
-  let req_outputs =
-    list.foldl(
-      tx.outputs,
-      [],
-      fn(o, z) {
-        if o.address.payment_credential == req_credential {
-          if list.at(z, 0) == None {
-            [o, ..z]
-          } else {
-            fail @"must only one request output"
-          }
-        } else {
-          z
-        }
-      },
-    )
-  when req_outputs is {
-    [o] -> {
-      let borrower = hash_out_ref(get_input_out_ref(tx.inputs, out_ref))
-      let mint_qty_valid =
-        dict.foldr(
-          value.from_minted_value(tx.mint) |> value.to_dict,
-          0,
-          fn(p, a, z) {
-            if p == req_pid || p == borrower_pid {
-              dict.foldr(
-                a,
-                z,
-                fn(n, q, xs) {
-                  if n == borrower {
-                    if (q == 1)? {
-                      xs + 1
-                    } else {
-                      fail
-                    }
-                  } else {
-                    xs
-                  }
-                },
-              )
-            } else {
-              z
+  let borrower = hash_out_ref(get_input_out_ref(tx.inputs, out_ref))
+  let mint_qty =
+    value.quantity_of(value.from_minted_value(tx.mint), req_pid, borrower)
+  let req_pk = ScriptCredential(req_skh)
+  and {
+    (mint_qty == 1)?,
+    when
+      list.filter(
+        tx.outputs,
+        fn(o) {
+          if o.address.payment_credential == req_pk {
+            expect oreq_dt: RequestDatum =
+              when o.datum is {
+                InlineDatum(d) -> d
+                _ -> fail @"only supports InlineDatum for borrow request"
+              }
+            and {
+              (oreq_dt.symbol == borrower_pid)?,
+              (oreq_dt.borrower == borrower)?,
+              (value.quantity_of(o.value, req_pid, borrower) == 1)?,
             }
-          },
-        )
-      and {
-        (value.quantity_of(o.value, req_pid, borrower) == 1)?,
-        (mint_qty_valid == 2)?,
-      }
-    }
-    _ ->
-      fail @"borrow_request/request_nft.create: only 1 request output is allowed"
+          } else {
+            False
+          }
+        },
+      )
+    is {
+      [_o] -> True
+      _ -> fail @"not found borrow request output"
+    },
   }
 }

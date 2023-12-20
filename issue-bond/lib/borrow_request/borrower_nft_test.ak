@@ -22,6 +22,8 @@ const user_stake_cred = "user_stake_key"
 
 const user_payment_cred = "user_payment_key"
 
+const req_pid = "req_pid"
+
 const borrower_pid = "borrower_pid"
 
 const req_skh = "borrowing_script_pkh"
@@ -652,7 +654,9 @@ fn build_tx(seed: Option<Input>) -> Transaction {
   let borrow_request_out = build_borrow_request_output(borrower)
   Transaction {
     ..placeholder(),
-    mint: from_asset(borrower_pid, borrower, 1) |> to_minted_value(),
+    mint: from_asset(borrower_pid, borrower, 1)
+      |> value.add(req_pid, borrower, 1)
+      |> to_minted_value(),
     inputs: inputs,
     outputs: [
       borrow_request_out,
@@ -690,5 +694,5 @@ fn validate(tx: Transaction, seed_out_ref: Option<OutputReference>) {
       }
       Some(out_ref) -> out_ref
     }
-  borrower_nft.create(build_cfg(), tx, borrower_pid, seed, req_skh)
+  borrower_nft.minting(tx, req_skh, req_pid, borrower_pid, seed)
 }
