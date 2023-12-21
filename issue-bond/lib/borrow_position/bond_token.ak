@@ -9,21 +9,24 @@ use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondDatum, BondIssueConfig, RequestDatum}
 use common/hash_out_refs.{hash_out_ref_salt}
 use common/types.{ScriptKeyHash} as common_types
+use issue_bond/utils.{get_burn_token_names, get_input_by_nft_names}
 
-pub fn burning(tx: Transaction, bond_pid: PolicyId) -> Bool {
-  let burn_names =
-    dict.foldl(
-      value.from_minted_value(tx.mint) |> value.tokens(bond_pid),
-      [],
-      fn(n, q, z) {
-        if (q < 0)? {
-          [n, ..z]
-        } else {
-          fail
-        }
-      },
-    )
-  (list.length(burn_names) == 1)?
+pub fn burning_bond_redeem(
+  tx: Transaction,
+  bond_pid: PolicyId,
+  nft_pid: PolicyId,
+) -> Bool {
+  let burn_names = get_burn_token_names(tx, bond_pid)
+  let ibond = get_input_by_nft_names(tx, burn_names, nft_pid)
+  and {
+    (list.length(burn_names) > 0)?,
+    (list.length(ibond) == list.length(burn_names))?,
+  }
+}
+
+pub fn burning_force_redeem(tx: Transaction, bond_pid: PolicyId) -> Bool {
+  let burn_names = get_burn_token_names(tx, bond_pid)
+  (list.length(burn_names) > 0)?
 }
 
 pub fn minting_without_fee(
@@ -35,91 +38,103 @@ pub fn minting_without_fee(
   bond_pid: PolicyId,
   out_ref: OutputReference,
 ) -> Bool {
-  let req_pk = ScriptCredential(req_skh)
-  when
-    list.foldl(
-      tx.inputs,
-      (None, None),
-      fn(i, z) {
-        if and {
-          i.output_reference == out_ref,
-          i.output.address.payment_credential == req_pk,
-        } {
-          expect sreq_dt: RequestDatum =
-            when i.output.datum is {
-              InlineDatum(d) -> d
-              _ -> fail @"only supports InlineDatum for request"
-            }
+  let mint_value = value.from_minted_value(tx.mint)
+  let mint_bond_tokens = value.tokens(mint_value, bond_pid)
+  let mint_nft_tokens = value.tokens(mint_value, nft_pid)
+  if and {
+    (dict.size(mint_bond_tokens) == dict.size(mint_nft_tokens))?,
+    (list.at(
+      list.difference(dict.keys(mint_bond_tokens), dict.keys(mint_nft_tokens)),
+      0,
+    ) == None)?,
+  } {
+    let req_pk = ScriptCredential(req_skh)
+    when
+      list.foldl(
+        tx.inputs,
+        (None, None),
+        fn(i, z) {
           if and {
-            // (value.quantity_of(i.output.value, req_pid, sreq_dt.borrower) == 1)?,
-            (i.output.address.stake_credential != None)?,
-            (sreq_dt.apr >= cfg.platform.min_apr)?,
-            (sreq_dt.duration >= cfg.platform.min_duration)?,
-            (sreq_dt.requested >= cfg.platform.min_requested)?,
-            (sreq_dt.buffer >= cfg.platform.min_buffer)?,
-            (sreq_dt.prepaid >= math.min(
-              sreq_dt.buffer + cfg.platform.prepaid_plus,
-              sreq_dt.duration,
-            ))?,
-            (sreq_dt.prepaid <= sreq_dt.duration)?,
-            (sreq_dt.fee >= cfg.platform.fee)?,
-            (sreq_dt.requested >= sreq_dt.issued)?,
-            (sreq_dt.epo_rewards >= ( sreq_dt.requested - sreq_dt.issued ) * cfg.platform.bond_face_value * sreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
+            i.output_reference == out_ref,
+            i.output.address.payment_credential == req_pk,
           } {
-            if z.1st == None {
-              (Some(sreq_dt), Some(i))
+            expect sreq_dt: RequestDatum =
+              when i.output.datum is {
+                InlineDatum(d) -> d
+                _ -> fail @"only supports InlineDatum for request"
+              }
+            if and {
+              // (value.quantity_of(i.output.value, req_pid, sreq_dt.borrower) == 1)?,
+              (i.output.address.stake_credential != None)?,
+              (sreq_dt.apr >= cfg.platform.min_apr)?,
+              (sreq_dt.duration >= cfg.platform.min_duration)?,
+              (sreq_dt.requested >= cfg.platform.min_requested)?,
+              (sreq_dt.buffer >= cfg.platform.min_buffer)?,
+              (sreq_dt.prepaid >= math.min(
+                sreq_dt.buffer + cfg.platform.prepaid_plus,
+                sreq_dt.duration,
+              ))?,
+              (sreq_dt.prepaid <= sreq_dt.duration)?,
+              (sreq_dt.fee >= cfg.platform.fee)?,
+              (sreq_dt.requested >= sreq_dt.issued)?,
+              (sreq_dt.epo_rewards >= ( sreq_dt.requested - sreq_dt.issued ) * cfg.platform.bond_face_value * sreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
+            } {
+              if z.1st == None {
+                (Some(sreq_dt), Some(i))
+              } else {
+                fail @"borrow request is unique"
+              }
             } else {
-              fail @"borrow request is unique"
+              z
             }
           } else {
             z
           }
-        } else {
-          z
-        }
-      },
-    )
-  is {
-    (Some(sreq_dt), Some(i)) -> {
-      let bond_name = hash_out_ref_salt(out_ref, sreq_dt.borrower)
-      let mint_qty =
-        value.quantity_of(value.from_minted_value(tx.mint), bond_pid, bond_name)
-      let bond_addr =
-        Address {
-          payment_credential: ScriptCredential(bond_skh),
-          stake_credential: i.output.address.stake_credential,
-        }
-      when
-        list.filter(
-          tx.outputs,
-          fn(o) {
-            if o.address == bond_addr {
-              expect obond_dt: BondDatum =
-                when o.datum is {
-                  InlineDatum(d) -> d
-                  _ ->
-                    fail @"borrow_position/bond_nft.minting: only supports InlineDatum for bond"
+        },
+      )
+    is {
+      (Some(sreq_dt), Some(i)) -> {
+        let bond_name = hash_out_ref_salt(out_ref, sreq_dt.borrower)
+        let mint_qty = value.quantity_of(mint_value, bond_pid, bond_name)
+        let bond_addr =
+          Address {
+            payment_credential: ScriptCredential(bond_skh),
+            stake_credential: i.output.address.stake_credential,
+          }
+        when
+          list.filter(
+            tx.outputs,
+            fn(o) {
+              if o.address == bond_addr {
+                expect obond_dt: BondDatum =
+                  when o.datum is {
+                    InlineDatum(d) -> d
+                    _ ->
+                      fail @"borrow_position/bond_nft.minting: only supports InlineDatum for bond"
+                  }
+                and {
+                  (obond_dt.borrower == sreq_dt.borrower)?,
+                  (mint_qty == obond_dt.bond_amount)?,
+                  (value.quantity_of(o.value, nft_pid, bond_name) == 1)?,
                 }
-              and {
-                (obond_dt.borrower == sreq_dt.borrower)?,
-                (mint_qty == obond_dt.bond_amount)?,
-                (value.quantity_of(o.value, nft_pid, bond_name) == 1)?,
+              } else {
+                False
               }
-            } else {
-              False
-            }
-          },
-        )
-      is {
-        [_o] -> True
-        _ -> fail @"not found borrow request output"
+            },
+          )
+        is {
+          [_o] -> True
+          _ -> fail @"not found borrow request output"
+        }
       }
+      _ -> fail @"not found borrow request input"
     }
-    _ -> fail @"not found borrow request input"
+  } else {
+    fail
   }
 }
 
-pub fn minting(
+pub fn minting_with_fee(
   cfg: BondIssueConfig,
   tx: Transaction,
   req_skh: ScriptKeyHash,

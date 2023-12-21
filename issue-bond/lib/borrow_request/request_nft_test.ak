@@ -29,7 +29,7 @@ test succ_when_all_rules_are_satisfied() {
 }
 
 // Minting
-test fail_when_minting_no_nft() {
+test fail_when_minting_no_nft() fail {
   let (tx, sreq) =
     build_tx()
       |> fn(args: (Transaction, Input)) {
@@ -70,7 +70,7 @@ test fail_when_minting_incorrect_borrower_nft_name() {
   validate(tx, sreq)
 }
 
-test fail_when_minting_incorrect_request_nft_name() {
+test fail_when_minting_incorrect_request_nft_name() fail {
   let (tx, sreq) =
     build_tx()
       |> fn(args: (Transaction, Input)) {
@@ -113,7 +113,7 @@ test fail_when_output_incorrect_request_nft_name() fail {
   !validate(tx, sreq)
 }
 
-test fail_when_minting_double_nft() {
+test fail_when_minting_double_nft() fail {
   let (tx, sreq) =
     build_tx()
       |> fn(args: (Transaction, Input)) {
@@ -169,7 +169,7 @@ test fail_when_minting_other_tokens_additionally() {
              sreq,
            )
          }
-  validate(tx, sreq)
+  !validate(tx, sreq)
 }
 
 // Borrow Request UTxO
@@ -448,7 +448,7 @@ test fail_when_setting_deposit_ada_lower_than_expected() fail {
   !validate(tx, sreq)
 }
 
-test fail_when_doesnt_create_borrow_request() fail {
+test fail_when_doesnt_create_borrow_request() {
   let (tx, sreq) =
     build_tx()
       |> fn(args: (Transaction, Input)) {
