@@ -26,33 +26,32 @@ validator(cfg: BondIssueConfig) {
     when ac is {
       RequestCreate { out_ref, req_skh, pid: borrower_pid } ->
         request_nft.minting(cfg, tx, req_skh, req_pid, borrower_pid, out_ref)
-      BondCreate {
-        out_ref: _out_ref,
-        req_skh: _req_skh,
-        bond_skh: _bond_skh,
-        pid: _borrower_pid,
-      } -> request_nft.burning(tx, req_pid)
+      BondCreate { out_ref, req_skh, bond_skh, pid: borrower_pid } ->
+        request_nft.burning_bond_create(
+          tx,
+          req_skh,
+          bond_skh,
+          req_pid,
+          borrower_pid,
+          out_ref,
+        )
+      RequestUpdate -> request_nft.burning_request_update(tx, req_pid)
       _ ->
-        fail @"minting request nft only support RequestCreate | BondCreate action"
+        fail @"minting request nft only support RequestCreate | RequestUpdate | BondCreate action"
     }
   }
 }
 
 validator(cfg: BondIssueConfig) {
   fn mint_borrower(ac: BondIssueAction, ctx: ScriptContext) -> Bool {
+    expect Mint(borrower_pid) = ctx.purpose
+    let tx = ctx.transaction
     when ac is {
-      RequestCreate { out_ref, req_skh, pid: req_pid } -> {
-        expect Mint(borrower_pid) = ctx.purpose
-        borrower_nft.minting(
-          cfg,
-          ctx.transaction,
-          req_skh,
-          req_pid,
-          borrower_pid,
-          out_ref,
-        )
-      }
-      _ -> fail @"minting borrower nft only support RequestCreate action"
+      RequestCreate { out_ref, req_skh, pid: req_pid } ->
+        borrower_nft.minting(cfg, tx, req_skh, req_pid, borrower_pid, out_ref)
+      ForceRedeem -> borrower_nft.burning_force_redeem(tx, borrower_pid)
+      _ ->
+        fail @"minting borrower nft only support RequestCreate | ForceRedeem action"
     }
   }
 }
@@ -100,8 +99,9 @@ validator(cfg: BondIssueConfig) {
     when ac is {
       BondCreate { out_ref, req_skh, bond_skh, pid: req_pid } ->
         bond_nft.minting(cfg, tx, req_skh, bond_skh, nft_pid, req_pid, out_ref)
-      BondRedeem { pid: _bond_pid } | ForceRedeem ->
-        bond_nft.burning(tx, nft_pid)
+      BondRedeem { pid: bond_pid } ->
+        bond_nft.burning_bond_redeem(tx, nft_pid, bond_pid)
+      ForceRedeem -> bond_nft.burning_force_redeem(tx, nft_pid)
       _ ->
         fail @"minting bond nft only support BondCreate | BondRedeem | ForceRedeem action"
     }
@@ -123,7 +123,8 @@ validator(cfg: BondIssueConfig) {
           bond_pid,
           out_ref,
         )
-      BondRedeem { pid: _nft_pid } -> bond_token.burning(tx, bond_pid)
+      BondRedeem { pid: nft_pid } ->
+        bond_token.burning_bond_redeem(tx, bond_pid, nft_pid)
       _ ->
         fail @"minting bond token only support BondCreate | BondRedeem action"
     }

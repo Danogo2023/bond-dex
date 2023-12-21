@@ -100,40 +100,39 @@ pub fn get_create_output(
             InlineDatum(d) -> d
             _ -> fail @"only supports InlineDatum for borrow request"
           }
-        let oreq_valid = and {
-            (z.1st == False)?,
-            //
-            (value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1)?,
-            //
-            (sreq_dt.apr >= cfg.platform.min_apr)?,
-            (sreq_dt.duration >= cfg.platform.min_duration)?,
-            (sreq_dt.requested >= cfg.platform.min_requested)?,
-            (sreq_dt.buffer >= cfg.platform.min_buffer)?,
-            (sreq_dt.prepaid >= math.min(
-              sreq_dt.buffer + cfg.platform.prepaid_plus,
-              sreq_dt.duration,
-            ))?,
-            (sreq_dt.prepaid <= sreq_dt.duration)?,
-            (sreq_dt.fee >= cfg.platform.fee)?,
-            (sreq_dt.requested >= sreq_dt.issued)?,
-            (sreq_dt.issued >= 0)?,
-            //
-            (oreq_dt.symbol == sreq_dt.symbol)?,
-            (oreq_dt.borrower == sreq_dt.borrower)?,
-            (oreq_dt.apr == sreq_dt.apr)?,
-            (oreq_dt.duration == sreq_dt.duration)?,
-            (oreq_dt.requested == sreq_dt.requested)?,
-            (oreq_dt.issued <= oreq_dt.requested)?,
-            (oreq_dt.issued > sreq_dt.issued)?,
-            (oreq_dt.issued >= 0)?,
-            (oreq_dt.prepaid == sreq_dt.prepaid)?,
-            (oreq_dt.buffer == sreq_dt.buffer)?,
-            (oreq_dt.fee == sreq_dt.fee)?,
-            //
-            (oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
-            (value.lovelace_of(o.value) >= oreq_dt.epo_rewards * oreq_dt.prepaid)?,
-          }
-        if oreq_valid {
+        if and {
+          (z.1st == False)?,
+          //
+          (value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1)?,
+          //
+          (sreq_dt.apr >= cfg.platform.min_apr)?,
+          (sreq_dt.duration >= cfg.platform.min_duration)?,
+          (sreq_dt.requested >= cfg.platform.min_requested)?,
+          (sreq_dt.buffer >= cfg.platform.min_buffer)?,
+          (sreq_dt.prepaid >= math.min(
+            sreq_dt.buffer + cfg.platform.prepaid_plus,
+            sreq_dt.duration,
+          ))?,
+          (sreq_dt.prepaid <= sreq_dt.duration)?,
+          (sreq_dt.fee >= cfg.platform.fee)?,
+          (sreq_dt.requested >= sreq_dt.issued)?,
+          (sreq_dt.issued >= 0)?,
+          //
+          (oreq_dt.symbol == sreq_dt.symbol)?,
+          (oreq_dt.borrower == sreq_dt.borrower)?,
+          (oreq_dt.apr == sreq_dt.apr)?,
+          (oreq_dt.duration == sreq_dt.duration)?,
+          (oreq_dt.requested == sreq_dt.requested)?,
+          (oreq_dt.issued <= oreq_dt.requested)?,
+          (oreq_dt.issued > sreq_dt.issued)?,
+          (oreq_dt.issued >= 0)?,
+          (oreq_dt.prepaid == sreq_dt.prepaid)?,
+          (oreq_dt.buffer == sreq_dt.buffer)?,
+          (oreq_dt.fee == sreq_dt.fee)?,
+          //
+          (oreq_dt.epo_rewards >= ( oreq_dt.requested - oreq_dt.issued ) * cfg.platform.bond_face_value * oreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
+          (value.lovelace_of(o.value) >= oreq_dt.epo_rewards * oreq_dt.prepaid)?,
+        } {
           (True, z.2nd, oreq_dt.issued - sreq_dt.issued)
         } else {
           fail
@@ -184,6 +183,7 @@ fn bond_output_valid(
     (obond_dt.duration == sreq_dt.duration)?,
     (obond_dt.bond_symbol == bond_pid)?,
     (obond_dt.token_name == bond_name)?,
+    (obond_dt.bond_amount > 0)?,
     (obond_dt.bond_amount == mint_qty)?,
     (obond_dt.buffer == sreq_dt.buffer)?,
     (obond_dt.fee == sreq_dt.fee)?,
