@@ -1,3 +1,4 @@
+// use aiken/cbor
 use aiken/dict
 use aiken/list
 use aiken/math
@@ -24,12 +25,12 @@ pub fn spending(
 ) -> Bool {
   expect Spend(sreq_out_ref) = ctx.purpose
   let tx = ctx.transaction
-  let bond_credential = ScriptCredential(bond_skh)
+  let bond_pk = ScriptCredential(bond_skh)
   when
     list.filter(
       tx.inputs,
       fn(i) {
-        i.output.address.payment_credential == bond_credential || i.output_reference == sreq_out_ref
+        i.output.address.payment_credential == bond_pk || i.output_reference == sreq_out_ref
       },
     )
   is {
@@ -43,7 +44,7 @@ pub fn spending(
           get_create_output(
             cfg,
             tx.outputs,
-            bond_credential,
+            bond_pk,
             sreq.output.address,
             sreq_dt,
             req_pid,
@@ -78,7 +79,7 @@ pub fn spending(
 pub fn get_create_output(
   cfg: BondIssueConfig,
   outputs: List<Output>,
-  bond_credential: PaymentCredential,
+  bond_pk: PaymentCredential,
   sreq_addr: Address,
   sreq_dt: RequestDatum,
   req_pid: PolicyId,
@@ -87,23 +88,28 @@ pub fn get_create_output(
 ) -> BondCreateOutput {
   let bond_addr =
     Address {
-      payment_credential: bond_credential,
+      payment_credential: bond_pk,
       stake_credential: sreq_addr.stake_credential,
     }
   list.foldr(
     outputs,
     (False, None, sreq_dt.requested - sreq_dt.issued),
     fn(o, z) {
-      if o.address == sreq_addr {
+      if and {
+        o.address == sreq_addr,
+        value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1,
+      } {
         expect oreq_dt: RequestDatum =
           when o.datum is {
             InlineDatum(d) -> d
             _ -> fail @"only supports InlineDatum for borrow request"
           }
+        // trace @"get_create_output"
+        // trace cbor.diagnostic(sreq_dt)
+        // trace cbor.diagnostic(oreq_dt)
+        // trace @"============="
         if and {
           (z.1st == False)?,
-          //
-          (value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1)?,
           //
           (sreq_dt.apr >= cfg.platform.min_apr)?,
           (sreq_dt.duration >= cfg.platform.min_duration)?,
@@ -179,6 +185,10 @@ fn bond_output_valid(
       cfg.platform.tx_ttl,
       cfg.slot.slot_length,
     )
+  // trace @"bond_output_valid"
+  // trace cbor.diagnostic(obond_dt.borrower)
+  // trace cbor.diagnostic(sreq_dt.borrower)
+  // trace @"============="
   and {
     (obond_dt.duration == sreq_dt.duration)?,
     (obond_dt.bond_symbol == bond_pid)?,

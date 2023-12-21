@@ -105,7 +105,10 @@ pub fn minting_without_fee(
           list.filter(
             tx.outputs,
             fn(o) {
-              if o.address == bond_addr {
+              if and {
+                o.address == bond_addr,
+                value.quantity_of(o.value, nft_pid, bond_name) == 1,
+              } {
                 expect obond_dt: BondDatum =
                   when o.datum is {
                     InlineDatum(d) -> d
@@ -113,9 +116,10 @@ pub fn minting_without_fee(
                       fail @"borrow_position/bond_nft.minting: only supports InlineDatum for bond"
                   }
                 and {
+                  (obond_dt.bond_symbol == bond_pid)?,
+                  (obond_dt.token_name == bond_name)?,
                   (obond_dt.borrower == sreq_dt.borrower)?,
-                  (mint_qty == obond_dt.bond_amount)?,
-                  (value.quantity_of(o.value, nft_pid, bond_name) == 1)?,
+                  (obond_dt.bond_amount == mint_qty)?,
                 }
               } else {
                 False
@@ -124,13 +128,13 @@ pub fn minting_without_fee(
           )
         is {
           [_o] -> True
-          _ -> fail @"not found borrow request output"
+          _ -> fail @"not found bond utxo output"
         }
       }
       _ -> fail @"not found borrow request input"
     }
   } else {
-    fail
+    False
   }
 }
 

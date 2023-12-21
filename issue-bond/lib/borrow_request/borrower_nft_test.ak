@@ -413,6 +413,7 @@ test succ_on_large_inputs() {
            Transaction {
              ..placeholder(),
              mint: from_asset(borrower_pid, borrower, 1)
+               |> value.add(req_pid, borrower, 1)
                |> to_minted_value(),
              inputs: inputs,
              outputs: [
