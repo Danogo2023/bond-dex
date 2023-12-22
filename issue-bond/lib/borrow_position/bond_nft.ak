@@ -145,13 +145,10 @@ pub fn minting(
     and {
       (dict.size(bond_outputs_valid) == dict.size(req_inputs_valid))?,
       (dict.size(bond_outputs_valid) == dict.size(mint_bond_nfts_valid))?,
-      (list.at(
-        list.difference(
-          dict.keys(mint_bond_nfts_valid),
-          dict.keys(bond_outputs_valid),
-        ),
-        0,
-      ) == None)?,
+      (list.difference(
+        dict.keys(mint_bond_nfts_valid),
+        dict.keys(bond_outputs_valid),
+      ) == [])?,
     }
   } else {
     fail

@@ -71,7 +71,7 @@ pub fn spending_with_fee(
 
   and {
     (ofee != None)?,
-    (list.at(list.difference(dict.keys(ibonds), dict.keys(obonds)), 0) == None)?,
+    (list.difference(dict.keys(ibonds), dict.keys(obonds)) == [])?,
     fee_pay_interest_valid(cfg, ibonds, obonds, ofee),
   }
 }
