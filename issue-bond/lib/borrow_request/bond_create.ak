@@ -1,7 +1,6 @@
 // use aiken/cbor
 use aiken/dict
 use aiken/list
-use aiken/math
 use aiken/option
 use aiken/transaction.{
   InlineDatum, Input, Output, ScriptContext, Spend, Transaction, ValidityRange,
@@ -13,6 +12,7 @@ use borrow_request/types.{BondCreateOutput} as borrow_request_types
 use common/hash_out_refs.{hash_out_ref_salt}
 use common/time.{get_current_epoch_with_ttl}
 use common/types.{ScriptKeyHash} as common_types
+use issue_bond/utils.{check_output_request_base}
 
 pub fn spending(
   cfg: BondIssueConfig,
@@ -45,7 +45,7 @@ pub fn spending(
             cfg,
             tx.outputs,
             bond_pk,
-            sreq.output.address,
+            sreq.output,
             sreq_dt,
             req_pid,
             nft_pid,
@@ -80,7 +80,7 @@ pub fn get_create_output(
   cfg: BondIssueConfig,
   outputs: List<Output>,
   bond_pk: PaymentCredential,
-  sreq_addr: Address,
+  sreq: Output,
   sreq_dt: RequestDatum,
   req_pid: PolicyId,
   nft_pid: PolicyId,
@@ -89,14 +89,14 @@ pub fn get_create_output(
   let bond_addr =
     Address {
       payment_credential: bond_pk,
-      stake_credential: sreq_addr.stake_credential,
+      stake_credential: sreq.address.stake_credential,
     }
   list.foldr(
     outputs,
     (False, None, sreq_dt.requested - sreq_dt.issued),
     fn(o, z) {
       if and {
-        o.address == sreq_addr,
+        o.address == sreq.address,
         value.quantity_of(o.value, req_pid, sreq_dt.borrower) == 1,
       } {
         expect oreq_dt: RequestDatum =
@@ -111,16 +111,7 @@ pub fn get_create_output(
         if and {
           (z.1st == False)?,
           //
-          (sreq_dt.apr >= cfg.platform.min_apr)?,
-          (sreq_dt.duration >= cfg.platform.min_duration)?,
-          (sreq_dt.requested >= cfg.platform.min_requested)?,
-          (sreq_dt.buffer >= cfg.platform.min_buffer)?,
-          (sreq_dt.prepaid >= math.min(
-            sreq_dt.buffer + cfg.platform.prepaid_plus,
-            sreq_dt.duration,
-          ))?,
-          (sreq_dt.prepaid <= sreq_dt.duration)?,
-          (sreq_dt.fee >= cfg.platform.fee)?,
+          check_output_request_base(cfg, sreq, sreq_dt)?,
           (sreq_dt.requested >= sreq_dt.issued)?,
           (sreq_dt.issued >= 0)?,
           //

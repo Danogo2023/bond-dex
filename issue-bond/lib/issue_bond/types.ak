@@ -10,7 +10,7 @@ pub type BondIssueAction {
     req_skh: ScriptKeyHash,
     pid: PolicyId,
   }
-  RequestUpdate
+  RequestUpdate { pid: PolicyId }
   // mint bond nft => BondCreate { out_ref, req_skh, bond_skh, bond_pid }
   // mint bond token => BondCreate { out_ref, req_skh, bond_skh, nft_pid }
   BondCreate {
@@ -23,8 +23,8 @@ pub type BondIssueAction {
   // burn bond token => BondRedeem { nft_pid }
   // spending bond utxo => BondRedeem { nft_pid || bond_pid }
   BondRedeem { pid: PolicyId }
-  BondPayInterest
-  BondChangeStakeKey
-  RedeemFee
-  ForceRedeem
+  BondPayInterest { pid: PolicyId }
+  BondChangeStakeKey { pid: PolicyId }
+  RedeemFee { pid: PolicyId }
+  ForceRedeem { pid: PolicyId }
 }
