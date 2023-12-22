@@ -44,10 +44,7 @@ pub fn minting_without_fee(
   let mint_nft_tokens = value.tokens(mint_value, nft_pid)
   if and {
     (dict.size(mint_bond_tokens) == dict.size(mint_nft_tokens))?,
-    (list.at(
-      list.difference(dict.keys(mint_bond_tokens), dict.keys(mint_nft_tokens)),
-      0,
-    ) == None)?,
+    (list.difference(dict.keys(mint_bond_tokens), dict.keys(mint_nft_tokens)) == [])?,
   } {
     let req_pk = ScriptCredential(req_skh)
     when
@@ -209,6 +206,6 @@ pub fn minting_with_fee(
     // must pay the correct fees to the platform
     (ofee >= total_fee)?,
     // bond mint must matching with bond output
-    (list.at(list.difference(mint_names, dist_names), 0) == None)?,
+    (list.difference(mint_names, dist_names) == [])?,
   }
 }
