@@ -1,7 +1,6 @@
 use aiken/bytearray
 use aiken/dict
 use aiken/list
-use aiken/math
 use aiken/transaction.{InlineDatum, OutputReference, Transaction}
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value.{PolicyId}
@@ -10,7 +9,8 @@ use common/hash_out_refs.{hash_out_ref_salt}
 use common/time.{get_current_epoch_with_ttl}
 use common/types.{ScriptKeyHash} as common_types
 use issue_bond/utils.{
-  get_burn_nft_names, get_input_by_nft_names, get_output_by_nft_names,
+  check_output_request_base, get_burn_nft_names, get_input_by_nft_names,
+  get_output_by_nft_names,
 }
 
 pub fn burning_bond_redeem(
@@ -67,20 +67,10 @@ pub fn minting(
               }
             if and {
               //
-              (sreq_dt.apr >= cfg.platform.min_apr)?,
-              (sreq_dt.duration >= cfg.platform.min_duration)?,
-              (sreq_dt.requested >= cfg.platform.min_requested)?,
-              (sreq_dt.buffer >= cfg.platform.min_buffer)?,
-              (sreq_dt.prepaid >= math.min(
-                sreq_dt.buffer + cfg.platform.prepaid_plus,
-                sreq_dt.duration,
-              ))?,
-              (sreq_dt.prepaid <= sreq_dt.duration)?,
-              (sreq_dt.fee >= cfg.platform.fee)?,
+              (i.output.address.stake_credential != None)?,
+              check_output_request_base(cfg, i.output, sreq_dt)?,
               (sreq_dt.requested > sreq_dt.issued)?,
               (sreq_dt.issued >= 0)?,
-              (sreq_dt.epo_rewards >= ( sreq_dt.requested - sreq_dt.issued ) * cfg.platform.bond_face_value * sreq_dt.apr / cfg.basis.base / cfg.epoch.year_to_epoch)?,
-              (value.lovelace_of(i.output.value) >= sreq_dt.epo_rewards * sreq_dt.prepaid)?,
               (value.quantity_of(i.output.value, req_pid, sreq_dt.borrower) == 1)?,
             } {
               let bond_name =
