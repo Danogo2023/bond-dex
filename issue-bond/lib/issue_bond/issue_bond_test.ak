@@ -279,8 +279,8 @@ fn fulfill_borrow_request(request: Input, lend_amt: LendAmount) {
         build_request_input(
           issued: bond_amount + issued,
           borrower: borrower,
-          requested: cfg.platform.min_requested,
-          apr: cfg.platform.min_apr,
+          requested: requested,
+          apr: apr,
         ).output,
       ),
     )
