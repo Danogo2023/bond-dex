@@ -1,0 +1,19 @@
+name = "danogo2023/bonds/dex-limit-bid"
+version = "1.0.0"
+license = "Apache-2.0"
+description = "Danogo Bond Exchanges: Bid Limit Optim Bond"
+
+[repository]
+user = "danogo2023/bonds"
+project = "dex-limit-bid"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "1.7.0"
+source = "github"
+
+[[dependencies]]
+name = "danogo2023/daken"
+version = "master"
+source = "github"
