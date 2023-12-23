@@ -4,13 +4,12 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
-use bond/constraint.{
-  bond_assets, datum_ask_limit_compare, datum_yield_limit_valid,
-}
+use bond/constraint.{ask_limit_valid, yield_limit_valid}
 use bond/types.{
   AskLimit, BizOutput, BizOutputInfo, BizTxInfo, ConfigLimit, DatumOf,
   EscrowInfo, OtherDatum, ScDatum,
 }
+use bond/utils.{bond_assets}
 use common/types.{Datums} as common_types
 use common/util.{get_data}
 
@@ -20,7 +19,7 @@ fn datum_is_valid(
   spd_datum: AskLimit,
 ) -> Bool {
   expect out_datum: AskLimit = out_data
-  datum_yield_limit_valid(conf, out_datum.requested_yield) && datum_ask_limit_compare(
+  yield_limit_valid(conf, out_datum.requested_yield) && ask_limit_valid(
     spd_datum,
     out_datum,
   )

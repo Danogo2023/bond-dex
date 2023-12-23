@@ -4,14 +4,12 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
+use bond/constraint.{bid_limit_multi_valid, epoch_valid, yield_valid}
 use bond/types.{
   BidLimitMulti, BizOutput, BizOutputInfo, BizTxInfo, BondConfigLimit, DatumOf,
   EscrowInfo, OtherDatum, ScDatum,
 }
-use bond/v2/constraint.{
-  bond_assets, datum_bid_limit_multi_compare, datum_epoch_valid,
-  datum_yield_limit_valid,
-}
+use bond/utils.{bond_assets} as bond_utils
 use common/types.{Datums} as common_types
 use common/util.{get_data}
 
@@ -21,11 +19,11 @@ fn datum_is_valid(
   sdt: BidLimitMulti,
 ) -> Bool {
   expect out_datum: BidLimitMulti = out_data
-  datum_yield_limit_valid(cfg.platform.basis, out_datum.requested_yield) && datum_epoch_valid(
+  yield_valid(cfg.platform.basis, out_datum.requested_yield) && epoch_valid(
     out_datum.from_epoch,
     out_datum.to_epoch,
     out_datum.quantity,
-  ) && datum_bid_limit_multi_compare(sdt, out_datum)
+  ) && bid_limit_multi_valid(sdt, out_datum)
 }
 
 fn build_biz_output_info(
@@ -177,22 +175,6 @@ fn get_biz_input(
   escrow_info: EscrowInfo,
   sdt: BidLimitMulti,
 ) -> BizOutput {
-  // list.foldl(
-  //   inputs,
-  //   zero,
-  //   fn(i, z) {
-  //     let iaddr = i.output.address
-  //     if iaddr == sbid_addr {
-
-  //     } else if iaddr == owner_addr {
-
-  //     } else if iaddr == cfg.exchange.address {
-
-  //     } else {
-  //       z
-  //     }
-  //   }
-  // )
   when inputs is {
     [] -> zero
     [x, ..xs] -> {

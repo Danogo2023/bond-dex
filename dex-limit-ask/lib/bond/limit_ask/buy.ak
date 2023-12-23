@@ -5,13 +5,14 @@ use aiken/list
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/constraint.{get_escrow_info, get_escrow_ref_inputs, get_price_of_bond}
+use bond/constraint.{get_escrow_info, get_escrow_ref}
 use bond/limit_ask/utils.{collect_biz_tx_info}
 use bond/types.{
-  AskLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
-  OK,
+  AskLimit, BizOutput, BizTxInfo, ConfigLimit, EscrowDatum, EscrowInfo,
 }
+use bond/utils.{get_price_of_bond} as bond_utils
 use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
+use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_is_valid(
@@ -24,8 +25,7 @@ fn matching_is_valid(
   min_ada_to_exchange: Int,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
-  let received_at_maturity =
-    escrow_info.received_at_maturity_one_bond * buyer_qty
+  let received_at_maturity = escrow_info.value_at_maturity * buyer_qty
   // Tong tien buyer phai tra/seller(owner of listing) nhan duoc chua tru phi
   let received_with_yield = price_of_one_bond * buyer_qty
   // Chenh lech tien lai nhan duoc
@@ -123,7 +123,7 @@ fn matching_correct(
             escrow_info,
             qty_owner_2_buyer,
             get_price_of_bond(
-              escrow_info.received_at_maturity_one_bond,
+              escrow_info.value_at_maturity,
               escrow_info.day_to_maturity,
               spd_ask_datum.requested_yield,
               conf.bond.basis_points_ref_unit,
@@ -150,7 +150,7 @@ pub fn matching(
     )
   and {
     not(bytearray.is_empty(spd_ask_datum.owner_vk))?,
-    when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
+    when get_escrow_ref(tx.reference_inputs, conf.bond) is {
       Some(ref_in_escrow) ->
         when get_data(tx.datums, ref_in_escrow.output.datum) is {
           Some(d) -> {

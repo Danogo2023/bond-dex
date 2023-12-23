@@ -2,18 +2,21 @@
 use aiken/bytearray
 use aiken/dict
 use aiken/list
+// use aiken/option
+use aiken/time.{PosixTime} as aiken_time
 use aiken/transaction.{Output, Transaction}
+// , ScriptContext
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/limit_bid_multi/utils.{collect_biz_tx_info}
 use bond/types.{
-  BidLimitMulti, BizOutput, BizTxInfo, BondConfigLimit, Error, EscrowDatum,
-  EscrowInfo, OK,
+  BidLimitMulti, BizOutput, BizTxInfo, BondConfigLimit, EscrowDatum, EscrowInfo,
 }
-use bond/v2/constraint.{
-  get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
-}
-use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
+use bond/utils.{get_price_of_bond, head_escrow_ref} as bond_utils
+// list_escrow_ref,
+use common/string.{bconcat_3} as common_string
+use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
+use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_correct(
@@ -28,11 +31,11 @@ fn matching_correct(
   let buyer_receive_bonds_qty = out.owner.bond_qty
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
-    escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
+    escrow_info.value_at_maturity * buyer_receive_bonds_qty
   // Tong tien buyer(owner of bid) phai tra/seller nhan duoc chua tru phi
   let received_with_yield =
     get_price_of_bond(
-      escrow_info.received_at_maturity_one_bond,
+      escrow_info.value_at_maturity,
       escrow_info.day_to_maturity,
       sbid_dt.requested_yield,
       cfg.platform.basis.base,
@@ -112,119 +115,168 @@ pub fn matching(
   owner: Address,
   spending: Address,
 ) -> Bool {
-  let tx_time_valid =
+  let tx_time_valid: PosixTime =
     tx_validity_valid(
       tx.validity_range,
       cfg.platform.slot.slot_length,
       Some(60 * 60),
     )
-
+  let epo_curr: EpochTime =
+    posix_time_to_relative_epoch(tx_time_valid, cfg.platform.epoch)
   and {
+    (tx_time_valid > 0)?,
     (sbid_dt.quantity > 0)?,
     (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
-    (tx_time_valid > 0)?,
     not(bytearray.is_empty(sbid_dt.owner_vk))?,
-    when get_escrow_ref_inputs(tx.reference_inputs, cfg.escrow) is {
-      (Some(ref_escrow), Some(bond_type)) -> and {
-          list.has(sbid_dt.bond_types, bond_type)?,
-          when get_data(tx.datums, ref_escrow.output.datum) is {
-            Some(d) -> {
-              expect escrow_dt: EscrowDatum = d
-              let current_epoch =
-                posix_time_to_relative_epoch(tx_time_valid, cfg.platform.epoch)
-              let start_epoch =
-                escrow_dt.start + cfg.platform.epoch.epoch_boundary_as_epoch
-              let end_epoch = start_epoch + escrow_dt.duration
-              let ref_escrow_balance = value.lovelace_of(ref_escrow.output.value)
+    when
+      head_escrow_ref(
+        cfg.platform,
+        cfg.escrow,
+        tx.reference_inputs,
+        tx.datums,
+        sbid_dt.bond_types,
+        tx_time_valid,
+        epo_curr,
+      )
+    is {
+      OK(escrow_refs) ->
+        when escrow_refs |> dict.to_list is {
+          [(bond_unit, escrow_data)] -> {
+            let (_escrow_input, escrow_dt, _bond_type, _escrow_bal, escrow_info) =
+              escrow_data
+            if and {
+              (escrow_info.end_epoch >= epo_curr)?,
+              (escrow_info.end_epoch >= sbid_dt.from_epoch)?,
+              (escrow_info.end_epoch <= sbid_dt.to_epoch)?,
+            } {
+              let BizTxInfo {
+                valid: biz_tx_info_valid,
+                biz_tx_in: in,
+                biz_tx_out: out,
+              } =
+                collect_biz_tx_info(
+                  cfg,
+                  tx.inputs,
+                  tx.outputs,
+                  owner,
+                  spending,
+                  tx.datums,
+                  escrow_info,
+                  sbid_dt,
+                )
               and {
-                (end_epoch >= current_epoch)?,
-                (end_epoch >= sbid_dt.from_epoch)?,
-                (end_epoch <= sbid_dt.to_epoch)?,
-                (escrow_dt.bond_amount > 0)?,
-                (value.lovelace_of(escrow_dt.epo_rewards) > 0)?,
-                (ref_escrow_balance > escrow_dt.bond_amount * cfg.platform.bond_face_value)?,
-                when
-                  get_escrow_info(
-                    cfg.platform,
-                    ref_escrow_balance,
-                    escrow_dt,
-                    tx_time_valid,
-                    current_epoch,
-                    start_epoch,
-                    end_epoch,
-                  )
-                is {
-                  OK(escrow_info) -> {
-                    let BizTxInfo {
-                      valid: biz_tx_info_valid,
-                      biz_tx_in: in,
-                      biz_tx_out: out,
-                    } =
-                      collect_biz_tx_info(
-                        cfg,
-                        tx.inputs,
-                        tx.outputs,
-                        owner,
-                        spending,
-                        tx.datums,
-                        escrow_info,
-                        sbid_dt,
+                biz_tx_info_valid,
+                when out is {
+                  None -> fail @"out is None"
+                  Some(ou) -> {
+                    let owner_in_utxos_len =
+                      list.length(
+                        list.concat(
+                          in.owner.bond_outputs,
+                          in.owner.other_outputs,
+                        ),
+                      )
+                    let sc_out_utxos =
+                      list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
+                    let owner_output_len =
+                      list.length(
+                        list.concat(
+                          ou.owner.bond_outputs,
+                          ou.owner.other_outputs,
+                        ),
                       )
                     and {
-                      biz_tx_info_valid,
-                      when out is {
-                        None -> fail @"out is None"
-                        Some(ou) -> {
-                          let owner_in_utxos_len =
-                            list.length(
-                              list.concat(
-                                in.owner.bond_outputs,
-                                in.owner.other_outputs,
-                              ),
-                            )
-                          let sc_out_utxos =
-                            list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
-                          let owner_output_len =
-                            list.length(
-                              list.concat(
-                                ou.owner.bond_outputs,
-                                ou.owner.other_outputs,
-                              ),
-                            )
-                          and {
-                            (owner_in_utxos_len == 0)?,
-                            (dict.size(ou.owner.bond_assets) == 1)?,
-                            dict.has_key(
-                              ou.owner.bond_assets,
-                              escrow_info.token_name,
-                            )?,
-                            (list.length(sc_out_utxos) <= 1)?,
-                            (owner_output_len <= 1)?,
-                            (ou.owner.bond_qty > 0)?,
-                            (ou.owner.bond_qty <= sbid_dt.quantity)?,
-                            (ou.owner.bond_qty <= escrow_dt.bond_amount)?,
-                            matching_correct(
-                              tx,
-                              cfg,
-                              sbid_dt,
-                              in,
-                              ou,
-                              escrow_info,
-                              list.at(sc_out_utxos, 0),
-                            ),
-                          }
-                        }
-                      },
+                      (owner_in_utxos_len == 0)?,
+                      (dict.size(ou.owner.bond_assets) == 1)?,
+                      dict.has_key(ou.owner.bond_assets, escrow_info.token_name)?,
+                      (list.length(sc_out_utxos) <= 1)?,
+                      (owner_output_len <= 1)?,
+                      (ou.owner.bond_qty > 0)?,
+                      (ou.owner.bond_qty <= sbid_dt.quantity)?,
+                      (ou.owner.bond_qty <= escrow_dt.bond_amount)?,
+                      matching_correct(
+                        tx,
+                        cfg,
+                        sbid_dt,
+                        in,
+                        ou,
+                        escrow_info,
+                        list.at(sc_out_utxos, 0),
+                      ),
                     }
                   }
-                  Error(_) -> fail @"bond is closable"
                 },
               }
+            } else {
+              fail bconcat_3(
+                @"escrow of bond ",
+                bytearray.to_string(bond_unit),
+                @" invalid epoch",
+              )
             }
-            _ -> fail @"not found escrow datum in reference_inputs"
-          },
+          }
+          _ -> fail @"not found escrow info in reference_inputs"
         }
-      _ -> fail @"not found escrow info in reference_inputs"
+      Error(e) -> fail e
     },
   }
 }
+// pub fn spending(
+//   cfg: BondConfigLimit,
+//   ctx: ScriptContext,
+//   sbid_dt: BidLimitMulti,
+// ) -> Bool {
+//   let tx = ctx.transaction
+//   let _tx_time_valid =
+//     tx_validity_valid(
+//       tx.validity_range,
+//       cfg.platform.slot.slot_length,
+//       Some(60 * 60),
+//     )
+//   and {
+//     (sbid_dt.quantity > 0)?,
+//     (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
+//     (tx_time_valid > 0)?,
+//     not(bytearray.is_empty(sbid_dt.owner_vk))?,
+//     when
+//       list_escrow_ref(
+//         cfg.escrow,
+//         tx.reference_inputs,
+//         tx.datums,
+//         sbid_dt.bond_types,
+//       )
+//     is {
+//       OK(escrow_refs) -> {
+//         expect Spend(sbid_out_ref) = ctx.purpose
+//         let _owner_addr =
+//           sbid_dt.owner_sk
+//             |> option.and_then(
+//                  fn(s) {
+//                    Some(
+//                      credential.from_verification_key(sbid_dt.owner_vk)
+//                        |> credential.with_delegation_key(s),
+//                    )
+//                  },
+//                )
+//             |> option.or_else(credential.from_verification_key(sbid_dt.owner_vk))
+//         // (sbid, [iorders])
+//         list.foldl(
+//           inputs,
+//           (None, 0),
+//           fn(i, z) {
+//             let iaddr = i.output.address
+//             if i.output_reference == sbid_out_ref {
+//               Some(i)
+//             } else {
+//               // } else if iaddr == sbid_addr {
+//               // } else if iaddr == owner_addr {
+//               // } else if iaddr == cfg.exchange.address {
+//               z
+//             }
+//           },
+//         )
+//       }
+//       Error(s) -> fail s
+//     },
+//   }
+// }
