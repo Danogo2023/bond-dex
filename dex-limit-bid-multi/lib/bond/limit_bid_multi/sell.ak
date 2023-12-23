@@ -1,19 +1,19 @@
 // Bid Limit Multi
 use aiken/bytearray
+use aiken/cbor
 use aiken/dict
 use aiken/list
-// use aiken/option
+use aiken/option
 use aiken/time.{PosixTime} as aiken_time
-use aiken/transaction.{Output, Transaction}
-// , ScriptContext
+use aiken/transaction.{Output, ScriptContext, Spend, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/limit_bid_multi/utils.{collect_biz_tx_info}
 use bond/types.{
   BidLimitMulti, BizOutput, BizTxInfo, BondConfigLimit, EscrowDatum, EscrowInfo,
 }
-use bond/utils.{get_price_of_bond, head_escrow_ref} as bond_utils
-// list_escrow_ref,
+use bond/utils.{get_price_of_bond,
+  head_escrow_ref, list_escrow_ref} as bond_utils
 use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, OK} as common_types
@@ -208,11 +208,7 @@ pub fn matching(
                 },
               }
             } else {
-              fail bconcat_3(
-                @"escrow of bond ",
-                bytearray.to_string(bond_unit),
-                @" invalid epoch",
-              )
+              fail bconcat_3(@"escrow of bond ", bond_unit, @" invalid epoch")
             }
           }
           _ -> fail @"not found escrow info in reference_inputs"
@@ -221,62 +217,76 @@ pub fn matching(
     },
   }
 }
-// pub fn spending(
-//   cfg: BondConfigLimit,
-//   ctx: ScriptContext,
-//   sbid_dt: BidLimitMulti,
-// ) -> Bool {
-//   let tx = ctx.transaction
-//   let _tx_time_valid =
-//     tx_validity_valid(
-//       tx.validity_range,
-//       cfg.platform.slot.slot_length,
-//       Some(60 * 60),
-//     )
-//   and {
-//     (sbid_dt.quantity > 0)?,
-//     (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
-//     (tx_time_valid > 0)?,
-//     not(bytearray.is_empty(sbid_dt.owner_vk))?,
-//     when
-//       list_escrow_ref(
-//         cfg.escrow,
-//         tx.reference_inputs,
-//         tx.datums,
-//         sbid_dt.bond_types,
-//       )
-//     is {
-//       OK(escrow_refs) -> {
-//         expect Spend(sbid_out_ref) = ctx.purpose
-//         let _owner_addr =
-//           sbid_dt.owner_sk
-//             |> option.and_then(
-//                  fn(s) {
-//                    Some(
-//                      credential.from_verification_key(sbid_dt.owner_vk)
-//                        |> credential.with_delegation_key(s),
-//                    )
-//                  },
-//                )
-//             |> option.or_else(credential.from_verification_key(sbid_dt.owner_vk))
-//         // (sbid, [iorders])
-//         list.foldl(
-//           inputs,
-//           (None, 0),
-//           fn(i, z) {
-//             let iaddr = i.output.address
-//             if i.output_reference == sbid_out_ref {
-//               Some(i)
-//             } else {
-//               // } else if iaddr == sbid_addr {
-//               // } else if iaddr == owner_addr {
-//               // } else if iaddr == cfg.exchange.address {
-//               z
-//             }
-//           },
-//         )
-//       }
-//       Error(s) -> fail s
-//     },
-//   }
-// }
+
+pub fn spending(
+  cfg: BondConfigLimit,
+  ctx: ScriptContext,
+  sbid_dt: BidLimitMulti,
+) -> Bool {
+  let tx = ctx.transaction
+  let tx_time_valid =
+    tx_validity_valid(
+      tx.validity_range,
+      cfg.platform.slot.slot_length,
+      Some(60 * 60),
+    )
+  let epo_curr: EpochTime =
+    posix_time_to_relative_epoch(tx_time_valid, cfg.platform.epoch)
+  and {
+    (sbid_dt.quantity > 0)?,
+    (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
+    (tx_time_valid > 0)?,
+    not(bytearray.is_empty(sbid_dt.owner_vk))?,
+    when
+      list_escrow_ref(
+        cfg.platform,
+        cfg.escrow,
+        tx.reference_inputs,
+        tx.datums,
+        sbid_dt.bond_types,
+        tx_time_valid,
+        epo_curr,
+      )
+    is {
+      OK(escrow_refs) -> {
+        expect Spend(sbid_out_ref) = ctx.purpose
+        let bond_units = dict.keys(escrow_refs)
+        trace cbor.diagnostic(bond_units)
+        let owner_addr =
+          sbid_dt.owner_sk
+            |> option.and_then(
+                 fn(s) {
+                   Some(
+                     credential.from_verification_key(sbid_dt.owner_vk)
+                       |> credential.with_delegation_key(s),
+                   )
+                 },
+               )
+            |> option.or_else(credential.from_verification_key(sbid_dt.owner_vk))
+        trace cbor.diagnostic(owner_addr)
+        // (sbid, [iorders])
+        when
+          list.foldl(
+            tx.inputs,
+            None,
+            fn(i, z) {
+              // let iaddr = i.output.address
+              if i.output_reference == sbid_out_ref {
+                Some(i)
+              } else {
+                // } else if iaddr == sbid_addr {
+                // } else if iaddr == owner_addr {
+                // } else if iaddr == cfg.exchange.address {
+                z
+              }
+            },
+          )
+        is {
+          Some(_) -> True
+          _ -> False
+        }
+      }
+      Error(s) -> fail s
+    },
+  }
+}
