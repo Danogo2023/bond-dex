@@ -5,13 +5,13 @@ use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
 use bond/constraint.{
-  bond_assets, datum_ask_making_compare, datum_bid_making_compare,
-  datum_epoch_valid, datum_yield_making_valid,
+  ask_making_valid, bid_making_valid, epoch_valid, yield_making_valid,
 }
 use bond/types.{
   AskMaking, BidMaking, BizOutput, BizOutputInfo, BizTxInfo, ConfigMaking,
   DatumOf, EscrowInfo, OtherDatum, OwnerDatum, ScDatum,
 }
+use bond/utils.{bond_assets}
 use common/types.{Datums} as common_types
 use common/util.{get_data, get_payment_key}
 
@@ -26,14 +26,11 @@ fn datum_is_valid(
   when datum_of is {
     OwnerDatum -> {
       expect out_datum: BidMaking = out_data
-      datum_yield_making_valid(
-        conf,
-        out_datum.requested_yield + out_datum.margin,
-      ) && datum_epoch_valid(
+      yield_making_valid(conf, out_datum.requested_yield + out_datum.margin) && epoch_valid(
         out_datum.from_epoch,
         out_datum.to_epoch,
         out_datum.quantity,
-      ) && datum_bid_making_compare(
+      ) && bid_making_valid(
         BidMaking {
           owner_vk: spd_datum.owner_vk,
           owner_sk: spd_datum.owner_sk,
@@ -49,10 +46,10 @@ fn datum_is_valid(
     }
     ScDatum -> {
       expect out_datum: AskMaking = out_data
-      datum_yield_making_valid(
-        conf,
-        out_datum.requested_yield + out_datum.margin,
-      ) && datum_ask_making_compare(spd_datum, out_datum)
+      yield_making_valid(conf, out_datum.requested_yield + out_datum.margin) && ask_making_valid(
+        spd_datum,
+        out_datum,
+      )
     }
     _ -> False
   }

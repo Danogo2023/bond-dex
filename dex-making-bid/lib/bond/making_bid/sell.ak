@@ -5,13 +5,14 @@ use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
-use bond/constraint.{get_escrow_info, get_escrow_ref_inputs, get_price_of_bond}
+use bond/constraint.{get_escrow_info, get_escrow_ref}
 use bond/making_bid/utils.{collect_biz_tx_info}
 use bond/types.{
-  BidMaking, BizOutput, BizTxInfo, ConfigMaking, Error, EscrowDatum, EscrowInfo,
-  OK,
+  BidMaking, BizOutput, BizTxInfo, ConfigMaking, EscrowDatum, EscrowInfo,
 }
+use bond/utils.{get_price_of_bond} as bond_utils
 use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
+use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_correct(
@@ -26,11 +27,11 @@ fn matching_correct(
   let buyer_receive_bonds_qty = out.owner.bond_qty
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
-    escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
+    escrow_info.value_at_maturity * buyer_receive_bonds_qty
   // Tong tien buyer(owner of bid) phai tra/seller nhan duoc chua tru phi
   let received_with_yield =
     get_price_of_bond(
-      escrow_info.received_at_maturity_one_bond,
+      escrow_info.value_at_maturity,
       escrow_info.day_to_maturity,
       spd_bid_datum.requested_yield,
       conf.bond.basis_points_ref_unit,
@@ -115,7 +116,7 @@ pub fn matching(
     (spd_bid_datum.to_epoch >= spd_bid_datum.from_epoch)?,
     (tx_time_valid > 0)?,
     not(bytearray.is_empty(spd_bid_datum.owner_vk))?,
-    when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
+    when get_escrow_ref(tx.reference_inputs, conf.bond) is {
       Some(ref_in_escrow) ->
         when get_data(tx.datums, ref_in_escrow.output.datum) is {
           Some(d) -> {
