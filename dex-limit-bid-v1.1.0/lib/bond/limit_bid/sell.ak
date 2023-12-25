@@ -5,19 +5,18 @@ use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/constraint.{get_escrow_info, get_escrow_ref}
-use bond/limit_bid/utils.{collect_biz_tx_info}
+use bond/limit_bid/utils.{collect_biz_tx_info} as limit_bid_utils
 use bond/types.{
-  BidLimit, BizOutput, BizTxInfo, ConfigLimit, EscrowDatum, EscrowInfo,
+  BidLimit, BizOutput, BizTxInfo, BondConfigLimit, EscrowDatum, EscrowInfo,
 }
-use bond/utils.{get_price_of_bond} as bond_utils
-use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
+use bond/utils.{get_escrow_info_1, get_escrow_ref, get_price_of_bond}
+use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_correct(
   tx: Transaction,
-  conf: ConfigLimit,
+  cfg: BondConfigLimit,
   sbid_dt: BidLimit,
   in: BizOutput,
   out: BizOutput,
@@ -34,23 +33,23 @@ fn matching_correct(
       escrow_info.value_at_maturity,
       escrow_info.day_to_maturity,
       sbid_dt.requested_yield,
-      conf.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     ) * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
   let received_diff = received_at_maturity - received_with_yield
   // phi seller phai tra cho san theo ti le trong config
   let exchange_fee_seller =
-    received_diff * conf.exchange.seller_fee / conf.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   // phi buyer(owner of bid) phai tra cho san theo ti le trong config
   let exchange_fee_buyer =
-    received_diff * conf.exchange.buyer_fee / conf.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   let exchange_fee_total_tmp = exchange_fee_buyer + exchange_fee_seller
   let seller_receive_total = received_with_yield - exchange_fee_seller
   let sc_out_remain = sbid_dt.quantity - buyer_receive_bonds_qty
   let (buyer_receive_lovelace, exchange_fee_total) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
-        if a == conf.exchange.address {
+        if a == cfg.exchange.address {
           (out.owner.lovelace, 0)
         } else {
           (out.owner.lovelace, exchange_fee_total_tmp)
@@ -106,7 +105,7 @@ fn matching_correct(
 
 pub fn matching(
   tx: Transaction,
-  conf: ConfigLimit,
+  cfg: BondConfigLimit,
   sbid_dt: BidLimit,
   owner: Address,
   spending: Address,
@@ -114,7 +113,7 @@ pub fn matching(
   when
     tx_validity_valid(
       tx.validity_range,
-      conf.slot.slot_length,
+      cfg.platform.slot.slot_length,
       Some(60 * 60),
       True,
     )
@@ -124,35 +123,35 @@ pub fn matching(
         (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
         (tx_time_valid > 0)?,
         not(bytearray.is_empty(sbid_dt.owner_vk))?,
-        when get_escrow_ref(tx.reference_inputs, conf.bond) is {
+        when get_escrow_ref(cfg.escrow, tx.reference_inputs) is {
           Some(ref_in_escrow) ->
             when get_data(tx.datums, ref_in_escrow.output.datum) is {
               Some(d) -> {
                 expect escrow_datum: EscrowDatum = d
-                let current_epoch =
+                let epo_curr: EpochTime =
                   posix_time_to_relative_epoch(
                     tx_time_valid,
-                    conf.bond.epoch_config,
+                    cfg.platform.epoch,
                   )
-                let start_epoch =
-                  escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-                let end_epoch = start_epoch + escrow_datum.duration
+                let epo_start: EpochTime =
+                  escrow_datum.start + cfg.platform.epoch.epoch_boundary_as_epoch
+                let epo_end: EpochTime = epo_start + escrow_datum.duration
                 and {
-                  (end_epoch >= current_epoch)?,
-                  (end_epoch >= sbid_dt.from_epoch)?,
-                  (end_epoch <= sbid_dt.to_epoch)?,
+                  (epo_end >= epo_curr)?,
+                  (epo_end >= sbid_dt.from_epoch)?,
+                  (epo_end <= sbid_dt.to_epoch)?,
                   (escrow_datum.bond_amount > 0)?,
                   (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
-                  (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+                  (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * cfg.platform.bond_face_value)?,
                   when
-                    get_escrow_info(
-                      conf.bond,
+                    get_escrow_info_1(
+                      cfg.platform,
                       value.lovelace_of(ref_in_escrow.output.value),
                       escrow_datum,
                       tx_time_valid,
-                      current_epoch,
-                      start_epoch,
-                      end_epoch,
+                      epo_curr,
+                      epo_start,
+                      epo_end,
                     )
                   is {
                     OK(escrow_info) -> {
@@ -162,7 +161,7 @@ pub fn matching(
                         biz_tx_out: out,
                       } =
                         collect_biz_tx_info(
-                          conf,
+                          cfg,
                           tx.inputs,
                           tx.outputs,
                           owner,
@@ -212,7 +211,7 @@ pub fn matching(
                               (ou.owner.bond_qty <= escrow_datum.bond_amount)?,
                               matching_correct(
                                 tx,
-                                conf,
+                                cfg,
                                 sbid_dt,
                                 in,
                                 ou,

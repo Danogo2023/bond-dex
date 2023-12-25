@@ -1,29 +1,27 @@
-// Ask Making
+// Ask Limit
 use aiken/bytearray
 use aiken/dict
 use aiken/list
 use aiken/transaction.{Transaction}
-use aiken/transaction/credential.{Address, VerificationKeyCredential}
+use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/constraint.{get_escrow_info, get_escrow_ref}
-use bond/making_ask/utils.{collect_biz_tx_info}
+use bond/limit_ask/utils.{collect_biz_tx_info} as limit_ask_utils
 use bond/types.{
-  AskMaking, BidMaking, BizOutput, BizTxInfo, ConfigMaking, EscrowDatum,
-  EscrowInfo,
+  AskLimit, BizOutput, BizTxInfo, BondConfigLimit, EscrowDatum, EscrowInfo,
 }
-use bond/utils.{get_price_of_bond} as bond_utils
-use common/time.{posix_time_to_relative_epoch, tx_validity_valid}
+use bond/utils.{get_escrow_info_1, get_escrow_ref, get_price_of_bond}
+use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_is_valid(
-  tx: Transaction,
-  conf: ConfigMaking,
+  cfg: BondConfigLimit,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
   buyer_qty: Int,
   price_of_one_bond: Int,
+  min_ada_to_exchange: Int,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity = escrow_info.value_at_maturity * buyer_qty
@@ -33,21 +31,22 @@ fn matching_is_valid(
   let received_diff = received_at_maturity - received_with_yield
   // phi seller(owner of listing) phai tra cho san theo ti le trong config
   let exchange_fee_seller =
-    received_diff * conf.exchange.maker_fee / conf.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   // phi buyer phai tra cho san theo ti le trong config
   let exchange_fee_buyer =
-    received_diff * conf.exchange.taker_fee / conf.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   let owner_out_utxos =
     list.concat(out.owner.bond_outputs, out.owner.other_outputs)
   let owner_output_len = list.length(owner_out_utxos)
   let sc_output_len =
     list.length(list.concat(out.sc.bond_outputs, out.sc.other_outputs))
-  let exchange_receive_lovelace_tmp = exchange_fee_buyer + exchange_fee_seller
+  let exchange_receive_lovelace_tmp =
+    exchange_fee_buyer + exchange_fee_seller + min_ada_to_exchange
   let owner_receive_lovelace_tmp = received_with_yield - exchange_fee_seller
   let (owner_receive_lovelace, exchange_receive_lovelace) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
-        if owner_output_len > 0 && a == conf.exchange.address {
+        if owner_output_len > 0 && a == cfg.exchange.address {
           (owner_receive_lovelace_tmp + exchange_receive_lovelace_tmp, 0)
         } else {
           (owner_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
@@ -60,34 +59,22 @@ fn matching_is_valid(
     (buyer_qty >= 0)?,
     (out.sc.bond_qty >= in.sc.bond_qty - buyer_qty)?,
     (out.exchange.lovelace >= exchange_receive_lovelace)?,
-    (out.sc.lovelace + out.owner.lovelace == in.sc.lovelace + owner_receive_lovelace)?,
-    when list.at(owner_out_utxos, 0) is {
-      Some(utxo) ->
-        when get_data(tx.datums, utxo.datum) is {
-          Some(d) -> {
-            expect owner_out_datum: BidMaking = d
-            (owner_out_datum.quantity <= buyer_qty)?
-          }
-          None -> {
-            trace @"not found owner output bid making datum"
-            False
-          }
-        }
-      None -> True
-    },
+    (owner_output_len > 0)?,
+    (out.owner.lovelace == owner_receive_lovelace)?,
   }
 }
 
 fn matching_correct(
-  tx: Transaction,
-  conf: ConfigMaking,
-  spd_ask_datum: AskMaking,
+  cfg: BondConfigLimit,
+  spd_ask_datum: AskLimit,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
 ) -> Bool {
   let (
     qty_owner_2_buyer,
+    min_ada_to_sm,
+    min_ada_to_exchange,
     sm_out_must_only_one_bond_name,
     sm_out_bond_same_escrow,
   ) =
@@ -96,12 +83,14 @@ fn matching_correct(
         // trace @"buy partial"
         (
           in.sc.bond_qty - out.sc.bond_qty,
+          in.sc.lovelace,
+          0,
           dict.size(out.sc.bond_assets) <= 1,
           dict.has_key(out.sc.bond_assets, escrow_info.token_name),
         )
       [] ->
         // trace @"buy all"
-        (in.sc.bond_qty, True, True)
+        (in.sc.bond_qty, 0, in.sc.lovelace, True, True)
     }
   and {
     sm_out_must_only_one_bond_name?,
@@ -125,11 +114,9 @@ fn matching_correct(
         False
       }
       _ -> and {
-          out.sc.bond_datum_valid?,
-          out.owner.bond_datum_valid?,
+          min_ada_to_sm == 0 || (out.sc.lovelace >= min_ada_to_sm)? && out.sc.bond_datum_valid?,
           matching_is_valid(
-            tx,
-            conf,
+            cfg,
             in,
             out,
             escrow_info,
@@ -138,9 +125,10 @@ fn matching_correct(
               escrow_info.value_at_maturity,
               escrow_info.day_to_maturity,
               spd_ask_datum.requested_yield,
-              conf.bond.basis_points_ref_unit,
+              cfg.platform.basis.base,
             ),
-          ),
+            min_ada_to_exchange,
+          )?,
         }
     },
   }
@@ -148,62 +136,55 @@ fn matching_correct(
 
 pub fn matching(
   tx: Transaction,
-  conf: ConfigMaking,
-  spd_ask_datum: AskMaking,
+  cfg: BondConfigLimit,
+  spd_ask_datum: AskLimit,
   owner: Address,
   spending: Address,
 ) -> Bool {
   when
     tx_validity_valid(
       tx.validity_range,
-      conf.slot.slot_length,
-      conf.exchange.tx_buy_ttl,
+      cfg.platform.slot.slot_length,
+      cfg.exchange.tx_buy_ttl,
       True,
     )
   is {
     OK(tx_time_valid) -> and {
         not(bytearray.is_empty(spd_ask_datum.owner_vk))?,
-        when get_escrow_ref(tx.reference_inputs, conf.bond) is {
+        when get_escrow_ref(cfg.escrow, tx.reference_inputs) is {
           Some(ref_in_escrow) ->
             when get_data(tx.datums, ref_in_escrow.output.datum) is {
               Some(d) -> {
                 expect escrow_datum: EscrowDatum = d
-                let start_epoch =
-                  escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-                let end_epoch = start_epoch + escrow_datum.duration
+                let epo_start: EpochTime =
+                  escrow_datum.start + cfg.platform.epoch.epoch_boundary_as_epoch
+                let epo_end: EpochTime = epo_start + escrow_datum.duration
                 and {
                   (escrow_datum.bond_amount > 0)?,
                   (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
-                  (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+                  (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * cfg.platform.bond_face_value)?,
                   when
-                    get_escrow_info(
-                      conf.bond,
+                    get_escrow_info_1(
+                      cfg.platform,
                       value.lovelace_of(ref_in_escrow.output.value),
                       escrow_datum,
                       tx_time_valid,
                       posix_time_to_relative_epoch(
                         tx_time_valid,
-                        conf.bond.epoch_config,
+                        cfg.platform.epoch,
                       ),
-                      start_epoch,
-                      end_epoch,
+                      epo_start,
+                      epo_end,
                     )
                   is {
                     OK(escrow_info) -> {
-                      let spd_ask_datum_owner =
-                        Address {
-                          payment_credential: VerificationKeyCredential(
-                            spd_ask_datum.owner_vk,
-                          ),
-                          stake_credential: owner.stake_credential,
-                        }
                       let BizTxInfo {
                         valid: biz_tx_info_valid,
                         biz_tx_in: in,
                         biz_tx_out: out,
                       } =
                         collect_biz_tx_info(
-                          conf,
+                          cfg,
                           tx.inputs,
                           tx.outputs,
                           owner,
@@ -216,14 +197,11 @@ pub fn matching(
                         biz_tx_info_valid,
                         (dict.size(in.sc.bond_assets) == 1)?,
                         dict.has_key(in.sc.bond_assets, escrow_info.token_name)?,
-                        !list.has(in.other.addresses, spd_ask_datum_owner),
                         when out is {
                           Some(ou) -> and {
-                              !list.has(ou.other.addresses, spd_ask_datum_owner),
                               (in.owner.bond_qty <= 0)?,
                               matching_correct(
-                                tx,
-                                conf,
+                                cfg,
                                 spd_ask_datum,
                                 in,
                                 ou,
