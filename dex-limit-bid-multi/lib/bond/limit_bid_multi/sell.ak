@@ -406,7 +406,7 @@ pub fn spending(
                     )
                   // ( 
                   //   obid_value: Lovelace,
-                  //   dt: Option<BidLimitMulti>, 
+                  //   obid_qty: Int, 
                   //   obuyer_value: Lovelace, 
                   //   obuyer_bond_qty: Int, 
                   //   ofee_value: Lovelace, 
@@ -416,7 +416,7 @@ pub fn spending(
                   // )
                   let (
                     obid_value,
-                    obid_dt,
+                    obid_qty,
                     obuyer_value,
                     obuyer_bond_qty,
                     ofee_value,
@@ -426,7 +426,7 @@ pub fn spending(
                     // _oseller_bond_qty,
                     list.foldl(
                       tx.outputs,
-                      (0, None, 0, 0, 0, 0),
+                      (0, 0, 0, 0, 0, 0),
                       fn(o, z) {
                         let oaddr = o.address
                         let ovalue = value.lovelace_of(o.value)
@@ -455,7 +455,7 @@ pub fn spending(
                             } {
                               (
                                 ovalue,
-                                Some(obid_dt),
+                                obid_dt.quantity,
                                 z.3rd,
                                 z.4th,
                                 z.5th,
@@ -535,7 +535,7 @@ pub fn spending(
                       sbid_dt,
                       ibid_value,
                       obid_value,
-                      obid_dt,
+                      obid_qty,
                       buyer_addr,
                       obuyer_value,
                       obuyer_bond_qty,
@@ -571,7 +571,7 @@ fn spending_correct(
   sbid_dt: BidLimitMulti,
   ibid_value: Lovelace,
   obid_value: Lovelace,
-  obid_dt: Option<BidLimitMulti>,
+  obid_qty: Int,
   buyer_addr: Address,
   obuyer_value: Lovelace,
   obuyer_bond_qty: Int,
@@ -605,7 +605,7 @@ fn spending_correct(
   //
   let obid_bond_qty_remain: Int = sbid_dt.quantity - obuyer_bond_qty
   //
-  let exchange_fee = exchange_fee_buyer + exchange_fee_seller
+  let exchange_fee: Lovelace = exchange_fee_buyer + exchange_fee_seller
   // buyer is exchange addr
   let exchange_fee_for_buyer: Lovelace =
     if buyer_addr == cfg.exchange.address {
@@ -639,9 +639,6 @@ fn spending_correct(
     (obuyer_bond_qty <= iseller_bond_qty)?,
     (oseller_value <= iseller_value + oseller_max_recevie + exchange_fee_for_seller - tx_fee)?,
     (obid_value == ibid_value - exchange_fee_total - oseller_max_recevie - obuyer_value)?,
-    when obid_dt is {
-      Some(odt) -> (odt.quantity == obid_bond_qty_remain)?
-      _ -> (obid_bond_qty_remain == 0)?
-    },
+    (obid_qty == obid_bond_qty_remain)?,
   }
 }
