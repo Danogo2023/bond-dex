@@ -12,7 +12,7 @@ use bond/v2/fixture.{
   get_not_bond_policy_id, get_not_escrow_policy_id, get_seller_address,
 }
 
-test sell_succ_full() {
+test succ_full() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -107,7 +107,7 @@ test sell_succ_full() {
   )
 }
 
-test sell_succ_partial() {
+test succ_partial() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -201,7 +201,7 @@ test sell_succ_partial() {
   )
 }
 
-test sell_fail_input_epoch_1() {
+test fail_input_epoch_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -295,7 +295,7 @@ test sell_fail_input_epoch_1() {
   )
 }
 
-test sell_fail_input_epoch_2() {
+test fail_input_epoch_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -402,7 +402,7 @@ test sell_fail_input_epoch_2() {
   // end_epoch == current_epoch
 }
 
-test sell_fail_input_epoch_3() {
+test fail_input_epoch_3() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -496,7 +496,7 @@ test sell_fail_input_epoch_3() {
   )
 }
 
-test sell_fail_input_epoch_4() {
+test fail_input_epoch_4() {
   let time_of_tx = 1681095094000 + 25920000000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -600,7 +600,7 @@ test sell_fail_input_epoch_4() {
   // current_epoch == end_epoch
 }
 
-test sell_fail_input_qty() {
+test fail_input_qty() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -694,7 +694,7 @@ test sell_fail_input_qty() {
   )
 }
 
-test sell_fail_output_qty() {
+test fail_output_qty() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -788,7 +788,7 @@ test sell_fail_output_qty() {
   )
 }
 
-test sell_fail_validity_after_not_set() fail {
+test fail_validity_after_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -882,7 +882,7 @@ test sell_fail_validity_after_not_set() fail {
   )
 }
 
-test sell_fail_owner_address_format() {
+test fail_owner_address_format() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -976,7 +976,7 @@ test sell_fail_owner_address_format() {
   )
 }
 
-test sell_fail_escrow_policy_id_unexpect() {
+test fail_escrow_policy_id_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -1070,7 +1070,7 @@ test sell_fail_escrow_policy_id_unexpect() {
   )
 }
 
-test sell_fail_escrow_address_unexpect() {
+test fail_escrow_address_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -1164,7 +1164,7 @@ test sell_fail_escrow_address_unexpect() {
   )
 }
 
-test sell_fail_escrow_datum_not_found() {
+test fail_escrow_datum_not_found() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -1258,7 +1258,7 @@ test sell_fail_escrow_datum_not_found() {
   )
 }
 
-test sell_fail_escrow_datum_unexpect() fail {
+test fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -1352,7 +1352,7 @@ test sell_fail_escrow_datum_unexpect() fail {
   )
 }
 
-test sell_succ_bond_policy_id_valid() {
+test succ_bond_policy_id_valid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -1447,7 +1447,7 @@ test sell_succ_bond_policy_id_valid() {
   )
 }
 
-test sell_fail_bond_policy_id_invalid() {
+test fail_bond_policy_id_invalid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()

@@ -18,7 +18,7 @@ use bond/fixture.{
 use bond/making_ask/buy
 use bond/utils.{get_price_of_bond}
 
-test buy_succ_buyer_is_exchange() {
+test succ_buyer_is_exchange() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let exchange_address = get_exchange_address()
@@ -147,7 +147,7 @@ test buy_succ_buyer_is_exchange() {
   )
 }
 
-test buy_succ_partial() {
+test succ_partial() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -276,7 +276,7 @@ test buy_succ_partial() {
   )
 }
 
-test buy_succ_full() {
+test succ_full() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -405,7 +405,7 @@ test buy_succ_full() {
   )
 }
 
-test buy_fail_partial_must_only_one_bond_1() {
+test fail_partial_must_only_one_bond_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -544,7 +544,7 @@ test buy_fail_partial_must_only_one_bond_1() {
   )
 }
 
-test buy_fail_partial_must_only_one_bond_2() {
+test fail_partial_must_only_one_bond_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -680,7 +680,7 @@ test buy_fail_partial_must_only_one_bond_2() {
   )
 }
 
-test buy_fail_partial_change_bond_name() {
+test fail_partial_change_bond_name() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -806,7 +806,7 @@ test buy_fail_partial_change_bond_name() {
   )
 }
 
-test buy_fail_partial_datum_owner_vk_invalid_1() {
+test fail_partial_datum_owner_vk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -936,7 +936,7 @@ test buy_fail_partial_datum_owner_vk_invalid_1() {
   )
 }
 
-test buy_fail_partial_datum_owner_vk_invalid_2() {
+test fail_partial_datum_owner_vk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1066,7 +1066,7 @@ test buy_fail_partial_datum_owner_vk_invalid_2() {
   )
 }
 
-test buy_fail_partial_datum_owner_sk_invalid_1() {
+test fail_partial_datum_owner_sk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1204,7 +1204,7 @@ test buy_fail_partial_datum_owner_sk_invalid_1() {
   )
 }
 
-test buy_fail_partial_datum_owner_sk_invalid_2() {
+test fail_partial_datum_owner_sk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1342,7 +1342,7 @@ test buy_fail_partial_datum_owner_sk_invalid_2() {
   )
 }
 
-test buy_fail_partial_datum_requested_yield_invalid() {
+test fail_partial_datum_requested_yield_invalid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1472,7 +1472,7 @@ test buy_fail_partial_datum_requested_yield_invalid() {
   )
 }
 
-test buy_fail_partial_escrow_datum_unexpect() fail {
+test fail_partial_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1601,7 +1601,7 @@ test buy_fail_partial_escrow_datum_unexpect() fail {
   )
 }
 
-test buy_fail_escrow_policy_id_unexpect() {
+test fail_escrow_policy_id_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1730,7 +1730,7 @@ test buy_fail_escrow_policy_id_unexpect() {
   )
 }
 
-test buy_fail_escrow_address_unexpect() {
+test fail_escrow_address_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1866,7 +1866,7 @@ test buy_fail_escrow_address_unexpect() {
   )
 }
 
-test buy_fail_escrow_datum_not_found() {
+test fail_escrow_datum_not_found() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -1995,7 +1995,7 @@ test buy_fail_escrow_datum_not_found() {
   )
 }
 
-test buy_fail_escrow_datum_unexpect() fail {
+test fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2124,7 +2124,7 @@ test buy_fail_escrow_datum_unexpect() fail {
   )
 }
 
-test buy_fail_escrow_closable() {
+test fail_escrow_closable() {
   // increase time
   let time_of_tx = 1781095094000
   let cfg = get_config_making_mainnet()
@@ -2267,7 +2267,7 @@ test buy_fail_escrow_closable() {
   )
 }
 
-test buy_fail_buyer_must_not_owner_1() {
+test fail_buyer_must_not_owner_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2396,7 +2396,7 @@ test buy_fail_buyer_must_not_owner_1() {
   )
 }
 
-test buy_fail_buyer_must_not_owner_2() {
+test fail_buyer_must_not_owner_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2525,7 +2525,7 @@ test buy_fail_buyer_must_not_owner_2() {
   )
 }
 
-test buy_fail_invalid_revert_address() {
+test fail_invalid_revert_address() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2654,7 +2654,7 @@ test buy_fail_invalid_revert_address() {
   )
 }
 
-test buy_fail_partial_validity_end_not_set() fail {
+test fail_partial_validity_end_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2783,7 +2783,7 @@ test buy_fail_partial_validity_end_not_set() fail {
   )
 }
 
-test buy_fail_full_validity_end_not_set_1() fail {
+test fail_full_validity_end_not_set_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -2912,7 +2912,7 @@ test buy_fail_full_validity_end_not_set_1() fail {
   )
 }
 
-test buy_fail_full_validity_end_not_set_2() fail {
+test fail_full_validity_end_not_set_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3038,7 +3038,7 @@ test buy_fail_full_validity_end_not_set_2() fail {
   )
 }
 
-test buy_fail_partial_validity_end_invalid_aft() fail {
+test fail_partial_validity_end_invalid_aft() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3167,7 +3167,7 @@ test buy_fail_partial_validity_end_invalid_aft() fail {
   )
 }
 
-test buy_fail_full_validity_end_invalid_aft_1() fail {
+test fail_full_validity_end_invalid_aft_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3296,7 +3296,7 @@ test buy_fail_full_validity_end_invalid_aft_1() fail {
   )
 }
 
-test buy_fail_full_validity_end_invalid_aft_2() fail {
+test fail_full_validity_end_invalid_aft_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3422,7 +3422,7 @@ test buy_fail_full_validity_end_invalid_aft_2() fail {
   )
 }
 
-test buy_fail_partial_validity_end_invalid_pre() fail {
+test fail_partial_validity_end_invalid_pre() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3551,7 +3551,7 @@ test buy_fail_partial_validity_end_invalid_pre() fail {
   )
 }
 
-test buy_fail_full_validity_end_invalid_pre_1() fail {
+test fail_full_validity_end_invalid_pre_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3680,7 +3680,7 @@ test buy_fail_full_validity_end_invalid_pre_1() fail {
   )
 }
 
-test buy_fail_full_validity_end_invalid_pre_2() fail {
+test fail_full_validity_end_invalid_pre_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3806,7 +3806,7 @@ test buy_fail_full_validity_end_invalid_pre_2() fail {
   )
 }
 
-test buy_succ_bond_policy_id_valid() {
+test succ_bond_policy_id_valid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -3935,7 +3935,7 @@ test buy_succ_bond_policy_id_valid() {
   )
 }
 
-test buy_fail_bond_policy_id_invalid() {
+test fail_bond_policy_id_invalid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
   let owner_address = get_seller_address()
@@ -4068,7 +4068,7 @@ test buy_fail_bond_policy_id_invalid() {
   )
 }
 
-test buy_fail_buy_more_than_expect() {
+test fail_buy_more_than_expect() {
   // fixed config
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
@@ -4191,7 +4191,7 @@ test buy_fail_buy_more_than_expect() {
   )
 }
 
-test buy_fail_buy_less_than_expect() {
+test fail_buy_less_than_expect() {
   // fixed config
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
@@ -4314,7 +4314,7 @@ test buy_fail_buy_less_than_expect() {
   )
 }
 
-test buy_fail_tampered_bid_datum_address() {
+test fail_tampered_bid_datum_address() {
   // fixed config
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
@@ -4433,7 +4433,7 @@ test buy_fail_tampered_bid_datum_address() {
   )
 }
 
-test buy_fail_tampered_ask_datum_address() {
+test fail_tampered_ask_datum_address() {
   // fixed config
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
