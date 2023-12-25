@@ -8,7 +8,9 @@ use aiken/transaction/credential.{
   from_script, with_delegation_key, with_delegation_script,
 }
 use aiken/transaction/value
-use bond/fixture.{
+use bond/limit_ask/buy
+use bond/utils.{get_price_of_bond}
+use bond/v2/fixture.{
   calc_escrow_full_info, gen_ask_limit_datum, gen_input, gen_output,
   get_ask_sc_address, get_bond_id_1, get_bond_id_2, get_bond_policy_id,
   get_buyer_address, get_config_limit_mainnet, get_config_limit_preview,
@@ -17,11 +19,9 @@ use bond/fixture.{
   get_not_bond_policy_id, get_not_escrow_policy_id, get_payment_datum,
   get_seller_address, get_seller_address_hash,
 }
-use bond/limit_ask/buy
-use bond/utils.{get_price_of_bond}
 use common/time.{posix_time_to_relative_epoch}
 
-test fail_partial_must_only_one_bond_1() {
+test buy_fail_partial_must_only_one_bond_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -31,13 +31,18 @@ test fail_partial_must_only_one_bond_1() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -86,9 +91,9 @@ test fail_partial_must_only_one_bond_1() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -171,7 +176,7 @@ test fail_partial_must_only_one_bond_1() {
   )
 }
 
-test fail_partial_must_only_one_bond_2() {
+test buy_fail_partial_must_only_one_bond_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -181,13 +186,18 @@ test fail_partial_must_only_one_bond_2() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -234,9 +244,9 @@ test fail_partial_must_only_one_bond_2() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -319,7 +329,7 @@ test fail_partial_must_only_one_bond_2() {
   )
 }
 
-test fail_partial_change_bond_name() {
+test buy_fail_partial_change_bond_name() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -329,13 +339,18 @@ test fail_partial_change_bond_name() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -377,9 +392,9 @@ test fail_partial_change_bond_name() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -453,7 +468,7 @@ test fail_partial_change_bond_name() {
   )
 }
 
-test fail_partial_datum_owner_vk_invalid_1() {
+test buy_fail_partial_datum_owner_vk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -463,13 +478,18 @@ test fail_partial_datum_owner_vk_invalid_1() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -509,9 +529,9 @@ test fail_partial_datum_owner_vk_invalid_1() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -595,7 +615,7 @@ test fail_partial_datum_owner_vk_invalid_1() {
   )
 }
 
-test fail_partial_datum_owner_vk_invalid_2() {
+test buy_fail_partial_datum_owner_vk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -606,13 +626,18 @@ test fail_partial_datum_owner_vk_invalid_2() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -651,9 +676,9 @@ test fail_partial_datum_owner_vk_invalid_2() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -737,7 +762,7 @@ test fail_partial_datum_owner_vk_invalid_2() {
   )
 }
 
-test fail_partial_datum_owner_sk_invalid_1() {
+test buy_fail_partial_datum_owner_sk_invalid_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -751,13 +776,18 @@ test fail_partial_datum_owner_sk_invalid_1() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -797,9 +827,9 @@ test fail_partial_datum_owner_sk_invalid_1() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -887,7 +917,7 @@ test fail_partial_datum_owner_sk_invalid_1() {
   )
 }
 
-test fail_partial_datum_owner_sk_invalid_2() {
+test buy_fail_partial_datum_owner_sk_invalid_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -901,13 +931,18 @@ test fail_partial_datum_owner_sk_invalid_2() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -947,9 +982,9 @@ test fail_partial_datum_owner_sk_invalid_2() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1037,7 +1072,7 @@ test fail_partial_datum_owner_sk_invalid_2() {
   )
 }
 
-test fail_partial_datum_requested_yield_invalid() {
+test buy_fail_partial_datum_requested_yield_invalid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1047,13 +1082,18 @@ test fail_partial_datum_requested_yield_invalid() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1093,9 +1133,9 @@ test fail_partial_datum_requested_yield_invalid() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1179,7 +1219,7 @@ test fail_partial_datum_requested_yield_invalid() {
   )
 }
 
-test fail_partial_escrow_datum_unexpect() fail {
+test buy_fail_partial_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1189,13 +1229,18 @@ test fail_partial_escrow_datum_unexpect() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1235,9 +1280,9 @@ test fail_partial_escrow_datum_unexpect() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1320,7 +1365,7 @@ test fail_partial_escrow_datum_unexpect() fail {
   )
 }
 
-test fail_escrow_policy_id_unexpect() {
+test buy_fail_escrow_policy_id_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1330,13 +1375,18 @@ test fail_escrow_policy_id_unexpect() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1383,9 +1433,9 @@ test fail_escrow_policy_id_unexpect() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1468,7 +1518,7 @@ test fail_escrow_policy_id_unexpect() {
   )
 }
 
-test fail_escrow_address_unexpect() {
+test buy_fail_escrow_address_unexpect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1478,13 +1528,18 @@ test fail_escrow_address_unexpect() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1531,9 +1586,9 @@ test fail_escrow_address_unexpect() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1616,7 +1671,7 @@ test fail_escrow_address_unexpect() {
   )
 }
 
-test fail_escrow_datum_not_found() {
+test buy_fail_escrow_datum_not_found() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1626,13 +1681,18 @@ test fail_escrow_datum_not_found() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1672,9 +1732,9 @@ test fail_escrow_datum_not_found() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1757,7 +1817,7 @@ test fail_escrow_datum_not_found() {
   )
 }
 
-test fail_escrow_datum_unexpect() fail {
+test buy_fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1767,13 +1827,18 @@ test fail_escrow_datum_unexpect() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1813,9 +1878,9 @@ test fail_escrow_datum_unexpect() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -1898,7 +1963,7 @@ test fail_escrow_datum_unexpect() fail {
   )
 }
 
-test fail_escrow_closable() {
+test buy_fail_escrow_closable() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -1909,12 +1974,13 @@ test fail_escrow_closable() {
   let escrow_datum_duration = 72
   let epoch_rewards_lovelace = 753424657
   let current_epoch =
-    posix_time_to_relative_epoch(time_of_tx, cfg.bond.epoch_config)
+    posix_time_to_relative_epoch(time_of_tx, cfg.platform.epoch)
   let start_epoch =
-    escrow_datum_start + cfg.bond.epoch_config.epoch_boundary_as_epoch
+    escrow_datum_start + cfg.platform.epoch.epoch_boundary_as_epoch
   let end_epoch = start_epoch + escrow_datum_duration
   let claim_amount = 1000
-  let claim_amount_principal_lovelace = claim_amount * cfg.bond.bond_face_value
+  let claim_amount_principal_lovelace =
+    claim_amount * cfg.platform.bond_face_value
   let claim_amount_interest_lovelace =
     claim_amount * (
       if current_epoch >= end_epoch {
@@ -1938,13 +2004,18 @@ test fail_escrow_closable() {
   let escrow_lovelace_pre_claim = 1017328767112
   let escrow_lovelace = escrow_lovelace_pre_claim - claim_lovelace
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -1984,9 +2055,9 @@ test fail_escrow_closable() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2069,7 +2140,7 @@ test fail_escrow_closable() {
   )
 }
 
-test fail_buyer_must_not_owner() {
+test buy_fail_buyer_must_not_owner() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -2079,13 +2150,18 @@ test fail_buyer_must_not_owner() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2125,9 +2201,9 @@ test fail_buyer_must_not_owner() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2221,13 +2297,18 @@ test buy_succ_buyer_is_exchange() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2267,9 +2348,9 @@ test buy_succ_buyer_is_exchange() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2361,13 +2442,18 @@ test buy_succ_partial() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2407,9 +2493,9 @@ test buy_succ_partial() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2502,13 +2588,18 @@ test buy_succ_full_1() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2548,9 +2639,9 @@ test buy_succ_full_1() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2647,13 +2738,18 @@ test buy_succ_full_2() {
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 2001430920
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2693,9 +2789,9 @@ test buy_succ_full_2() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2771,7 +2867,7 @@ test buy_succ_full_2() {
   )
 }
 
-test fail_partial_validity_end_not_set() fail {
+test buy_fail_partial_validity_end_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -2781,13 +2877,18 @@ test fail_partial_validity_end_not_set() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2827,9 +2928,9 @@ test fail_partial_validity_end_not_set() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -2912,7 +3013,7 @@ test fail_partial_validity_end_not_set() fail {
   )
 }
 
-test fail_full_validity_end_not_set_1() fail {
+test buy_fail_full_validity_end_not_set_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -2922,13 +3023,18 @@ test fail_full_validity_end_not_set_1() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -2968,9 +3074,9 @@ test fail_full_validity_end_not_set_1() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3053,7 +3159,7 @@ test fail_full_validity_end_not_set_1() fail {
   )
 }
 
-test fail_full_validity_end_not_set_2() fail {
+test buy_fail_full_validity_end_not_set_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3067,13 +3173,18 @@ test fail_full_validity_end_not_set_2() fail {
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3113,9 +3224,9 @@ test fail_full_validity_end_not_set_2() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3191,7 +3302,7 @@ test fail_full_validity_end_not_set_2() fail {
   )
 }
 
-test fail_partial_validity_end_invalid_aft() fail {
+test buy_fail_partial_validity_end_invalid_aft() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -3201,13 +3312,18 @@ test fail_partial_validity_end_invalid_aft() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3247,9 +3363,9 @@ test fail_partial_validity_end_invalid_aft() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3332,7 +3448,7 @@ test fail_partial_validity_end_invalid_aft() fail {
   )
 }
 
-test fail_full_validity_end_invalid_aft_1() fail {
+test buy_fail_full_validity_end_invalid_aft_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -3342,13 +3458,18 @@ test fail_full_validity_end_invalid_aft_1() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3388,9 +3509,9 @@ test fail_full_validity_end_invalid_aft_1() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3473,7 +3594,7 @@ test fail_full_validity_end_invalid_aft_1() fail {
   )
 }
 
-test fail_full_validity_end_invalid_aft_2() fail {
+test buy_fail_full_validity_end_invalid_aft_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3487,13 +3608,18 @@ test fail_full_validity_end_invalid_aft_2() fail {
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3533,9 +3659,9 @@ test fail_full_validity_end_invalid_aft_2() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3611,7 +3737,7 @@ test fail_full_validity_end_invalid_aft_2() fail {
   )
 }
 
-test fail_partial_validity_end_invalid_pre() fail {
+test buy_fail_partial_validity_end_invalid_pre() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -3621,13 +3747,18 @@ test fail_partial_validity_end_invalid_pre() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3667,9 +3798,9 @@ test fail_partial_validity_end_invalid_pre() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3752,7 +3883,7 @@ test fail_partial_validity_end_invalid_pre() fail {
   )
 }
 
-test fail_full_validity_end_invalid_pre_1() fail {
+test buy_fail_full_validity_end_invalid_pre_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_seller_address()
@@ -3762,13 +3893,18 @@ test fail_full_validity_end_invalid_pre_1() fail {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3808,9 +3944,9 @@ test fail_full_validity_end_invalid_pre_1() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -3893,7 +4029,7 @@ test fail_full_validity_end_invalid_pre_1() fail {
   )
 }
 
-test fail_full_validity_end_invalid_pre_2() fail {
+test buy_fail_full_validity_end_invalid_pre_2() fail {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -3907,13 +4043,18 @@ test fail_full_validity_end_invalid_pre_2() fail {
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -3953,9 +4094,9 @@ test fail_full_validity_end_invalid_pre_2() fail {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -4041,13 +4182,18 @@ test buy_succ_bond_policy_id_valid() {
   let escrow_datum = get_escrow_datum(bond_name_ask_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -4087,9 +4233,9 @@ test buy_succ_bond_policy_id_valid() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {
@@ -4172,7 +4318,7 @@ test buy_succ_bond_policy_id_valid() {
   )
 }
 
-test fail_bond_policy_id_invalid() {
+test buy_fail_bond_policy_id_invalid() {
   // let time_of_tx = 1666656000 000
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
@@ -4186,13 +4332,18 @@ test fail_bond_policy_id_invalid() {
   // => epoch_start = 22190 epoch_end = 22244
   let escrow_lovelace = 701430920
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //
   let refer_in_1 =
@@ -4236,9 +4387,9 @@ test fail_bond_policy_id_invalid() {
   let received_with_yield = price_of_one_bond * buyer_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let min_ada_to_exchange =
     when sc_in_bond_qty - buyer_qty is {

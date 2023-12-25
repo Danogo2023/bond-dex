@@ -67,7 +67,7 @@ fn matching_is_valid(
 
 fn matching_correct(
   conf: ConfigLimit,
-  spd_ask_datum: AskLimit,
+  sask_dt: AskLimit,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -125,7 +125,7 @@ fn matching_correct(
             get_price_of_bond(
               escrow_info.value_at_maturity,
               escrow_info.day_to_maturity,
-              spd_ask_datum.requested_yield,
+              sask_dt.requested_yield,
               conf.bond.basis_points_ref_unit,
             ),
             min_ada_to_exchange,
@@ -138,95 +138,102 @@ fn matching_correct(
 pub fn matching(
   tx: Transaction,
   conf: ConfigLimit,
-  spd_ask_datum: AskLimit,
+  sask_dt: AskLimit,
   owner: Address,
   spending: Address,
 ) -> Bool {
-  let tx_time =
+  when
     tx_validity_valid(
       tx.validity_range,
       conf.slot.slot_length,
       conf.exchange.tx_buy_ttl,
+      True,
     )
-  and {
-    not(bytearray.is_empty(spd_ask_datum.owner_vk))?,
-    when get_escrow_ref(tx.reference_inputs, conf.bond) is {
-      Some(ref_in_escrow) ->
-        when get_data(tx.datums, ref_in_escrow.output.datum) is {
-          Some(d) -> {
-            expect escrow_datum: EscrowDatum = d
-            let start_epoch =
-              escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-            let end_epoch = start_epoch + escrow_datum.duration
-            and {
-              (escrow_datum.bond_amount > 0)?,
-              (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
-              (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
-              when
-                get_escrow_info(
-                  conf.bond,
-                  value.lovelace_of(ref_in_escrow.output.value),
-                  escrow_datum,
-                  tx_time,
-                  posix_time_to_relative_epoch(tx_time, conf.bond.epoch_config),
-                  start_epoch,
-                  end_epoch,
-                )
-              is {
-                OK(escrow_info) -> {
-                  let BizTxInfo {
-                    valid: biz_tx_info_valid,
-                    biz_tx_in: in,
-                    biz_tx_out: out,
-                  } =
-                    collect_biz_tx_info(
-                      conf,
-                      tx.inputs,
-                      tx.outputs,
-                      owner,
-                      spending,
-                      tx.datums,
-                      escrow_info,
-                      spd_ask_datum,
+  is {
+    OK(tx_time_valid) -> and {
+        not(bytearray.is_empty(sask_dt.owner_vk))?,
+        when get_escrow_ref(tx.reference_inputs, conf.bond) is {
+          Some(ref_in_escrow) ->
+            when get_data(tx.datums, ref_in_escrow.output.datum) is {
+              Some(d) -> {
+                expect escrow_datum: EscrowDatum = d
+                let start_epoch =
+                  escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+                let end_epoch = start_epoch + escrow_datum.duration
+                and {
+                  (escrow_datum.bond_amount > 0)?,
+                  (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
+                  (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+                  when
+                    get_escrow_info(
+                      conf.bond,
+                      value.lovelace_of(ref_in_escrow.output.value),
+                      escrow_datum,
+                      tx_time_valid,
+                      posix_time_to_relative_epoch(
+                        tx_time_valid,
+                        conf.bond.epoch_config,
+                      ),
+                      start_epoch,
+                      end_epoch,
                     )
-                  and {
-                    biz_tx_info_valid,
-                    (dict.size(in.sc.bond_assets) == 1)?,
-                    dict.has_key(in.sc.bond_assets, escrow_info.token_name)?,
-                    when out is {
-                      Some(ou) -> and {
-                          (in.owner.bond_qty <= 0)?,
-                          matching_correct(
-                            conf,
-                            spd_ask_datum,
-                            in,
-                            ou,
-                            escrow_info,
-                          ),
-                        }
-                      None -> {
-                        trace @"out is None"
-                        False
+                  is {
+                    OK(escrow_info) -> {
+                      let BizTxInfo {
+                        valid: biz_tx_info_valid,
+                        biz_tx_in: in,
+                        biz_tx_out: out,
+                      } =
+                        collect_biz_tx_info(
+                          conf,
+                          tx.inputs,
+                          tx.outputs,
+                          owner,
+                          spending,
+                          tx.datums,
+                          escrow_info,
+                          sask_dt,
+                        )
+                      and {
+                        biz_tx_info_valid,
+                        (dict.size(in.sc.bond_assets) == 1)?,
+                        dict.has_key(in.sc.bond_assets, escrow_info.token_name)?,
+                        when out is {
+                          Some(ou) -> and {
+                              (in.owner.bond_qty <= 0)?,
+                              matching_correct(
+                                conf,
+                                sask_dt,
+                                in,
+                                ou,
+                                escrow_info,
+                              ),
+                            }
+                          None -> {
+                            trace @"out is None"
+                            False
+                          }
+                        },
                       }
-                    },
-                  }
+                    }
+                    Error(_) -> {
+                      trace @"bond is closable"
+                      False
+                    }
+                  },
                 }
-                Error(_) -> {
-                  trace @"bond is closable"
-                  False
-                }
-              },
+              }
+              _ -> {
+                trace @"not found escrow datum in reference_inputs"
+                False
+              }
             }
-          }
           _ -> {
-            trace @"not found escrow datum in reference_inputs"
+            trace @"not found escrow info in reference_inputs"
             False
           }
-        }
-      _ -> {
-        trace @"not found escrow info in reference_inputs"
-        False
+        },
       }
-    },
+    Error(e) -> fail e
   }
 }
