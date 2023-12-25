@@ -68,12 +68,12 @@ fn matching_is_valid(
             expect owner_out_datum: BidMaking = d
             (owner_out_datum.quantity <= buyer_qty)?
           }
-          None -> {
+          _ -> {
             trace @"not found owner output bid making datum"
             False
           }
         }
-      None -> True
+      _ -> True
     },
   }
 }

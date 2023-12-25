@@ -82,22 +82,22 @@ fn matching_correct(
       tx.fee,
     ))?,
     (out.sc.lovelace == in.sc.lovelace - exchange_fee_total - seller_receive_total - buyer_receive_lovelace)?,
-    or {
-      (sc_out_remain == 0)?,
-      when sc_out_utxo is {
-        Some(utxo) ->
-          (sc_out_remain > 0)? && when get_data(tx.datums, utxo.datum) is {
-            Some(d) -> {
-              expect sc_out_datum: BidMaking = d
-              (sc_out_datum.quantity > 0)? && (sc_out_datum.quantity == sc_out_remain)?
-            }
-            None -> {
-              trace @"not found output bid datum"
-              False
+    when sc_out_utxo is {
+      Some(utxo) ->
+        when get_data(tx.datums, utxo.datum) is {
+          Some(d) -> {
+            expect sc_out_datum: BidMaking = d
+            and {
+              (sc_out_datum.quantity > 0)?,
+              (sc_out_datum.quantity == sc_out_remain)?,
             }
           }
-        None -> True
-      },
+          _ -> {
+            trace @"not found output bid datum"
+            False
+          }
+        }
+      _ -> (sc_out_remain == 0)?
     },
   }
 }
