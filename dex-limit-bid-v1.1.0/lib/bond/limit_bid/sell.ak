@@ -8,8 +8,12 @@ use aiken/transaction/value
 use bond/limit_bid/utils.{collect_biz_tx_info} as limit_bid_utils
 use bond/types.{
   BidLimit, BizOutput, BizTxInfo, BondConfigLimit, EscrowDatum, EscrowInfo,
+  UniqBidLimitMulti,
 }
 use bond/utils.{get_escrow_info_1, get_escrow_ref, get_price_of_bond}
+use common/convert
+use common/hash_out_refs.{hash_out_ref_salt}
+use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
@@ -81,24 +85,22 @@ fn matching_correct(
       tx.fee,
     ))?,
     (out.sc.lovelace == in.sc.lovelace - exchange_fee_total - seller_receive_total - buyer_receive_lovelace)?,
-    (sc_out_remain == 0)? || when sc_out_utxo is {
-      Some(utxo) -> and {
-          (sc_out_remain > 0)?,
-          when get_data(tx.datums, utxo.datum) is {
-            Some(d) -> {
-              expect sc_out_datum: BidLimit = d
-              and {
-                (sc_out_datum.quantity > 0)?,
-                (sc_out_datum.quantity == sc_out_remain)?,
-              }
+    when sc_out_utxo is {
+      Some(utxo) ->
+        when get_data(tx.datums, utxo.datum) is {
+          Some(d) -> {
+            expect sc_out_datum: BidLimit = d
+            and {
+              (sc_out_datum.quantity > 0)?,
+              (sc_out_datum.quantity == sc_out_remain)?,
             }
-            None -> {
-              trace @"not found output bid datum"
-              False
-            }
-          },
+          }
+          _ -> {
+            trace @"not found output bid datum"
+            False
+          }
         }
-      None -> True
+      _ -> (sc_out_remain == 0)?
     },
   }
 }
@@ -241,6 +243,191 @@ pub fn matching(
           }
         },
       }
+    Error(e) -> fail e
+  }
+}
+
+pub fn spending(
+  cfg: BondConfigLimit,
+  ctx: ScriptContext,
+  sbid_dt: UniqBidLimitMulti,
+) -> Bool {
+  let tx = ctx.transaction
+  when
+    tx_validity_valid(
+      tx.validity_range,
+      cfg.platform.slot.slot_length,
+      Some(60 * 60),
+      True,
+    )
+  is {
+    OK(tx_time_valid) -> {
+      let epo_curr: EpochTime =
+        posix_time_to_relative_epoch(tx_time_valid, cfg.platform.epoch)
+      and {
+        (sbid_dt.quantity > 0)?,
+        (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
+        (tx_time_valid > 0)?,
+        not(bytearray.is_empty(sbid_dt.owner_vk))?,
+        when
+          list_escrow_ref(
+            cfg.platform,
+            cfg.escrow,
+            tx.reference_inputs,
+            tx.datums,
+            sbid_dt.bond_types,
+            tx_time_valid,
+            epo_curr,
+          )
+        is {
+          OK(_escrow_refs) -> {
+            // let bond_units = dict.keys(escrow_refs)
+            // trace cbor.diagnostic(bond_units)
+            let owner_addr =
+              sbid_dt.owner_sk
+                |> option.and_then(
+                     fn(s) {
+                       Some(
+                         credential.from_verification_key(sbid_dt.owner_vk)
+                           |> credential.with_delegation_key(s),
+                       )
+                     },
+                   )
+                |> option.or_else(
+                     credential.from_verification_key(sbid_dt.owner_vk),
+                   )
+            // trace cbor.diagnostic(owner_addr)
+            expect Spend(sbid_out_ref) = ctx.purpose
+            expect Some(sbid) =
+              list.find(tx.inputs, fn(i) { i.output_reference == sbid_out_ref })
+            let sbid_addr = sbid.output.address
+            // bid_inputs: Dict<ByteArray , (Output, UniqBidLimitMulti)>
+            let (bid_inputs, _) =
+              list.foldl(
+                tx.inputs,
+                (dict.new(), 0),
+                fn(i, z) {
+                  // if and {
+                  //   i.output.address.payment_credential == sbid_addr.payment_credential,
+                  //   i.output_reference != sbid_out_ref,
+                  // } {
+                  let is_ibid_order =
+                    i.output.address.payment_credential == sbid_addr.payment_credential
+                  if is_ibid_order {
+                    expect ibid_dt: UniqBidLimitMulti =
+                      when i.output.datum is {
+                        InlineDatum(d) -> d
+                        _ -> fail @"only supports InlineDatum for bid order"
+                      }
+                    // let order_id_correct =
+                    //   hash_out_ref_salt(
+                    //     ibid_dt.input_ref,
+                    //     convert.int_to_digit(z.2nd),
+                    //   )
+                    // if (ibid_dt.order_id == order_id_correct)? {
+                    //   if dict.has_key(z.1st, ibid_dt.uniq_id) {
+                    //     fail bconcat_3(
+                    //       @"spending uniq_id ",
+                    //       bytearray.to_hex(ibid_dt.uniq_id),
+                    //       @" is duplicate",
+                    //     )
+                    //   } else {
+                    //     (
+                    //       dict.insert(
+                    //         z.1st,
+                    //         ibid_dt.uniq_id,
+                    //         (i.output, ibid_dt),
+                    //         bytearray.compare,
+                    //       ),
+                    //       z.2nd + 1,
+                    //     )
+                    //   }
+                    // } else {
+                    //   fail bconcat_3(
+                    //     bconcat_3(
+                    //       @"spending order_id invalid (expected: ",
+                    //       bytearray.to_hex(order_id_correct),
+                    //       @", actual: ",
+                    //     ),
+                    //     bytearray.to_hex(ibid_dt.order_id),
+                    //     @")",
+                    //   )
+                    // }
+                    if dict.has_key(z.1st, ibid_dt.uniq_id) {
+                      fail bconcat_3(
+                        @"spending uniq_id ",
+                        bytearray.to_hex(ibid_dt.uniq_id),
+                        @" is duplicate",
+                      )
+                    } else {
+                      (
+                        dict.insert(
+                          z.1st,
+                          ibid_dt.uniq_id,
+                          (i.output, ibid_dt),
+                          bytearray.compare,
+                        ),
+                        z.2nd + 1,
+                      )
+                    }
+                  } else {
+                    (z.1st, z.2nd + 1)
+                  }
+                },
+              )
+            // (sbid_out: Option<Output>, bid_outs: List<Output>, owner_outs: List<Output>, fee_out: Option<Output>)
+            let (_sbid_out, _bid_outs, owner_outs, fee_out) =
+              list.foldl(
+                tx.outputs,
+                (None, [], [], None, 0),
+                fn(o, z) {
+                  let out_addr = o.address
+                  let is_obid_order =
+                    out_addr.payment_credential == sbid_addr.payment_credential
+                  if is_obid_order {
+                    expect obid_dt: UniqBidLimitMulti =
+                      when o.datum is {
+                        InlineDatum(d) -> d
+                        _ -> fail @"only supports InlineDatum for bid order"
+                      }
+                    let order_id_correct =
+                      hash_out_ref_salt(
+                        obid_dt.input_ref,
+                        convert.int_to_digit(z.5th),
+                      )
+
+                    if out_addr.stake_credential == sbid_addr.stake_credential {
+                      if (z.1st == None)? {
+                        (Some(o), z.2nd, z.3rd, z.4th, z.5th + 1)
+                      } else {
+                        fail @"must only one spending bid output allowed"
+                      }
+                    } else {
+                      (z.1st, [o, ..z.2nd], z.3rd, z.4th, z.5th + 1)
+                    }
+                  } else if out_addr == owner_addr {
+                    (z.1st, z.2nd, [o, ..z.3rd], z.4th, z.5th + 1)
+                  } else if out_addr == cfg.exchange.address {
+                    if (z.4th == None)? {
+                      (z.1st, z.2nd, z.3rd, Some(o), z.5th + 1)
+                    } else {
+                      fail @"must only one fee output for bid allowed"
+                    }
+                  } else {
+                    z
+                  }
+                },
+              )
+            and {
+              (bid_inputs == [])?,
+              (owner_outs != [])?,
+              (fee_out != None)?,
+            }
+          }
+          Error(s) -> fail s
+        },
+      }
+    }
     Error(e) -> fail e
   }
 }

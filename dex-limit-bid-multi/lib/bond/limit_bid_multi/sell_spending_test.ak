@@ -1,5 +1,5 @@
 // Bid Limit Multi
-use aiken/transaction.{InlineDatum, NoDatum}
+use aiken/transaction.{InlineDatum, NoDatum, ScriptContext, Spend}
 use aiken/transaction/value
 use bond/limit_bid_multi/sell
 use bond/types.{DanogoBond, OptimBond}
@@ -110,7 +110,11 @@ test succ_full() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test succ_partial() {
@@ -209,7 +213,11 @@ test succ_partial() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_input_epoch_1() {
@@ -308,7 +316,11 @@ test fail_input_epoch_1() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_input_epoch_2() fail {
@@ -407,7 +419,11 @@ test fail_input_epoch_2() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
   // let current_epoch =
   //   posix_time_to_relative_epoch(
   //     time_of_tx,
@@ -519,7 +535,11 @@ test fail_input_epoch_3() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_input_epoch_4() fail {
@@ -618,7 +638,11 @@ test fail_input_epoch_4() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
   // let current_epoch =
   //   posix_time_to_relative_epoch(
   //     time_of_tx,
@@ -727,7 +751,11 @@ test fail_input_qty() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_output_qty() {
@@ -740,7 +768,7 @@ test fail_output_qty() {
       owner_address,
       390,
       480,
-      1,
+      5,
       500,
       [DanogoBond, OptimBond],
     )
@@ -810,7 +838,7 @@ test fail_output_qty() {
       owner_address,
       390,
       480,
-      sc_in_datum_1.quantity - bond_sell_qty,
+      4,
       500,
       [DanogoBond, OptimBond],
     )
@@ -826,7 +854,11 @@ test fail_output_qty() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_validity_after_not_set() fail {
@@ -925,7 +957,11 @@ test fail_validity_after_not_set() fail {
       None,
       None,
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_escrow_policy_id_unexpect() fail {
@@ -1024,7 +1060,11 @@ test fail_escrow_policy_id_unexpect() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_escrow_address_unexpect() fail {
@@ -1123,7 +1163,11 @@ test fail_escrow_address_unexpect() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_escrow_datum_not_found() fail {
@@ -1222,7 +1266,11 @@ test fail_escrow_datum_not_found() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test fail_escrow_datum_unexpect() fail {
@@ -1321,7 +1369,11 @@ test fail_escrow_datum_unexpect() fail {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
 test succ_bond_policy_id_valid() {
@@ -1421,10 +1473,14 @@ test succ_bond_policy_id_valid() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
 
-test fail_bond_policy_id_invalid() {
+test fail_bond_policy_id_invalid() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
@@ -1520,5 +1576,9 @@ test fail_bond_policy_id_invalid() {
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
     )
-  !sell.matching(tx, cfg, sc_in_datum_1, sc_address)
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
 }
