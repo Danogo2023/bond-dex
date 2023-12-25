@@ -313,28 +313,28 @@ pub fn spending(
                   // trace cbor.diagnostic(buyer_addr)
                   let fee_addr: Address = cfg.exchange.address
                   // (
-                  //   ibid_value: Lovelace, 
+                  //   ibid_value: Lovelace,
+                  //   iseller_value: Int, 
+                  //   iseller_bond_qty: Int,
+                  //   iseller_addr: List<Address>,  
                   //   ibuyer_value: Lovelace, 
                   //   ibuyer_bond_qty: Int, 
                   //   ifee_value: Lovelace, 
                   //   ifee_bond_qty: Int,
-                  //   iseller_value: Int, 
-                  //   iseller_bond_qty: Int,
-                  //   iseller_addr: List<Address>, 
                   // )
                   let (
                     ibid_value,
-                    _ibuyer_value,
-                    _ibuyer_bond_qty,
-                    _ifee_value,
-                    _ifee_bond_qty,
                     iseller_value,
                     iseller_bond_qty,
                     iseller_addr,
                   ) =
+                    // _ibuyer_value,
+                    // _ibuyer_bond_qty,
+                    // _ifee_value,
+                    // _ifee_bond_qty,
                     list.foldl(
                       tx.inputs,
-                      (0, 0, 0, 0, 0, 0, 0, []),
+                      (0, 0, 0, []),
                       fn(i, z) {
                         let ivalue = value.lovelace_of(i.output.value)
                         let iaddr = i.output.address
@@ -346,11 +346,11 @@ pub fn spending(
                               ivalue,
                               z.2nd,
                               z.3rd,
+                              // z.5th,
+                              // z.6th,
+                              // z.7th,
+                              // z.8th,
                               z.4th,
-                              z.5th,
-                              z.6th,
-                              z.7th,
-                              z.8th,
                             )
                           } else {
                             fail @"matching only one bid order allowed"
@@ -362,38 +362,43 @@ pub fn spending(
                               escrow_info.bond_symbol,
                               escrow_info.token_name,
                             )
-                          if iaddr == buyer_addr {
+                          if or {
+                            iaddr == buyer_addr,
+                            iaddr == fee_addr,
+                          } {
+                            // } else if iaddr == buyer_addr {
+                            //   (
+                            //     z.1st,
+                            //     z.2nd,
+                            //     z.3rd,
+                            //     z.4th,
+                            //     z.5th + ivalue,
+                            //     z.6th + ibond_qty,
+                            //     z.7th,
+                            //     z.8th,
+                            //   )
+                            // } else if iaddr == fee_addr {
+                            //   (
+                            //     z.1st,
+                            //     z.2nd,
+                            //     z.3rd,
+                            //     z.4th,
+                            //     z.5th,
+                            //     z.6th,
+                            //     z.7th + ivalue,
+                            //     z.8th + ibond_qty,
+                            //   )
+                            z
+                          } else {
                             (
                               z.1st,
                               z.2nd + ivalue,
                               z.3rd + ibond_qty,
-                              z.4th,
-                              z.5th,
-                              z.6th,
-                              z.7th,
-                              z.8th,
-                            )
-                          } else if iaddr == fee_addr {
-                            (
-                              z.1st,
-                              z.2nd,
-                              z.3rd,
-                              z.4th + ivalue,
-                              z.5th + ibond_qty,
-                              z.6th,
-                              z.7th,
-                              z.8th,
-                            )
-                          } else {
-                            (
-                              z.1st,
-                              z.2nd,
-                              z.3rd,
-                              z.4th,
-                              z.5th,
-                              z.6th + ivalue,
-                              z.7th + ibond_qty,
-                              [iaddr, ..z.8th],
+                              // z.5th,
+                              // z.6th,
+                              // z.7th,
+                              // z.8th,
+                              [iaddr, ..z.4th],
                             )
                           }
                         }
@@ -405,8 +410,8 @@ pub fn spending(
                   //   obuyer_value: Lovelace, 
                   //   obuyer_bond_qty: Int, 
                   //   ofee_value: Lovelace, 
-                  //   ofee_bond_qty: Int, 
                   //   oseller_value: Lovelace, 
+                  //   ofee_bond_qty: Int, 
                   //   oseller_bond_qty: Int
                   // )
                   let (
@@ -415,13 +420,13 @@ pub fn spending(
                     obuyer_value,
                     obuyer_bond_qty,
                     ofee_value,
-                    _ofee_bond_qty,
                     oseller_value,
-                    _oseller_bond_qty,
                   ) =
+                    // _ofee_bond_qty,
+                    // _oseller_bond_qty,
                     list.foldl(
                       tx.outputs,
-                      (0, None, 0, 0, 0, 0, 0, 0),
+                      (0, None, 0, 0, 0, 0),
                       fn(o, z) {
                         let oaddr = o.address
                         let ovalue = value.lovelace_of(o.value)
@@ -454,9 +459,9 @@ pub fn spending(
                                 z.3rd,
                                 z.4th,
                                 z.5th,
+                                // z.7th,
+                                // z.8th,
                                 z.6th,
-                                z.7th,
-                                z.8th,
                               )
                             } else {
                               fail @"bid order output invalid datum"
@@ -480,9 +485,9 @@ pub fn spending(
                                   ovalue,
                                   obond_qty,
                                   z.5th,
+                                  // z.7th,
+                                  // z.8th,
                                   z.6th,
-                                  z.7th,
-                                  z.8th,
                                 )
                               } else {
                                 fail @"not found owner bond receive"
@@ -498,9 +503,9 @@ pub fn spending(
                                 z.3rd,
                                 z.4th,
                                 ovalue,
-                                obond_qty,
-                                z.7th,
-                                z.8th,
+                                // obond_qty,
+                                // z.8th,
+                                z.6th,
                               )
                             } else {
                               fail @"must only one fee output for bid order allowed"
@@ -512,15 +517,16 @@ pub fn spending(
                               z.3rd,
                               z.4th,
                               z.5th,
-                              z.6th,
-                              z.7th + ovalue,
-                              z.8th + obond_qty,
+                              // z.7th,
+                              // z.8th + obond_qty,
+                              z.6th + ovalue,
                             )
                           }
                         }
                       },
                     )
                   and {
+                    (obuyer_value > 0)?,
                     (obuyer_bond_qty > 0)?,
                     spending_correct(
                       tx,
