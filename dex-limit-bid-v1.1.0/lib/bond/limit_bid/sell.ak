@@ -2,7 +2,7 @@
 use aiken/bytearray
 use aiken/dict
 use aiken/list
-use aiken/transaction.{Output, Transaction}
+use aiken/transaction.{InlineDatum, Output, ScriptContext, Spend, Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/limit_bid/utils.{collect_biz_tx_info} as limit_bid_utils
@@ -10,7 +10,9 @@ use bond/types.{
   BidLimit, BizOutput, BizTxInfo, BondConfigLimit, EscrowDatum, EscrowInfo,
   UniqBidLimitMulti,
 }
-use bond/utils.{get_escrow_info_1, get_escrow_ref, get_price_of_bond}
+use bond/utils.{
+  get_escrow_info_1, get_escrow_ref, get_price_of_bond, list_escrow_ref,
+}
 use common/convert
 use common/hash_out_refs.{hash_out_ref_salt}
 use common/string.{bconcat_3} as common_string
@@ -283,19 +285,7 @@ pub fn spending(
           OK(_escrow_refs) -> {
             // let bond_units = dict.keys(escrow_refs)
             // trace cbor.diagnostic(bond_units)
-            let owner_addr =
-              sbid_dt.owner_sk
-                |> option.and_then(
-                     fn(s) {
-                       Some(
-                         credential.from_verification_key(sbid_dt.owner_vk)
-                           |> credential.with_delegation_key(s),
-                       )
-                     },
-                   )
-                |> option.or_else(
-                     credential.from_verification_key(sbid_dt.owner_vk),
-                   )
+            let owner_addr = sbid_dt.receive_addr
             // trace cbor.diagnostic(owner_addr)
             expect Spend(sbid_out_ref) = ctx.purpose
             expect Some(sbid) =
@@ -376,10 +366,10 @@ pub fn spending(
                 },
               )
             // (sbid_out: Option<Output>, bid_outs: List<Output>, owner_outs: List<Output>, fee_out: Option<Output>)
-            let (_sbid_out, _bid_outs, owner_outs, fee_out) =
+            let (_sbid_out, _bid_outs, owner_outs, fee_out, _) =
               list.foldl(
                 tx.outputs,
-                (None, [], [], None, 0),
+                (None, dict.new(), [], None, 0),
                 fn(o, z) {
                   let out_addr = o.address
                   let is_obid_order =
@@ -390,12 +380,6 @@ pub fn spending(
                         InlineDatum(d) -> d
                         _ -> fail @"only supports InlineDatum for bid order"
                       }
-                    let order_id_correct =
-                      hash_out_ref_salt(
-                        obid_dt.input_ref,
-                        convert.int_to_digit(z.5th),
-                      )
-
                     if out_addr.stake_credential == sbid_addr.stake_credential {
                       if (z.1st == None)? {
                         (Some(o), z.2nd, z.3rd, z.4th, z.5th + 1)
@@ -403,7 +387,43 @@ pub fn spending(
                         fail @"must only one spending bid output allowed"
                       }
                     } else {
-                      (z.1st, [o, ..z.2nd], z.3rd, z.4th, z.5th + 1)
+                      let order_id_correct =
+                        hash_out_ref_salt(
+                          obid_dt.input_ref,
+                          convert.int_to_digit(z.5th),
+                        )
+                      if (obid_dt.order_id == order_id_correct)? {
+                        if dict.has_key(z.2nd, obid_dt.uniq_id) {
+                          fail bconcat_3(
+                            @"spending uniq_id ",
+                            bytearray.to_hex(obid_dt.uniq_id),
+                            @" is duplicate",
+                          )
+                        } else {
+                          (
+                            z.1st,
+                            dict.insert(
+                              z.2nd,
+                              obid_dt.uniq_id,
+                              (o, obid_dt),
+                              bytearray.compare,
+                            ),
+                            z.3rd,
+                            z.4th,
+                            z.5th + 1,
+                          )
+                        }
+                      } else {
+                        fail bconcat_3(
+                          bconcat_3(
+                            @"spending order_id invalid (expected: ",
+                            bytearray.to_hex(order_id_correct),
+                            @", actual: ",
+                          ),
+                          bytearray.to_hex(obid_dt.order_id),
+                          @")",
+                        )
+                      }
                     }
                   } else if out_addr == owner_addr {
                     (z.1st, z.2nd, [o, ..z.3rd], z.4th, z.5th + 1)
@@ -419,7 +439,7 @@ pub fn spending(
                 },
               )
             and {
-              (bid_inputs == [])?,
+              !dict.is_empty(bid_inputs)?,
               (owner_outs != [])?,
               (fee_out != None)?,
             }

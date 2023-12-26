@@ -9,14 +9,7 @@ validator(cfg: BondConfigLimit) {
     when ac is {
       Update ->
         must_be_signed_by_key(ctx.transaction.extra_signatories, sdt.owner_vk)?
-      Sell ->
-        // sell.matching(
-        //   ctx.transaction,
-        //   cfg,
-        //   sdt,
-        //   get_spending_input(ctx).output.address,
-        // )
-        sell.spending(ctx, cfg, sdt)
+      Sell -> sell.spending(ctx, cfg, sdt)
       _ -> False
     }
   }
