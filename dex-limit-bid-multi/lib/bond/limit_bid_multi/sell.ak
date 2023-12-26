@@ -10,7 +10,7 @@ use bond/constraint.{bid_limit_multi_valid, epoch_valid, yield_valid}
 use bond/limit_bid_multi/utils.{head_escrow_ref}
 use bond/types.{BidLimitMulti, BondConfigLimit, EscrowInfo}
 use bond/utils.{get_price_of_bond} as bond_utils
-// use common/string.{bconcat_3} as common_string
+use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, Lovelace, OK} as common_types
 
@@ -65,7 +65,7 @@ pub fn spending(
         is {
           OK(escrow_ref) ->
             when escrow_ref |> dict.to_list is {
-              [(_bond_unit, escrow_info)] ->
+              [(bond_unit, escrow_info)] ->
                 if and {
                   (escrow_info.end_epoch >= epo_curr)?,
                   (escrow_info.end_epoch >= sbid_dt.from_epoch)?,
@@ -238,13 +238,12 @@ pub fn spending(
                     ),
                   }
                 } else {
-                  fail
+                  fail bconcat_3(
+                    @"escrow of bond ",
+                    bond_unit,
+                    @" invalid epoch",
+                  )
                 }
-              // fail bconcat_3(
-              //   @"escrow of bond ",
-              //   bond_unit,
-              //   @" invalid epoch",
-              // )
               _ -> fail @"not found escrow info in reference_inputs"
             }
           Error(s) -> fail s

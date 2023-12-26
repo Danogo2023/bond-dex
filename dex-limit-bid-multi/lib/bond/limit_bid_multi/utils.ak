@@ -1,7 +1,7 @@
 // Bid Limit Multi
 use aiken/dict.{Dict}
 use aiken/list
-// use aiken/string
+use aiken/string
 use aiken/time.{PosixTime} as aiken_time
 use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum, Output}
 use aiken/transaction/credential.{Address, ScriptCredential}
@@ -9,8 +9,7 @@ use aiken/transaction/value
 use bond/types.{BondType,
   EscrowConfig, EscrowDatum, EscrowInfo, PlatformConfig} as bond_types
 use bond/utils.{get_day_to_maturity} as bond_utils
-// use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
-use common/string.{to_unit_3} as common_string
+use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
 use common/time.{Basis, EpochTime} as common_time
 use common/types.{AssetUnit, Datums, Error, Lovelace, OK, Result}
 use common/util.{find_while}
@@ -93,18 +92,17 @@ fn find_escrow_ref_with(
                           } else {
                             (
                               True,
-                              // Error(
-                              //   bconcat_1(
-                              //     bconcat_1(
-                              //       @"escrow policy id ",
-                              //       escrow_nft_pid,
-                              //       @" asset name invalid (expected: ",
-                              //     ),
-                              //     escrow_dt.token_name,
-                              //     bconcat_1(@", actual: ", n, @")"),
-                              //   ),
-                              // ),
-                              Error(@"escrow policy id asset name invalid"),
+                              Error(
+                                bconcat_1(
+                                  bconcat_1(
+                                    @"escrow policy id ",
+                                    escrow_nft_pid,
+                                    @" asset name invalid (expected: ",
+                                  ),
+                                  escrow_dt.token_name,
+                                  bconcat_1(@", actual: ", n, @")"),
+                                ),
+                              ),
                             )
                           }
                         }
@@ -113,31 +111,29 @@ fn find_escrow_ref_with(
                     } else {
                       (
                         True,
-                        // Error(
-                        //   bconcat_3(
-                        //     @"escrow asset ",
-                        //     to_unit_3(escrow_nft_pid, @".", n),
-                        //     bconcat_3(
-                        //       @" qty invalid (expected: 1, actual: ",
-                        //       string.from_int(q),
-                        //       @")",
-                        //     ),
-                        //   ),
-                        // ),
-                        Error(@"escrow asset qty invalid"),
+                        Error(
+                          bconcat_3(
+                            @"escrow asset ",
+                            to_unit_3(escrow_nft_pid, @".", n),
+                            bconcat_3(
+                              @" qty invalid (expected: 1, actual: ",
+                              string.from_int(q),
+                              @")",
+                            ),
+                          ),
+                        ),
                       )
                     }
                   _ ->
                     (
                       True,
-                      // Error(
-                      //   bconcat_1(
-                      //     @"escrow policy id ",
-                      //     escrow_nft_pid,
-                      //     @" asset invalid",
-                      //   ),
-                      // ),
-                      Error(@"escrow policy id asset invalid"),
+                      Error(
+                        bconcat_1(
+                          @"escrow policy id ",
+                          escrow_nft_pid,
+                          @" asset invalid",
+                        ),
+                      ),
                     )
                 }
               } else {
@@ -171,7 +167,7 @@ fn find_escrow_ref_finalize(
     when
       get_escrow_info(
         platform_cfg,
-        // bond_unit,
+        bond_unit,
         escrow_bal,
         escrow_dt,
         escrow_epo_rewards,
@@ -194,14 +190,13 @@ fn find_escrow_ref_finalize(
       Error(s) -> (True, Error(s))
     }
   } else {
-    // (True, Error(bconcat_3(@"bond ", bond_unit, @" datum invalid")))
-    (True, Error(@"bond datum invalid"))
+    (True, Error(bconcat_3(@"bond ", bond_unit, @" datum invalid")))
   }
 }
 
 pub fn get_escrow_info(
   platform_cfg: PlatformConfig,
-  // bond_unit: AssetUnit,
+  bond_unit: AssetUnit,
   escrow_bal: Lovelace,
   escrow_dt: EscrowDatum,
   escrow_epo_rewards: Lovelace,
@@ -247,8 +242,7 @@ pub fn get_escrow_info(
       epo_curr > escrow_epo_end,
       closable_in <= 0,
     } {
-      // Error(bconcat_3(@"bond ", bond_unit, @" closable"))
-      Error(@"bond closable")
+      Error(bconcat_3(@"bond ", bond_unit, @" closable"))
     } else {
       // Tien phi Optim thu cua Borrower 3%
       let lender_rate: Basis = platform_cfg.basis.base - escrow_dt.otm_fee
@@ -277,7 +271,6 @@ pub fn get_escrow_info(
       )
     }
   } else {
-    // Error(bconcat_3(@"bond ", bond_unit, @" missing interest"))
-    Error(@"bond missing interest")
+    Error(bconcat_3(@"bond ", bond_unit, @" missing interest"))
   }
 }
