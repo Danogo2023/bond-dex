@@ -1,270 +1,283 @@
 // Bid Limit Multi
 use aiken/dict.{Dict}
 use aiken/list
-use aiken/transaction.{Input, Output}
-use aiken/transaction/credential.{Address}
-use aiken/transaction/value.{AssetName}
-use bond/constraint.{bid_limit_multi_valid, epoch_valid, yield_valid}
-use bond/types.{
-  BidLimitMulti, BizOutput, BizOutputInfo, BizTxInfo, BondConfigLimit, DatumOf,
-  EscrowInfo, OtherDatum, ScDatum,
-}
-use bond/utils.{bond_assets} as bond_utils
-use common/types.{Datums} as common_types
-use common/util.{get_data}
+// use aiken/string
+use aiken/time.{PosixTime} as aiken_time
+use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum, Output}
+use aiken/transaction/credential.{Address, ScriptCredential}
+use aiken/transaction/value
+use bond/types.{BondType,
+  EscrowConfig, EscrowDatum, EscrowInfo, PlatformConfig} as bond_types
+use bond/utils.{get_day_to_maturity} as bond_utils
+// use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
+use common/string.{to_unit_3} as common_string
+use common/time.{Basis, EpochTime} as common_time
+use common/types.{AssetUnit, Datums, Error, Lovelace, OK, Result}
+use common/util.{find_while}
 
-fn datum_is_valid(
-  cfg: BondConfigLimit,
-  out_data: Data,
-  sdt: BidLimitMulti,
-) -> Bool {
-  expect out_datum: BidLimitMulti = out_data
-  yield_valid(cfg.platform.basis, out_datum.requested_yield) && epoch_valid(
-    out_datum.from_epoch,
-    out_datum.to_epoch,
-    out_datum.quantity,
-  ) && bid_limit_multi_valid(sdt, out_datum)
-}
+pub type EscrowRef =
+  Dict<AssetUnit, EscrowInfo>
 
-fn build_biz_output_info(
-  self: BizOutputInfo,
-  output: Output,
-  bond_values: Dict<AssetName, Int>,
-  datum_of: DatumOf,
-  datums: Datums,
-  cfg: BondConfigLimit,
-  sdt: BidLimitMulti,
-) -> BizOutputInfo {
-  let addresses =
-    if list.has(self.addresses, output.address) {
-      self.addresses
-    } else {
-      [output.address, ..self.addresses]
-    }
-  let bond_datum_valid =
-    datum_of == OtherDatum || when get_data(datums, output.datum) is {
-      Some(d) -> datum_is_valid(cfg, d, sdt)
-      None -> {
-        trace @"not found datum"
-        False
-      }
-    }
-  let (output_bond, output_other) =
-    if dict.size(bond_values) > 0 {
-      ([output, ..self.bond_outputs], self.other_outputs)
-    } else {
-      (self.bond_outputs, [output, ..self.other_outputs])
-    }
-  BizOutputInfo {
-    addresses,
-    bond_datum_valid,
-    bond_outputs: output_bond,
-    bond_assets: bond_assets(bond_values, self.bond_assets),
-    bond_qty: dict.foldl(bond_values, self.bond_qty, fn(_, v, z) { v + z }),
-    lovelace: self.lovelace + value.lovelace_of(output.value),
-    other_outputs: output_other,
-  }
-}
-
-fn build_biz_data(
-  cfg: BondConfigLimit,
-  output: Output,
-  owner_addr: Address,
-  sbid_addr: Address,
-  datums: Datums,
-  data: BizOutput,
-  escrow_info: EscrowInfo,
-  sdt: BidLimitMulti,
-) -> BizOutput {
-  let bond_values = value.tokens(output.value, escrow_info.bond_symbol)
-  let biz_out_info =
-    build_biz_output_info(
-      if output.address == sbid_addr {
-        data.sc
-      } else if output.address == owner_addr {
-        data.owner
-      } else if output.address == cfg.exchange.address {
-        data.exchange
-      } else {
-        data.other
-      },
-      output,
-      bond_values,
-      if output.address == sbid_addr {
-        ScDatum
-      } else {
-        OtherDatum
-      },
-      datums,
-      cfg,
-      sdt,
-    )
-  BizOutput {
-    valid: biz_out_info.bond_datum_valid,
-    unique_bonds: bond_assets(data.unique_bonds, bond_values),
-    sc: when (output.address, sbid_addr) is {
-      (a, b) if a == b -> biz_out_info
-      _ -> data.sc
-    },
-    owner: when (output.address, owner_addr) is {
-      (a, b) if a == b -> biz_out_info
-      _ -> data.owner
-    },
-    exchange: when (output.address, cfg.exchange.address) is {
-      (a, b) if a == b -> biz_out_info
-      _ -> data.exchange
-    },
-    other: when
-      (output.address, sbid_addr, owner_addr, cfg.exchange.address)
-    is {
-      (a, b, c, d) if a != b && a != c && a != d -> biz_out_info
-      _ -> data.other
-    },
-  }
-}
-
-fn get_biz_output(
-  cfg: BondConfigLimit,
-  outputs: List<Output>,
-  owner_addr: Address,
-  sbid_addr: Address,
-  datums: Datums,
-  zero: BizOutput,
-  escrow_info: EscrowInfo,
-  sdt: BidLimitMulti,
-) -> BizOutput {
-  when outputs is {
-    [] -> zero
-    [x, ..xs] -> {
-      let biz_data: BizOutput =
-        build_biz_data(
-          cfg,
-          x,
-          owner_addr,
-          sbid_addr,
-          datums,
-          zero,
-          escrow_info,
-          sdt,
-        )
-      if !biz_data.valid {
-        biz_data
-      } else {
-        get_biz_output(
-          cfg,
-          xs,
-          owner_addr,
-          sbid_addr,
-          datums,
-          biz_data,
-          escrow_info,
-          sdt,
-        )
-      }
-    }
-  }
-}
-
-fn get_biz_input(
-  cfg: BondConfigLimit,
-  inputs: List<Input>,
-  owner_addr: Address,
-  sbid_addr: Address,
-  datums: Datums,
-  zero: BizOutput,
-  escrow_info: EscrowInfo,
-  sdt: BidLimitMulti,
-) -> BizOutput {
-  when inputs is {
-    [] -> zero
-    [x, ..xs] -> {
-      let biz_data: BizOutput =
-        build_biz_data(
-          cfg,
-          x.output,
-          owner_addr,
-          sbid_addr,
-          datums,
-          zero,
-          escrow_info,
-          sdt,
-        )
-      if !biz_data.valid {
-        biz_data
-      } else {
-        get_biz_input(
-          cfg,
-          xs,
-          owner_addr,
-          sbid_addr,
-          datums,
-          biz_data,
-          escrow_info,
-          sdt,
-        )
-      }
-    }
-  }
-}
-
-pub fn collect_biz_tx_info(
-  cfg: BondConfigLimit,
-  inputs: List<Input>,
-  outputs: List<Output>,
-  owner_addr: Address,
-  sbid_addr: Address,
-  datums: Datums,
-  escrow_info: EscrowInfo,
-  sdt: BidLimitMulti,
-) -> BizTxInfo {
-  let biz_out_info_init =
-    BizOutputInfo {
-      addresses: [],
-      bond_datum_valid: True,
-      bond_outputs: [],
-      bond_assets: dict.new(),
-      bond_qty: 0,
-      lovelace: 0,
-      other_outputs: [],
-    }
-  let biz_out_init =
-    BizOutput {
-      valid: True,
-      unique_bonds: dict.new(),
-      sc: biz_out_info_init,
-      exchange: biz_out_info_init,
-      owner: biz_out_info_init,
-      other: biz_out_info_init,
-    }
-  let biz_tx_in: BizOutput =
-    get_biz_input(
-      cfg,
-      inputs,
-      owner_addr,
-      sbid_addr,
-      datums,
-      biz_out_init,
-      escrow_info,
-      sdt,
-    )
-  if biz_tx_in.valid {
-    let biz_tx_out: BizOutput =
-      get_biz_output(
-        cfg,
-        outputs,
-        owner_addr,
-        sbid_addr,
-        datums,
-        biz_out_init,
-        escrow_info,
-        sdt,
+pub fn head_escrow_ref(
+  platform_cfg: PlatformConfig,
+  escrow_cfg: EscrowConfig,
+  tx_ref_inputs: List<Input>,
+  tx_datums: Datums,
+  bond_types: List<BondType>,
+  tx_time: PosixTime,
+  epo_curr: EpochTime,
+) -> Result<EscrowRef, String> {
+  find_escrow_ref_with(
+    escrow_cfg,
+    tx_ref_inputs,
+    tx_datums,
+    bond_types,
+    fn(escrow_ref, bond_unit, escrow_dt, escrow_input) {
+      find_escrow_ref_finalize(
+        platform_cfg,
+        escrow_ref,
+        bond_unit,
+        escrow_dt,
+        escrow_input,
+        tx_time,
+        epo_curr,
+        True,
       )
-    BizTxInfo {
-      valid: biz_tx_out.valid,
-      biz_tx_in,
-      biz_tx_out: Some(biz_tx_out),
+    },
+  )
+}
+
+fn find_escrow_ref_with(
+  escrow_cfg: EscrowConfig,
+  tx_ref_inputs: List<Input>,
+  tx_datums: Datums,
+  bond_types: List<BondType>,
+  with: fn(EscrowRef, AssetUnit, EscrowDatum, Input) ->
+    (Bool, Result<EscrowRef, String>),
+) -> Result<EscrowRef, String> {
+  find_while(
+    tx_ref_inputs,
+    OK(dict.new()),
+    fn(i, z) {
+      when i.output.address.payment_credential is {
+        ScriptCredential(k) ->
+          when dict.get(escrow_cfg, k) is {
+            Some((escrow_nft_pid, bond_type)) ->
+              if list.has(bond_types, bond_type) {
+                when
+                  value.tokens(i.output.value, escrow_nft_pid) |> dict.to_list
+                is {
+                  [(n, q)] ->
+                    if q == 1 {
+                      expect OK(escrow_ref) = z
+                      let data =
+                        when i.output.datum is {
+                          NoDatum -> None
+                          DatumHash(h) -> dict.get(tx_datums, h)
+                          InlineDatum(d) -> Some(d)
+                        }
+                      when data is {
+                        Some(dt) -> {
+                          expect escrow_dt: EscrowDatum = dt
+                          if n == escrow_dt.token_name {
+                            with(
+                              escrow_ref,
+                              to_unit_3(
+                                escrow_dt.bond_symbol,
+                                @".",
+                                escrow_dt.token_name,
+                              ),
+                              escrow_dt,
+                              i,
+                            )
+                          } else {
+                            (
+                              True,
+                              // Error(
+                              //   bconcat_1(
+                              //     bconcat_1(
+                              //       @"escrow policy id ",
+                              //       escrow_nft_pid,
+                              //       @" asset name invalid (expected: ",
+                              //     ),
+                              //     escrow_dt.token_name,
+                              //     bconcat_1(@", actual: ", n, @")"),
+                              //   ),
+                              // ),
+                              Error(@"escrow policy id asset name invalid"),
+                            )
+                          }
+                        }
+                        _ -> (True, Error(@"Escrow datum can't be None"))
+                      }
+                    } else {
+                      (
+                        True,
+                        // Error(
+                        //   bconcat_3(
+                        //     @"escrow asset ",
+                        //     to_unit_3(escrow_nft_pid, @".", n),
+                        //     bconcat_3(
+                        //       @" qty invalid (expected: 1, actual: ",
+                        //       string.from_int(q),
+                        //       @")",
+                        //     ),
+                        //   ),
+                        // ),
+                        Error(@"escrow asset qty invalid"),
+                      )
+                    }
+                  _ ->
+                    (
+                      True,
+                      // Error(
+                      //   bconcat_1(
+                      //     @"escrow policy id ",
+                      //     escrow_nft_pid,
+                      //     @" asset invalid",
+                      //   ),
+                      // ),
+                      Error(@"escrow policy id asset invalid"),
+                    )
+                }
+              } else {
+                (False, z)
+              }
+            _ -> (False, z)
+          }
+        _ -> (False, z)
+      }
+    },
+  )
+}
+
+fn find_escrow_ref_finalize(
+  platform_cfg: PlatformConfig,
+  escrow_ref: EscrowRef,
+  bond_unit: AssetUnit,
+  escrow_dt: EscrowDatum,
+  escrow_input: Input,
+  tx_time: PosixTime,
+  epo_curr: EpochTime,
+  break: Bool,
+) -> (Bool, Result<EscrowRef, String>) {
+  // Tong tien lai moi epoch Borrower phai tra
+  let escrow_epo_rewards = value.lovelace_of(escrow_dt.epo_rewards)
+  if and {
+    (escrow_dt.bond_amount > 0)?,
+    (escrow_epo_rewards > 0)?,
+  } {
+    let escrow_bal: Lovelace = value.lovelace_of(escrow_input.output.value)
+    when
+      get_escrow_info(
+        platform_cfg,
+        // bond_unit,
+        escrow_bal,
+        escrow_dt,
+        escrow_epo_rewards,
+        tx_time,
+        epo_curr,
+      )
+    is {
+      OK(escrow_info) ->
+        (
+          break,
+          OK(
+            dict.insert(
+              escrow_ref,
+              bond_unit,
+              escrow_info,
+              common_string.compare,
+            ),
+          ),
+        )
+      Error(s) -> (True, Error(s))
     }
   } else {
-    BizTxInfo { valid: False, biz_tx_in, biz_tx_out: None }
+    // (True, Error(bconcat_3(@"bond ", bond_unit, @" datum invalid")))
+    (True, Error(@"bond datum invalid"))
+  }
+}
+
+pub fn get_escrow_info(
+  platform_cfg: PlatformConfig,
+  // bond_unit: AssetUnit,
+  escrow_bal: Lovelace,
+  escrow_dt: EscrowDatum,
+  escrow_epo_rewards: Lovelace,
+  tx_time: PosixTime,
+  epo_curr: EpochTime,
+) -> Result<EscrowInfo, String> {
+  let escrow_epo_start: EpochTime =
+    escrow_dt.start + platform_cfg.epoch.epoch_boundary_as_epoch
+  let escrow_epo_end: EpochTime = escrow_epo_start + escrow_dt.duration
+  // Tong epoch phai tra lai tinh den epoch hien tai
+  let escrow_due_paid_epo: EpochTime =
+    if epo_curr >= escrow_epo_end {
+      escrow_dt.duration
+    } else {
+      epo_curr - escrow_epo_start + 1
+    }
+  // Tong tien lai Borrower can phai tra tinh den epoch hien tai
+  let escrow_due_paid: Lovelace = escrow_due_paid_epo * escrow_epo_rewards
+  // Tien goc cua toan bo bond phat hanh
+  let escrow_principal: Lovelace =
+    escrow_dt.bond_amount * platform_cfg.bond_face_value
+  let escrow_bal_min: Lovelace = escrow_principal + escrow_due_paid
+  if (escrow_bal >= escrow_bal_min)? {
+    // Tong tien lai tich luy hien tai cho toan bo bond phat hanh
+    let premium_paid: Lovelace = escrow_bal - escrow_principal
+    // Tong tien lai tich luy hien tai tinh theo epoch cho toan bo bond phat hanh
+    // let epo_premium_paid: EpochTime = premium_paid / escrow_epo_rewards
+    // Tong so epoch ma Borrower tra du tinh tu epoch hien tai
+    let interest_level: EpochTime =
+      ( premium_paid - escrow_due_paid ) / escrow_epo_rewards
+    let interest_max: Lovelace = escrow_epo_rewards * escrow_dt.duration
+    // So epoch con lai cho den khi bond se duoc phep dong
+    let closable_in: EpochTime =
+      if or {
+        escrow_due_paid_epo >= escrow_dt.duration,
+        escrow_bal >= interest_max,
+      } {
+        escrow_epo_end - epo_curr
+      } else {
+        interest_level - escrow_dt.buffer + 1
+      }
+    if or {
+      epo_curr > escrow_epo_end,
+      closable_in <= 0,
+    } {
+      // Error(bconcat_3(@"bond ", bond_unit, @" closable"))
+      Error(@"bond closable")
+    } else {
+      // Tien phi Optim thu cua Borrower 3%
+      let lender_rate: Basis = platform_cfg.basis.base - escrow_dt.otm_fee
+      // Tong tien lai lender nhan duoc cua tat ca bond phat hanh khi ket thuc chu ky dao han
+      let lender_interest: Lovelace =
+        escrow_epo_rewards * escrow_dt.duration * lender_rate
+      // Tong tien lai lender nhan duoc khi den ky dao han cua 1 bond da tru phi cua Optim 3%
+      let interest_at_maturity: Lovelace =
+        lender_interest / platform_cfg.basis.base / escrow_dt.bond_amount
+      OK(
+        EscrowInfo {
+          bond_symbol: escrow_dt.bond_symbol,
+          token_name: escrow_dt.token_name,
+          bond_amount: escrow_dt.bond_amount,
+          start_epoch: escrow_epo_start,
+          end_epoch: escrow_epo_end,
+          // Tong tien goc + lai cua 1 bond theo lai suat Optim ma lender nhan duoc 
+          value_at_maturity: interest_at_maturity + platform_cfg.bond_face_value,
+          // So ngay den ky dao han cua bond
+          day_to_maturity: get_day_to_maturity(
+            tx_time,
+            escrow_epo_end,
+            platform_cfg.epoch,
+          ),
+        },
+      )
+    }
+  } else {
+    // Error(bconcat_3(@"bond ", bond_unit, @" missing interest"))
+    Error(@"bond missing interest")
   }
 }
