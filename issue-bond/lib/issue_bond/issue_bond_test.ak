@@ -498,10 +498,24 @@ fn build_multi_requests_tx(
 fn validate(args: (Input, ScriptContext)) {
   let cfg = build_cfg()
   let (spending_request, ctx) = args
+  trace @"==================="
+  let tx = ctx.transaction
+  trace string.concat(
+    @"count inputs: ",
+    string.from_int(list.length(tx.inputs)),
+  )
+  trace string.concat(
+    @"count reference_inputs: ",
+    string.from_int(list.length(tx.reference_inputs)),
+  )
+  trace string.concat(
+    @"count outputs: ",
+    string.from_int(list.length(tx.outputs)),
+  )
   and {
     bond_nft.minting(
       cfg,
-      ctx.transaction,
+      tx,
       req_skh,
       bond_skh,
       nft_pid,
@@ -510,7 +524,7 @@ fn validate(args: (Input, ScriptContext)) {
     ),
     bond_token.minting_without_fee(
       cfg,
-      ctx.transaction,
+      tx,
       req_skh,
       bond_skh,
       nft_pid,
@@ -545,11 +559,28 @@ test succ_when_fulfilling_multiple_borrow_requests_entirely() {
         (FulfilledZero, Entire, requested + 10, apr + 10),
       ],
     )
+  trace string.concat(
+    @"request count: ",
+    string.from_int(list.length(requests)),
+  )
   list.all(
     requests,
     fn(req) {
       let ctx =
         ScriptContext { purpose: Spend(req.output_reference), transaction: tx }
+      trace @"==================="
+      trace string.concat(
+        @"count inputs: ",
+        string.from_int(list.length(tx.inputs)),
+      )
+      trace string.concat(
+        @"count reference_inputs: ",
+        string.from_int(list.length(tx.reference_inputs)),
+      )
+      trace string.concat(
+        @"count outputs: ",
+        string.from_int(list.length(tx.outputs)),
+      )
       and {
         bond_nft.minting(
           cfg,
@@ -610,11 +641,28 @@ test succ_when_fulfilling_multiple_borrow_requests_entirely_and_partially() {
         (FulfilledZero, Partial(10), requested + 10, apr + 10),
       ],
     )
+  trace string.concat(
+    @"request count: ",
+    string.from_int(list.length(requests)),
+  )
   list.all(
     requests,
     fn(req) {
       let ctx =
         ScriptContext { purpose: Spend(req.output_reference), transaction: tx }
+      trace @"==================="
+      trace string.concat(
+        @"count inputs: ",
+        string.from_int(list.length(tx.inputs)),
+      )
+      trace string.concat(
+        @"count reference_inputs: ",
+        string.from_int(list.length(tx.reference_inputs)),
+      )
+      trace string.concat(
+        @"count outputs: ",
+        string.from_int(list.length(tx.outputs)),
+      )
       and {
         bond_nft.minting(
           cfg,
@@ -911,6 +959,20 @@ test fail_when_attempting_other_redeemer_attack_on_bond_nft_policy() fail {
     |> fn(args: (Input, ScriptContext)) {
          let cfg = build_cfg()
          let (spending_request, ctx) = args
+         trace @"==================="
+         let tx = ctx.transaction
+         trace string.concat(
+           @"count inputs: ",
+           string.from_int(list.length(tx.inputs)),
+         )
+         trace string.concat(
+           @"count reference_inputs: ",
+           string.from_int(list.length(tx.reference_inputs)),
+         )
+         trace string.concat(
+           @"count outputs: ",
+           string.from_int(list.length(tx.outputs)),
+         )
          and {
            bond_nft.burning_force_redeem(ctx.transaction, nft_pid),
            bond_token.minting_with_fee(
@@ -959,6 +1021,20 @@ test fail_when_attempting_other_redeemer_attack_on_bond_policy() fail {
     |> fn(args: (Input, ScriptContext)) {
          let cfg = build_cfg()
          let (spending_request, ctx) = args
+         trace @"==================="
+         let tx = ctx.transaction
+         trace string.concat(
+           @"count inputs: ",
+           string.from_int(list.length(tx.inputs)),
+         )
+         trace string.concat(
+           @"count reference_inputs: ",
+           string.from_int(list.length(tx.reference_inputs)),
+         )
+         trace string.concat(
+           @"count outputs: ",
+           string.from_int(list.length(tx.outputs)),
+         )
          and {
            bond_nft.minting(
              cfg,
