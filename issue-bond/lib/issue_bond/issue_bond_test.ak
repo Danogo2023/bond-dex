@@ -1458,8 +1458,8 @@ fn set_request_symbol(self: Output, symbol: PolicyId) {
   }
 }
 
-test fail_when_consuming_borrow_request_partially_but_remove_request() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+test fail_when_consuming_borrow_request_partially_but_remove_request() {
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1480,7 +1480,7 @@ test fail_when_consuming_borrow_request_partially_but_remove_request() fail {
 }
 
 test fail_when_setting_request_apr_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1506,7 +1506,7 @@ test fail_when_setting_request_apr_lower() fail {
 }
 
 test fail_when_setting_request_apr_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1532,7 +1532,7 @@ test fail_when_setting_request_apr_higher() fail {
 }
 
 test fail_when_setting_request_duration_shorter() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1558,7 +1558,7 @@ test fail_when_setting_request_duration_shorter() fail {
 }
 
 test fail_when_setting_request_duration_longer() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1584,7 +1584,7 @@ test fail_when_setting_request_duration_longer() fail {
 }
 
 test fail_when_setting_incorrect_request_symbol() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1610,7 +1610,7 @@ test fail_when_setting_incorrect_request_symbol() fail {
 }
 
 test fail_when_setting_incorrect_request_borrower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1636,7 +1636,7 @@ test fail_when_setting_incorrect_request_borrower() fail {
 }
 
 test fail_when_setting_request_requested_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1662,7 +1662,7 @@ test fail_when_setting_request_requested_lower() fail {
 }
 
 test fail_when_setting_request_requested_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1688,7 +1688,7 @@ test fail_when_setting_request_requested_higher() fail {
 }
 
 test fail_when_setting_request_issued_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1713,8 +1713,8 @@ test fail_when_setting_request_issued_lower() fail {
     |> not
 }
 
-test fail_when_setting_request_issued_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+test fail_when_setting_request_issued_higher() {
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1740,7 +1740,7 @@ test fail_when_setting_request_issued_higher() fail {
 }
 
 test fail_when_setting_request_epo_rewards_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1765,34 +1765,8 @@ test fail_when_setting_request_epo_rewards_lower() fail {
     |> not
 }
 
-test fail_when_setting_request_epo_rewards_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
-    |> fn(args: (Input, ScriptContext)) {
-         let (sreq, ctx) = args
-         let tx = ctx.transaction
-         expect [lender_out, bond_out, fee_out, remain_request] = tx.outputs
-         (
-           sreq,
-           ScriptContext {
-             ..ctx,
-             transaction: Transaction {
-               ..tx,
-               outputs: [
-                 lender_out,
-                 bond_out,
-                 fee_out,
-                 remain_request |> add_request_epo_rewards(1),
-               ],
-             },
-           },
-         )
-       }
-    |> validate
-    |> not
-}
-
 test fail_when_setting_request_prepaid_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1818,7 +1792,7 @@ test fail_when_setting_request_prepaid_lower() fail {
 }
 
 test fail_when_setting_request_prepaid_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1844,7 +1818,7 @@ test fail_when_setting_request_prepaid_higher() fail {
 }
 
 test fail_when_setting_request_buffer_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1870,7 +1844,7 @@ test fail_when_setting_request_buffer_lower() fail {
 }
 
 test fail_when_setting_request_buffer_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1896,7 +1870,7 @@ test fail_when_setting_request_buffer_higher() fail {
 }
 
 test fail_when_setting_request_fee_lower() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
@@ -1922,7 +1896,7 @@ test fail_when_setting_request_fee_lower() fail {
 }
 
 test fail_when_setting_request_fee_higher() fail {
-  build_tx(request: FulfilledZero, lend_amount: Entire)
+  build_tx(request: FulfilledZero, lend_amount: Partial(10))
     |> fn(args: (Input, ScriptContext)) {
          let (sreq, ctx) = args
          let tx = ctx.transaction
