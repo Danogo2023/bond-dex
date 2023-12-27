@@ -15,5 +15,5 @@ source = "github"
 
 [[dependencies]]
 name = "danogo2023/daken"
-version = "master"
+version = "v1.0.1"
 source = "github"

@@ -11,7 +11,7 @@ use bond/limit/ask/utils.{collect_biz_tx_info}
 use bond/types.{
   AskLimit, BizOutput, BizTxInfo, ConfigLimit, EscrowDatum, EscrowInfo,
 } as bond_types
-use bond/utils.{bond_assets, get_price_of_bond} as bond_utils
+use bond/utils.{get_price_of_bond} as bond_utils
 use common/time.{posix_time_to_relative_epoch}
 use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
