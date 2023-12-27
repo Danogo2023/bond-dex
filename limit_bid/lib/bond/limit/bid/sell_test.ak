@@ -1,7 +1,6 @@
 // Bid Limit
 use aiken/transaction.{InlineDatum, NoDatum}
 use aiken/transaction/value
-use bond/constraint.{get_price_of_bond}
 use bond/fixture.{
   calc_escrow_full_info, gen_bid_limit_datum, gen_input, gen_output,
   get_bid_sc_address, get_bond_id_1, get_bond_policy_id, get_buyer_address,
@@ -11,6 +10,7 @@ use bond/fixture.{
   get_not_bond_policy_id, get_not_escrow_policy_id, get_seller_address,
 }
 use bond/limit/bid/sell
+use bond/utils.{get_price_of_bond}
 
 test sell_succ_full() {
   let time_of_tx = 1681095094000
@@ -20,21 +20,20 @@ test sell_succ_full() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -60,7 +59,7 @@ test sell_succ_full() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -111,21 +110,20 @@ test sell_succ_partial() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 2
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -151,7 +149,7 @@ test sell_succ_partial() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -201,21 +199,20 @@ test sell_fail_input_epoch_1() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 480, 390, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -241,7 +238,7 @@ test sell_fail_input_epoch_1() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -291,21 +288,20 @@ test sell_fail_input_epoch_2() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 464, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -331,7 +327,7 @@ test sell_fail_input_epoch_2() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -378,7 +374,7 @@ test sell_fail_input_epoch_2() {
   //   )
   // current_epoch = 404
   // let end_epoch =
-  //   escrow_datum.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_datum.duration
+  //   escrow_dt.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_dt.duration
   // end_epoch = 463
   // sc_in_datum_1.from_epoch = 390
   // bid_limit_datum.to_epoch = 480
@@ -394,21 +390,20 @@ test sell_fail_input_epoch_3() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 462, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -434,7 +429,7 @@ test sell_fail_input_epoch_3() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -484,21 +479,20 @@ test sell_fail_input_epoch_4() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 462, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -524,7 +518,7 @@ test sell_fail_input_epoch_4() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -571,7 +565,7 @@ test sell_fail_input_epoch_4() {
   //   )
   // // current_epoch = 464
   // let end_epoch =
-  //   escrow_datum.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_datum.duration
+  //   escrow_dt.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_dt.duration
   // // end_epoch = 463
   // current_epoch == end_epoch
 }
@@ -584,21 +578,20 @@ test sell_fail_input_qty() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 0, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -624,7 +617,7 @@ test sell_fail_input_qty() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -674,21 +667,20 @@ test sell_fail_output_qty() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 1, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -714,7 +706,7 @@ test sell_fail_output_qty() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -764,21 +756,20 @@ test sell_fail_validity_after_not_set() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -804,7 +795,7 @@ test sell_fail_validity_after_not_set() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -854,21 +845,20 @@ test sell_fail_owner_address_format() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -894,7 +884,7 @@ test sell_fail_owner_address_format() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -944,21 +934,20 @@ test sell_fail_escrow_policy_id_unexpect() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -984,7 +973,7 @@ test sell_fail_escrow_policy_id_unexpect() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -1034,21 +1023,20 @@ test sell_fail_escrow_address_unexpect() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -1074,7 +1062,7 @@ test sell_fail_escrow_address_unexpect() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -1124,21 +1112,20 @@ test sell_fail_escrow_datum_not_found() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -1214,21 +1201,20 @@ test sell_fail_escrow_datum_unexpect() fail {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -1304,21 +1290,20 @@ test sell_succ_bond_policy_id_valid() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -1344,7 +1329,7 @@ test sell_succ_bond_policy_id_valid() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -1395,21 +1380,20 @@ test sell_fail_bond_policy_id_invalid() {
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
+  let escrow_dt = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
   let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
-      escrow_full_info.received_at_maturity_one_bond,
+      escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
       cfg.bond.basis_points_ref_unit,
     )
   //  
   let bond_sell_qty = 5
-  let received_at_maturity =
-    escrow_full_info.received_at_maturity_one_bond * bond_sell_qty
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
@@ -1435,7 +1419,7 @@ test sell_fail_bond_policy_id_invalid() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()

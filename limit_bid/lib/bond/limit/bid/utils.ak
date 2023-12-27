@@ -4,14 +4,12 @@ use aiken/list
 use aiken/transaction.{Input, Output}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value.{AssetName}
-use bond/constraint.{
-  bond_assets, datum_bid_limit_compare, datum_epoch_valid,
-  datum_yield_limit_valid,
-}
+use bond/constraint.{bid_limit_valid, epoch_valid, yield_limit_valid}
 use bond/types.{
   BidLimit, BizOutput, BizOutputInfo, BizTxInfo, ConfigLimit, DatumOf,
   EscrowInfo, OtherDatum, ScDatum,
 }
+use bond/utils.{bond_assets} as bond_utils
 use common/types.{Datums} as common_types
 use common/util.{get_data}
 
@@ -21,11 +19,11 @@ fn datum_is_valid(
   spd_datum: BidLimit,
 ) -> Bool {
   expect out_datum: BidLimit = out_data
-  datum_yield_limit_valid(conf, out_datum.requested_yield) && datum_epoch_valid(
+  yield_limit_valid(conf, out_datum.requested_yield) && epoch_valid(
     out_datum.from_epoch,
     out_datum.to_epoch,
     out_datum.quantity,
-  ) && datum_bid_limit_compare(spd_datum, out_datum)
+  ) && bid_limit_valid(spd_datum, out_datum)
 }
 
 fn build_biz_output_info(
@@ -72,7 +70,7 @@ fn build_biz_data(
   conf: ConfigLimit,
   output: Output,
   owner: Address,
-  spending: Address,
+  sbid_addr: Address,
   datums: Datums,
   data: BizOutput,
   escrow_info: EscrowInfo,
@@ -81,7 +79,7 @@ fn build_biz_data(
   let bond_values = value.tokens(output.value, escrow_info.bond_symbol)
   let biz_out_info =
     build_biz_output_info(
-      if output.address == spending {
+      if output.address == sbid_addr {
         data.sc
       } else if output.address == owner {
         data.owner
@@ -92,7 +90,7 @@ fn build_biz_data(
       },
       output,
       bond_values,
-      if output.address == spending {
+      if output.address == sbid_addr {
         ScDatum
       } else {
         OtherDatum
@@ -104,7 +102,7 @@ fn build_biz_data(
   BizOutput {
     valid: biz_out_info.bond_datum_valid,
     unique_bonds: bond_assets(data.unique_bonds, bond_values),
-    sc: when (output.address, spending) is {
+    sc: when (output.address, sbid_addr) is {
       (a, b) if a == b -> biz_out_info
       _ -> data.sc
     },
@@ -116,7 +114,7 @@ fn build_biz_data(
       (a, b) if a == b -> biz_out_info
       _ -> data.exchange
     },
-    other: when (output.address, spending, owner, conf.exchange.address) is {
+    other: when (output.address, sbid_addr, owner, conf.exchange.address) is {
       (a, b, c, d) if a != b && a != c && a != d -> biz_out_info
       _ -> data.other
     },
@@ -127,7 +125,7 @@ fn get_biz_output(
   conf: ConfigLimit,
   outputs: List<Output>,
   owner: Address,
-  spending: Address,
+  sbid_addr: Address,
   datums: Datums,
   recursive: BizOutput,
   escrow_info: EscrowInfo,
@@ -141,7 +139,7 @@ fn get_biz_output(
           conf,
           x,
           owner,
-          spending,
+          sbid_addr,
           datums,
           recursive,
           escrow_info,
@@ -154,7 +152,7 @@ fn get_biz_output(
           conf,
           xs,
           owner,
-          spending,
+          sbid_addr,
           datums,
           biz_data,
           escrow_info,
@@ -169,7 +167,7 @@ fn get_biz_input(
   conf: ConfigLimit,
   outputs: List<Input>,
   owner: Address,
-  spending: Address,
+  sbid_addr: Address,
   datums: Datums,
   recursive: BizOutput,
   escrow_info: EscrowInfo,
@@ -183,7 +181,7 @@ fn get_biz_input(
           conf,
           x.output,
           owner,
-          spending,
+          sbid_addr,
           datums,
           recursive,
           escrow_info,
@@ -196,7 +194,7 @@ fn get_biz_input(
           conf,
           xs,
           owner,
-          spending,
+          sbid_addr,
           datums,
           biz_data,
           escrow_info,
@@ -212,7 +210,7 @@ pub fn collect_biz_tx_info(
   inputs: List<Input>,
   outputs: List<Output>,
   owner: Address,
-  spending: Address,
+  sbid_addr: Address,
   datums: Datums,
   escrow_info: EscrowInfo,
   spd_datum: BidLimit,
@@ -241,7 +239,7 @@ pub fn collect_biz_tx_info(
       conf,
       inputs,
       owner,
-      spending,
+      sbid_addr,
       datums,
       biz_out_init,
       escrow_info,
@@ -253,7 +251,7 @@ pub fn collect_biz_tx_info(
         conf,
         outputs,
         owner,
-        spending,
+        sbid_addr,
         datums,
         biz_out_init,
         escrow_info,

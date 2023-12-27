@@ -6,15 +6,14 @@ use aiken/list
 use aiken/transaction.{Transaction}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
-use bond/constraint.{
-  get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
-  posix_time_to_relative_epoch,
-}
+use bond/constraint.{get_escrow_info, get_escrow_ref}
 use bond/limit/ask/utils.{collect_biz_tx_info}
 use bond/types.{
-  AskLimit, BizOutput, BizTxInfo, ConfigLimit, Error, EscrowDatum, EscrowInfo,
-  OK,
-}
+  AskLimit, BizOutput, BizTxInfo, ConfigLimit, EscrowDatum, EscrowInfo,
+} as bond_types
+use bond/utils.{bond_assets, get_price_of_bond} as bond_utils
+use common/time.{posix_time_to_relative_epoch}
+use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_is_valid(
@@ -27,8 +26,7 @@ fn matching_is_valid(
   min_ada_to_exchange: Int,
 ) -> Bool {
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
-  let received_at_maturity =
-    escrow_info.received_at_maturity_one_bond * buyer_qty
+  let received_at_maturity = escrow_info.value_at_maturity * buyer_qty
   // Tong tien buyer phai tra/seller(owner of listing) nhan duoc chua tru phi
   let received_with_yield = price_of_one_bond * buyer_qty
   // Chenh lech tien lai nhan duoc
@@ -70,7 +68,7 @@ fn matching_is_valid(
 
 fn matching_correct(
   conf: ConfigLimit,
-  spd_ask_datum: AskLimit,
+  sask_dt: AskLimit,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -126,9 +124,9 @@ fn matching_correct(
             escrow_info,
             qty_owner_2_buyer,
             get_price_of_bond(
-              escrow_info.received_at_maturity_one_bond,
+              escrow_info.value_at_maturity,
               escrow_info.day_to_maturity,
-              spd_ask_datum.requested_yield,
+              sask_dt.requested_yield,
               conf.bond.basis_points_ref_unit,
             ),
             min_ada_to_exchange,
@@ -141,9 +139,9 @@ fn matching_correct(
 pub fn matching(
   tx: Transaction,
   conf: ConfigLimit,
-  spd_ask_datum: AskLimit,
+  sask_dt: AskLimit,
   owner: Address,
-  spending: Address,
+  sask_addr: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -155,35 +153,35 @@ pub fn matching(
       Finite(x) -> x
       _ -> 0
     }
-  let owner_vk = spd_ask_datum.owner_vk
+  let owner_vk = sask_dt.owner_vk
   and {
     (validity_after_must_set > 0)?,
     (validity_end_must_set > 0)?,
     (validity_end_must_set > validity_after_must_set)?,
     (validity_end_must_set - validity_after_must_set <= when
-      conf.exchange.tx_buy_valid_slot
+      conf.exchange.tx_buy_ttl
     is {
       Some(x) -> x
       None -> 3 * 60
     } * conf.slot.slot_length)?,
     not(bytearray.is_empty(owner_vk))?,
-    when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
-      Some(ref_in_escrow) ->
-        when get_data(tx.datums, ref_in_escrow.output.datum) is {
+    when get_escrow_ref(tx.reference_inputs, conf.bond) is {
+      Some(escrow_ref) ->
+        when get_data(tx.datums, escrow_ref.output.datum) is {
           Some(d) -> {
-            expect escrow_datum: EscrowDatum = d
+            expect escrow_dt: EscrowDatum = d
             let start_epoch =
-              escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-            let end_epoch = start_epoch + escrow_datum.duration
+              escrow_dt.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+            let end_epoch = start_epoch + escrow_dt.duration
             and {
-              (escrow_datum.bond_amount > 0)?,
-              (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
-              (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+              (escrow_dt.bond_amount > 0)?,
+              (value.lovelace_of(escrow_dt.epo_rewards) > 0)?,
+              (value.lovelace_of(escrow_ref.output.value) > escrow_dt.bond_amount * conf.bond.bond_face_value)?,
               when
                 get_escrow_info(
                   conf.bond,
-                  value.lovelace_of(ref_in_escrow.output.value),
-                  escrow_datum,
+                  value.lovelace_of(escrow_ref.output.value),
+                  escrow_dt,
                   validity_after_must_set,
                   posix_time_to_relative_epoch(
                     validity_after_must_set,
@@ -204,10 +202,10 @@ pub fn matching(
                       tx.inputs,
                       tx.outputs,
                       owner,
-                      spending,
+                      sask_addr,
                       tx.datums,
                       escrow_info,
-                      spd_ask_datum,
+                      sask_dt,
                     )
                   and {
                     biz_tx_info_valid,
@@ -216,13 +214,7 @@ pub fn matching(
                     when out is {
                       Some(ou) -> and {
                           (in.owner.bond_qty <= 0)?,
-                          matching_correct(
-                            conf,
-                            spd_ask_datum,
-                            in,
-                            ou,
-                            escrow_info,
-                          ),
+                          matching_correct(conf, sask_dt, in, ou, escrow_info),
                         }
                       None -> {
                         trace @"out is None"
