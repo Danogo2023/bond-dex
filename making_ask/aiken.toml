@@ -1,5 +1,5 @@
 name = "danogo2023/bonds/making-ask"
-version = "1.0.0"
+version = "1.0.1"
 license = "Apache-2.0"
 description = "Aiken contracts for danogo bonds ask making"
 
@@ -15,5 +15,5 @@ source = "github"
 
 [[dependencies]]
 name = "danogo2023/daken"
-version = "master"
+version = "v1.0.1"
 source = "github"

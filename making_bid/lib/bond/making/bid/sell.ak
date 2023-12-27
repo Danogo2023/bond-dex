@@ -6,21 +6,20 @@ use aiken/list
 use aiken/transaction.{Output, Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value
-use bond/constraint.{
-  get_escrow_info, get_escrow_ref_inputs, get_price_of_bond,
-  posix_time_to_relative_epoch,
-}
+use bond/constraint.{get_escrow_info, get_escrow_ref}
 use bond/making/bid/utils.{collect_biz_tx_info}
 use bond/types.{
-  BidMaking, BizOutput, BizTxInfo, ConfigMaking, Error, EscrowDatum, EscrowInfo,
-  OK,
+  BidMaking, BizOutput, BizTxInfo, ConfigMaking, EscrowDatum, EscrowInfo,
 }
+use bond/utils.{get_price_of_bond} as bond_utils
+use common/time.{posix_time_to_relative_epoch}
+use common/types.{Error, OK} as common_types
 use common/util.{get_data} as common_utils
 
 fn matching_correct(
   tx: Transaction,
   conf: ConfigMaking,
-  spd_bid_datum: BidMaking,
+  sbid_dt: BidMaking,
   in: BizOutput,
   out: BizOutput,
   escrow_info: EscrowInfo,
@@ -29,13 +28,13 @@ fn matching_correct(
   let buyer_receive_bonds_qty = out.owner.bond_qty
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity =
-    escrow_info.received_at_maturity_one_bond * buyer_receive_bonds_qty
+    escrow_info.value_at_maturity * buyer_receive_bonds_qty
   // Tong tien buyer(owner of bid) phai tra/seller nhan duoc chua tru phi
   let received_with_yield =
     get_price_of_bond(
-      escrow_info.received_at_maturity_one_bond,
+      escrow_info.value_at_maturity,
       escrow_info.day_to_maturity,
-      spd_bid_datum.requested_yield,
+      sbid_dt.requested_yield,
       conf.bond.basis_points_ref_unit,
     ) * buyer_receive_bonds_qty
   // Chenh lech tien lai nhan duoc
@@ -48,7 +47,7 @@ fn matching_correct(
     received_diff * conf.exchange.maker_fee / conf.bond.basis_points_ref_unit
   let exchange_fee_total_tmp = exchange_fee_buyer + exchange_fee_seller
   let seller_receive_total = received_with_yield - exchange_fee_seller
-  let sc_out_remain = spd_bid_datum.quantity - buyer_receive_bonds_qty
+  let sc_out_remain = sbid_dt.quantity - buyer_receive_bonds_qty
   let (buyer_receive_lovelace, exchange_fee_total) =
     when list.at(out.owner.addresses, 0) is {
       Some(a) ->
@@ -107,9 +106,9 @@ fn matching_correct(
 pub fn matching(
   tx: Transaction,
   conf: ConfigMaking,
-  spd_bid_datum: BidMaking,
+  sbid_dt: BidMaking,
   owner: Address,
-  spending: Address,
+  sbid_addr: Address,
 ) -> Bool {
   let validity_after_must_set =
     when tx.validity_range.lower_bound.bound_type is {
@@ -117,35 +116,35 @@ pub fn matching(
       _ -> 0
     }
   and {
-    (spd_bid_datum.quantity > 0)?,
-    (spd_bid_datum.to_epoch >= spd_bid_datum.from_epoch)?,
+    (sbid_dt.quantity > 0)?,
+    (sbid_dt.to_epoch >= sbid_dt.from_epoch)?,
     (validity_after_must_set > 0)?,
-    not(bytearray.is_empty(spd_bid_datum.owner_vk))?,
-    when get_escrow_ref_inputs(tx.reference_inputs, conf.bond) is {
-      Some(ref_in_escrow) ->
-        when get_data(tx.datums, ref_in_escrow.output.datum) is {
+    not(bytearray.is_empty(sbid_dt.owner_vk))?,
+    when get_escrow_ref(tx.reference_inputs, conf.bond) is {
+      Some(escrow_ref) ->
+        when get_data(tx.datums, escrow_ref.output.datum) is {
           Some(d) -> {
-            expect escrow_datum: EscrowDatum = d
+            expect escrow_dt: EscrowDatum = d
             let current_epoch =
               posix_time_to_relative_epoch(
                 validity_after_must_set,
                 conf.bond.epoch_config,
               )
             let start_epoch =
-              escrow_datum.start + conf.bond.epoch_config.epoch_boundary_as_epoch
-            let end_epoch = start_epoch + escrow_datum.duration
+              escrow_dt.start + conf.bond.epoch_config.epoch_boundary_as_epoch
+            let end_epoch = start_epoch + escrow_dt.duration
             and {
               (end_epoch >= current_epoch)?,
-              (end_epoch >= spd_bid_datum.from_epoch)?,
-              (end_epoch <= spd_bid_datum.to_epoch)?,
-              (escrow_datum.bond_amount > 0)?,
-              (value.lovelace_of(escrow_datum.epo_rewards) > 0)?,
-              (value.lovelace_of(ref_in_escrow.output.value) > escrow_datum.bond_amount * conf.bond.bond_face_value)?,
+              (end_epoch >= sbid_dt.from_epoch)?,
+              (end_epoch <= sbid_dt.to_epoch)?,
+              (escrow_dt.bond_amount > 0)?,
+              (value.lovelace_of(escrow_dt.epo_rewards) > 0)?,
+              (value.lovelace_of(escrow_ref.output.value) > escrow_dt.bond_amount * conf.bond.bond_face_value)?,
               when
                 get_escrow_info(
                   conf.bond,
-                  value.lovelace_of(ref_in_escrow.output.value),
-                  escrow_datum,
+                  value.lovelace_of(escrow_ref.output.value),
+                  escrow_dt,
                   validity_after_must_set,
                   current_epoch,
                   start_epoch,
@@ -153,10 +152,10 @@ pub fn matching(
                 )
               is {
                 OK(escrow_info) -> {
-                  let spd_bid_datum_owner =
+                  let sbid_dt_owner_addr =
                     Address {
                       payment_credential: VerificationKeyCredential(
-                        spd_bid_datum.owner_vk,
+                        sbid_dt.owner_vk,
                       ),
                       stake_credential: owner.stake_credential,
                     }
@@ -170,14 +169,14 @@ pub fn matching(
                       tx.inputs,
                       tx.outputs,
                       owner,
-                      spending,
+                      sbid_addr,
                       tx.datums,
                       escrow_info,
-                      spd_bid_datum,
+                      sbid_dt,
                     )
                   and {
                     biz_tx_info_valid,
-                    !list.has(in.other.addresses, spd_bid_datum_owner),
+                    !list.has(in.other.addresses, sbid_dt_owner_addr),
                     when out is {
                       None -> {
                         trace @"out is None"
@@ -187,7 +186,7 @@ pub fn matching(
                         let sc_out_utxos =
                           list.concat(ou.sc.bond_outputs, ou.sc.other_outputs)
                         and {
-                          !list.has(ou.other.addresses, spd_bid_datum_owner),
+                          !list.has(ou.other.addresses, sbid_dt_owner_addr),
                           (list.length(
                             list.concat(
                               in.owner.bond_outputs,
@@ -207,12 +206,12 @@ pub fn matching(
                             ),
                           ) <= 1)?,
                           (ou.owner.bond_qty > 0)?,
-                          (ou.owner.bond_qty <= spd_bid_datum.quantity)?,
-                          (ou.owner.bond_qty <= escrow_datum.bond_amount)?,
+                          (ou.owner.bond_qty <= sbid_dt.quantity)?,
+                          (ou.owner.bond_qty <= escrow_dt.bond_amount)?,
                           matching_correct(
                             tx,
                             conf,
-                            spd_bid_datum,
+                            sbid_dt,
                             in,
                             ou,
                             escrow_info,
