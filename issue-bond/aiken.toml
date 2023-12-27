@@ -1,4 +1,4 @@
-name = "danogo2023/bonds"
+name = "danogo2023/bonds/issue-bond"
 version = "1.0.0"
 license = "Apache-2.0"
 description = "Danogo Issue Bond"
@@ -15,5 +15,5 @@ source = "github"
 
 [[dependencies]]
 name = "danogo2023/daken"
-version = "master"
+version = "v1.0.1"
 source = "github"
