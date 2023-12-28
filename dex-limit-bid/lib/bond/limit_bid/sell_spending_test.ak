@@ -1,16 +1,17 @@
 // Bid Limit
-use aiken/transaction.{InlineDatum, NoDatum}
+use aiken/transaction.{InlineDatum, NoDatum, ScriptContext, Spend}
 use aiken/transaction/value
-use bond/fixture.{
+use bond/limit_bid/sell
+use bond/types.{DanogoBond}
+use bond/utils.{get_price_of_bond}
+use bond/v2/fixture.{
   calc_escrow_full_info, gen_bid_limit_datum, gen_input, gen_output,
   get_bid_sc_address, get_bond_id_1, get_bond_policy_id, get_buyer_address,
-  get_buyer_address_hash, get_buyer_address_scripthash, get_config_limit_mainnet,
-  get_escrow_address, get_escrow_address_unexpect, get_escrow_datum,
-  get_escrow_policy_id, get_exchange_address, get_input_escrow,
-  get_not_bond_policy_id, get_not_escrow_policy_id, get_seller_address,
+  get_buyer_address_hash, get_config_limit_mainnet, get_escrow_address,
+  get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
+  get_exchange_address, get_input_escrow, get_not_bond_policy_id,
+  get_not_escrow_policy_id, get_seller_address,
 }
-use bond/limit_bid/sell
-use bond/utils.{get_price_of_bond}
 
 test succ_full() {
   let time_of_tx = 1681095094000
@@ -19,17 +20,29 @@ test succ_full() {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -37,9 +50,9 @@ test succ_full() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -59,7 +72,7 @@ test succ_full() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -84,7 +97,7 @@ test succ_full() {
   //   )
   // let sc_out_utxo =
   //   gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -94,11 +107,12 @@ test succ_full() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
@@ -109,17 +123,29 @@ test succ_partial() {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 2
@@ -127,9 +153,9 @@ test succ_partial() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -149,7 +175,7 @@ test succ_partial() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -174,7 +200,7 @@ test succ_partial() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -183,11 +209,12 @@ test succ_partial() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
@@ -198,17 +225,29 @@ test fail_input_epoch_1() {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 480, 390, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -216,9 +255,9 @@ test fail_input_epoch_1() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -238,7 +277,7 @@ test fail_input_epoch_1() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -263,7 +302,7 @@ test fail_input_epoch_1() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -272,32 +311,45 @@ test fail_input_epoch_1() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_input_epoch_2() {
+test fail_input_epoch_2() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 464, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -305,9 +357,9 @@ test fail_input_epoch_2() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -327,7 +379,7 @@ test fail_input_epoch_2() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -352,7 +404,7 @@ test fail_input_epoch_2() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -361,20 +413,21 @@ test fail_input_epoch_2() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
   // let current_epoch =
   //   posix_time_to_relative_epoch(
   //     time_of_tx,
-  //     cfg.bond.epoch_config,
+  //     cfg.platform.epoch,
   //   )
   // current_epoch = 404
   // let end_epoch =
-  //   escrow_datum.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_datum.duration
+  //   escrow_dt.start + cfg.platform.epoch.epoch_boundary_as_epoch + escrow_dt.duration
   // end_epoch = 463
   // sc_in_datum_1.from_epoch = 390
   // bid_limit_datum.to_epoch = 480
@@ -382,24 +435,36 @@ test fail_input_epoch_2() {
   // end_epoch == current_epoch
 }
 
-test fail_input_epoch_3() {
+test fail_input_epoch_3() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 462, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -407,9 +472,9 @@ test fail_input_epoch_3() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -429,7 +494,7 @@ test fail_input_epoch_3() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -454,7 +519,7 @@ test fail_input_epoch_3() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -463,32 +528,45 @@ test fail_input_epoch_3() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_input_epoch_4() {
+test fail_input_epoch_4() fail {
   let time_of_tx = 1681095094000 + 25920000000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 462, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -496,9 +574,9 @@ test fail_input_epoch_4() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -518,7 +596,7 @@ test fail_input_epoch_4() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -543,7 +621,7 @@ test fail_input_epoch_4() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -552,20 +630,21 @@ test fail_input_epoch_4() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
   // let current_epoch =
   //   posix_time_to_relative_epoch(
   //     time_of_tx,
-  //     cfg.bond.epoch_config,
+  //     cfg.platform.epoch,
   //   )
   // // current_epoch = 464
   // let end_epoch =
-  //   escrow_datum.start + cfg.bond.epoch_config.epoch_boundary_as_epoch + escrow_datum.duration
+  //   escrow_dt.start + cfg.platform.epoch.epoch_boundary_as_epoch + escrow_dt.duration
   // // end_epoch = 463
   // current_epoch == end_epoch
 }
@@ -577,17 +656,29 @@ test fail_input_qty() {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 0, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -595,9 +686,9 @@ test fail_input_qty() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -617,7 +708,7 @@ test fail_input_qty() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -642,7 +733,7 @@ test fail_input_qty() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -651,11 +742,12 @@ test fail_input_qty() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
@@ -664,19 +756,31 @@ test fail_output_qty() {
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
-  let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 1, 500)
+  let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -684,9 +788,9 @@ test fail_output_qty() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -706,7 +810,7 @@ test fail_output_qty() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -721,17 +825,10 @@ test fail_output_qty() {
     gen_output(owner_address, owner_out_lovelace, Some(asset_sell), NoDatum)
   let sc_out_lovelace =
     sc_in_lovelace - received_with_yield - exchange_fee_buyer - owner_out_lovelace
-  let sc_out_datum_1 =
-    gen_bid_limit_datum(
-      owner_address,
-      390,
-      480,
-      sc_in_datum_1.quantity - bond_sell_qty,
-      500,
-    )
+  let sc_out_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 4, 500)
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -740,11 +837,12 @@ test fail_output_qty() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
@@ -755,17 +853,29 @@ test fail_validity_after_not_set() fail {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -773,9 +883,9 @@ test fail_validity_after_not_set() fail {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -795,7 +905,7 @@ test fail_validity_after_not_set() fail {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -820,7 +930,7 @@ test fail_validity_after_not_set() fail {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -829,32 +939,46 @@ test fail_validity_after_not_set() fail {
       None,
       None,
       None,
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_owner_address_format() {
+test fail_owner_address_format() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -862,9 +986,9 @@ test fail_owner_address_format() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -884,7 +1008,7 @@ test fail_owner_address_format() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -909,7 +1033,7 @@ test fail_owner_address_format() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -918,32 +1042,45 @@ test fail_owner_address_format() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    get_buyer_address_scripthash(),
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_escrow_policy_id_unexpect() {
+test fail_escrow_policy_id_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -951,9 +1088,9 @@ test fail_escrow_policy_id_unexpect() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -973,7 +1110,7 @@ test fail_escrow_policy_id_unexpect() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -998,7 +1135,7 @@ test fail_escrow_policy_id_unexpect() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1007,32 +1144,45 @@ test fail_escrow_policy_id_unexpect() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_escrow_address_unexpect() {
+test fail_escrow_address_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -1040,9 +1190,9 @@ test fail_escrow_address_unexpect() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -1062,7 +1212,7 @@ test fail_escrow_address_unexpect() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -1087,7 +1237,7 @@ test fail_escrow_address_unexpect() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1096,32 +1246,45 @@ test fail_escrow_address_unexpect() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_escrow_datum_not_found() {
+test fail_escrow_datum_not_found() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -1129,9 +1292,9 @@ test fail_escrow_datum_not_found() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -1176,7 +1339,7 @@ test fail_escrow_datum_not_found() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1185,11 +1348,12 @@ test fail_escrow_datum_not_found() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
@@ -1200,17 +1364,29 @@ test fail_escrow_datum_unexpect() fail {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -1218,9 +1394,9 @@ test fail_escrow_datum_unexpect() fail {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -1265,7 +1441,7 @@ test fail_escrow_datum_unexpect() fail {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1274,11 +1450,12 @@ test fail_escrow_datum_unexpect() fail {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
@@ -1289,17 +1466,29 @@ test succ_bond_policy_id_valid() {
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -1307,9 +1496,9 @@ test succ_bond_policy_id_valid() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -1329,7 +1518,7 @@ test succ_bond_policy_id_valid() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -1354,7 +1543,7 @@ test succ_bond_policy_id_valid() {
   //   )
   // let sc_out_utxo =
   //   gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1364,32 +1553,45 @@ test succ_bond_policy_id_valid() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }
 
-test fail_bond_policy_id_invalid() {
+test fail_bond_policy_id_invalid() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let owner_address = get_buyer_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_limit_datum(owner_address, 390, 480, 5, 500)
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_dt =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
-    calc_escrow_full_info(cfg.bond, escrow_lovelace, escrow_datum, time_of_tx)
+    calc_escrow_full_info(cfg.platform, escrow_lovelace, escrow_dt, time_of_tx)
   let price_of_one_bond =
     get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
-      cfg.bond.basis_points_ref_unit,
+      cfg.platform.basis.base,
     )
   //  
   let bond_sell_qty = 5
@@ -1397,9 +1599,9 @@ test fail_bond_policy_id_invalid() {
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
   let exchange_fee_seller =
-    received_diff * cfg.exchange.seller_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
   let exchange_fee_buyer =
-    received_diff * cfg.exchange.buyer_fee / cfg.bond.basis_points_ref_unit
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
   //
   let owner_out_lovelace = 1310316
   let sc_address = get_bid_sc_address()
@@ -1419,7 +1621,7 @@ test fail_bond_policy_id_invalid() {
       bond_name_1,
       1,
       escrow_lovelace,
-      InlineDatum(escrow_datum),
+      InlineDatum(escrow_dt),
     )
   //
   let exchange_address = get_exchange_address()
@@ -1444,7 +1646,7 @@ test fail_bond_policy_id_invalid() {
     )
   let sc_out_utxo =
     gen_output(sc_address, sc_out_lovelace, None, InlineDatum(sc_out_datum_1))
-  !sell.matching(
+  let tx =
     fixture.tx(
       [sc_in_1, seller_in_1],
       [refer_in_1],
@@ -1453,10 +1655,11 @@ test fail_bond_policy_id_invalid() {
       None,
       Some(time_of_tx),
       Some(time_of_tx + 3 * 60 * 1000),
-    ),
+    )
+  !sell.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    owner_address,
-    sc_address,
+    DanogoBond,
   )
 }

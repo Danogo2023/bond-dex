@@ -1,33 +1,15 @@
 // Ask Making
-use aiken/option
 use aiken/transaction.{ScriptContext}
-use aiken/transaction/credential
-use bond/making_ask/buy.{matching}
-use bond/types.{AskMaking, Buy, ConfigMaking, TradeAction, Update}
-use common/util.{get_spending_input, must_be_signed_by_key} as common_utils
+use bond/making_ask/buy
+use bond/types.{AskMaking, BondConfigMaking, BondType, Buy, TradeAction, Update}
+use common/util.{must_be_signed_by_key} as common_utils
 
-validator(conf: ConfigMaking) {
+validator(cfg: BondConfigMaking, bond_type: BondType) {
   fn ask(sdt: AskMaking, ac: TradeAction, ctx: ScriptContext) -> Bool {
-    let tx = ctx.transaction
     when ac is {
-      Update -> must_be_signed_by_key(tx.extra_signatories, sdt.owner_vk)?
-      Buy ->
-        matching(
-          tx,
-          conf,
-          sdt,
-          sdt.owner_sk
-            |> option.and_then(
-                 fn(s) {
-                   Some(
-                     credential.from_verification_key(sdt.bid_sc)
-                       |> credential.with_delegation_key(s),
-                   )
-                 },
-               )
-            |> option.or_else(credential.from_verification_key(sdt.bid_sc)),
-          get_spending_input(ctx).output.address,
-        )
+      Update ->
+        must_be_signed_by_key(ctx.transaction.extra_signatories, sdt.owner_vk)?
+      Buy -> buy.spending(ctx, cfg, sdt, bond_type)
       _ -> False
     }
   }

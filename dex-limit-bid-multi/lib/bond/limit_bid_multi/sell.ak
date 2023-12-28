@@ -4,7 +4,7 @@ use aiken/dict
 use aiken/list
 use aiken/option
 use aiken/transaction.{InlineDatum, Output, ScriptContext, Spend, Transaction}
-use aiken/transaction/credential.{Address}
+use aiken/transaction/credential.{Address, PaymentCredential}
 use aiken/transaction/value
 use bond/constraint.{bid_limit_multi_valid, epoch_valid, yield_valid}
 use bond/limit_bid_multi/utils.{head_escrow_ref}
@@ -19,6 +19,7 @@ pub type BizInput {
   seller_value: Int,
   seller_bond_qty: Int,
   seller_addr: List<Address>,
+  seller_pk: List<PaymentCredential>,
 }
 
 pub type BizOutput {
@@ -102,6 +103,7 @@ pub fn spending(
                         seller_value: 0,
                         seller_bond_qty: 0,
                         seller_addr: [],
+                        seller_pk: [],
                       },
                       fn(i, z) {
                         let ivalue = value.lovelace_of(i.output.value)
@@ -132,6 +134,10 @@ pub fn spending(
                               seller_value: z.seller_value + ivalue,
                               seller_bond_qty: z.seller_bond_qty + ibond_qty,
                               seller_addr: [iaddr, ..z.seller_addr],
+                              seller_pk: [
+                                iaddr.payment_credential,
+                                ..z.seller_pk
+                              ],
                             }
                           }
                         }
@@ -227,9 +233,14 @@ pub fn spending(
                     )
                   // SC chuyển tiền ==> buyer nhận bond
                   // seller chuyển bond nhận tiền
+                  let seller_is_not_owner =
+                    !list.has(
+                      biz_input.seller_pk,
+                      buyer_addr.payment_credential,
+                    )
                   and {
+                    seller_is_not_owner?,
                     (biz_output.buyer_bond_qty > 0)?,
-                    (biz_output.buyer_bond_qty <= escrow_info.bond_amount)?,
                     spending_correct(
                       tx,
                       cfg,
@@ -323,11 +334,15 @@ fn spending_correct(
   // seller chuyển bond nhận tiền
   // sell partial ==> biz_output.sc_bond_qty == obid_dt.quantity == sbid_dt.quantity - biz_output.buyer_bond_qty
   // sell all ==> biz_output.sc_bond_qty == obid_dt.quantity == 0 and biz_output.sc_value == 0
+  let seller_value_output =
+    biz_input.seller_value + oseller_max_recevie + exchange_fee_for_seller - tx_fee
+  let sc_value_output =
+    biz_input.sc_value - exchange_fee_total - oseller_max_recevie - biz_output.buyer_value
   and {
     (biz_output.fee_value >= exchange_fee_total)?,
     (biz_output.buyer_bond_qty <= biz_input.seller_bond_qty)?,
-    (biz_output.seller_value <= biz_input.seller_value + oseller_max_recevie + exchange_fee_for_seller - tx_fee)?,
-    (biz_output.sc_value == biz_input.sc_value - exchange_fee_total - oseller_max_recevie - biz_output.buyer_value)?,
+    (biz_output.seller_value <= seller_value_output)?,
+    (biz_output.sc_value == sc_value_output)?,
     (biz_output.sc_bond_qty == sc_bond_qty_remain)?,
   }
 }
