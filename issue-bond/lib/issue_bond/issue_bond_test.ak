@@ -498,8 +498,8 @@ fn build_multi_requests_tx(
 fn validate(args: (Input, ScriptContext)) {
   let cfg = build_cfg()
   let (spending_request, ctx) = args
-  trace @"==================="
   let tx = ctx.transaction
+  trace @"==================="
   trace string.concat(
     @"count inputs: ",
     string.from_int(list.length(tx.inputs)),
@@ -663,6 +663,175 @@ test succ_when_fulfilling_multiple_borrow_requests_entirely_and_partially() {
         @"count outputs: ",
         string.from_int(list.length(tx.outputs)),
       )
+      and {
+        bond_nft.minting(
+          cfg,
+          ctx.transaction,
+          req_skh,
+          bond_skh,
+          nft_pid,
+          req_pid,
+          req.output_reference,
+        ),
+        bond_token.minting_without_fee(
+          cfg,
+          ctx.transaction,
+          req_skh,
+          bond_skh,
+          nft_pid,
+          bond_pid,
+          req.output_reference,
+        ),
+        bond_create.spending(
+          cfg,
+          ctx,
+          get_request_datum(req.output),
+          bond_skh,
+          nft_pid,
+          bond_pid,
+          req_pid,
+        ),
+      }
+    },
+  )
+}
+
+test succ_when_fulfilling_5_borrow_requests() {
+  let cfg = build_cfg()
+  let requested = 200
+  let apr = cfg.platform.min_apr
+  let (requests, tx) =
+    build_multi_requests_tx(
+      [
+        // entirely the remain request
+        (
+          FulfilledPartially(build_request_input(100, "brw-01", requested, apr)),
+          Entire,
+          requested,
+          apr,
+        ),
+        // partially the remain request
+        (
+          FulfilledPartially(build_request_input(50, "brw-02", requested, apr)),
+          Entire,
+          requested,
+          apr,
+        ),
+        // entirely request
+        (FulfilledZero, Entire, requested + 10, apr + 11),
+        (FulfilledZero, Entire, requested + 10, apr + 12),
+        (FulfilledZero, Entire, requested + 10, apr + 13),
+      ],
+    )
+  trace string.concat(
+    @"request count: ",
+    string.from_int(list.length(requests)),
+  )
+  trace @"==================="
+  trace string.concat(
+    @"count inputs: ",
+    string.from_int(list.length(tx.inputs)),
+  )
+  trace string.concat(
+    @"count reference_inputs: ",
+    string.from_int(list.length(tx.reference_inputs)),
+  )
+  trace string.concat(
+    @"count outputs: ",
+    string.from_int(list.length(tx.outputs)),
+  )
+  list.all(
+    requests,
+    fn(req) {
+      let ctx =
+        ScriptContext { purpose: Spend(req.output_reference), transaction: tx }
+      and {
+        bond_nft.minting(
+          cfg,
+          ctx.transaction,
+          req_skh,
+          bond_skh,
+          nft_pid,
+          req_pid,
+          req.output_reference,
+        ),
+        bond_token.minting_without_fee(
+          cfg,
+          ctx.transaction,
+          req_skh,
+          bond_skh,
+          nft_pid,
+          bond_pid,
+          req.output_reference,
+        ),
+        bond_create.spending(
+          cfg,
+          ctx,
+          get_request_datum(req.output),
+          bond_skh,
+          nft_pid,
+          bond_pid,
+          req_pid,
+        ),
+      }
+    },
+  )
+}
+
+test succ_when_fulfilling_10_borrow_requests() {
+  let cfg = build_cfg()
+  let requested = 200
+  let apr = cfg.platform.min_apr
+  let (requests, tx) =
+    build_multi_requests_tx(
+      [
+        // entirely the remain request
+        (
+          FulfilledPartially(build_request_input(100, "brw-01", requested, apr)),
+          Entire,
+          requested,
+          apr,
+        ),
+        // partially the remain request
+        (
+          FulfilledPartially(build_request_input(50, "brw-02", requested, apr)),
+          Entire,
+          requested,
+          apr,
+        ),
+        // entirely request
+        (FulfilledZero, Entire, requested + 10, apr + 11),
+        (FulfilledZero, Entire, requested + 10, apr + 12),
+        (FulfilledZero, Entire, requested + 10, apr + 13),
+        (FulfilledZero, Entire, requested + 10, apr + 14),
+        (FulfilledZero, Entire, requested + 10, apr + 15),
+        (FulfilledZero, Entire, requested + 10, apr + 16),
+        (FulfilledZero, Entire, requested + 10, apr + 17),
+        (FulfilledZero, Entire, requested + 10, apr + 18),
+      ],
+    )
+  trace string.concat(
+    @"request count: ",
+    string.from_int(list.length(requests)),
+  )
+  trace @"==================="
+  trace string.concat(
+    @"count inputs: ",
+    string.from_int(list.length(tx.inputs)),
+  )
+  trace string.concat(
+    @"count reference_inputs: ",
+    string.from_int(list.length(tx.reference_inputs)),
+  )
+  trace string.concat(
+    @"count outputs: ",
+    string.from_int(list.length(tx.outputs)),
+  )
+  list.all(
+    requests,
+    fn(req) {
+      let ctx =
+        ScriptContext { purpose: Spend(req.output_reference), transaction: tx }
       and {
         bond_nft.minting(
           cfg,
@@ -959,8 +1128,8 @@ test fail_when_attempting_other_redeemer_attack_on_bond_nft_policy() fail {
     |> fn(args: (Input, ScriptContext)) {
          let cfg = build_cfg()
          let (spending_request, ctx) = args
-         trace @"==================="
          let tx = ctx.transaction
+         trace @"==================="
          trace string.concat(
            @"count inputs: ",
            string.from_int(list.length(tx.inputs)),
@@ -1021,8 +1190,8 @@ test fail_when_attempting_other_redeemer_attack_on_bond_policy() fail {
     |> fn(args: (Input, ScriptContext)) {
          let cfg = build_cfg()
          let (spending_request, ctx) = args
-         trace @"==================="
          let tx = ctx.transaction
+         trace @"==================="
          trace string.concat(
            @"count inputs: ",
            string.from_int(list.length(tx.inputs)),
