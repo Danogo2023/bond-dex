@@ -28,9 +28,21 @@ test succ_full() {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -132,9 +144,21 @@ test succ_partial() {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -235,9 +259,21 @@ test fail_input_epoch_1() {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -338,9 +374,21 @@ test fail_input_epoch_2() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -454,9 +502,21 @@ test fail_input_epoch_3() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -557,9 +617,21 @@ test fail_input_epoch_4() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -670,9 +742,21 @@ test fail_input_qty() {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -773,9 +857,21 @@ test fail_output_qty() {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -876,9 +972,21 @@ test fail_validity_after_not_set() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -979,9 +1087,21 @@ test fail_escrow_policy_id_unexpect() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -1082,9 +1202,21 @@ test fail_escrow_address_unexpect() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -1185,9 +1317,21 @@ test fail_escrow_datum_not_found() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -1288,9 +1432,21 @@ test fail_escrow_datum_unexpect() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -1391,9 +1547,21 @@ test succ_bond_policy_id_valid() {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
@@ -1495,9 +1663,21 @@ test fail_bond_policy_id_invalid() fail {
       [DanogoBond, OptimBond],
     )
   let bond_name_1 = get_bond_id_1()
-  //
-  let escrow_datum = get_escrow_datum(bond_name_1, 10000, 753424657, 72, 63)
-  let escrow_lovelace = 1017328767112
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
   let escrow_full_info =
     calc_escrow_full_info(
       cfg.platform,
