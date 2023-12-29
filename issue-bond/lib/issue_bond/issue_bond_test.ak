@@ -8,10 +8,8 @@ use aiken/transaction.{
   InlineDatum, Input, Mint, NoDatum, Output, OutputReference, Redeemer,
   ScriptContext, ScriptPurpose, Spend, Transaction, TransactionId,
 }
-use aiken/transaction/credential.{
-  from_script, from_verification_key, with_delegation_key,
-}
-use aiken/transaction/value.{PolicyId, Value, ada_asset_name, ada_policy_id}
+use aiken/transaction/credential
+use aiken/transaction/value.{PolicyId, Value}
 use bond_issue/types.{BondDatum, BondIssueConfig, PlatformConfig, RequestDatum}
 use borrow_position/bond_nft
 use borrow_position/bond_token
@@ -54,13 +52,14 @@ fn build_cfg() {
     platform: PlatformConfig {
       bond_face_value: 100 * ada,
       fee: 500,
-      address: from_script("fee_script_hash"),
+      fee_addr: credential.from_verification_key("fee_addr"),
       tx_ttl: 30,
       min_buffer: 6,
       prepaid_plus: 3,
       min_requested: 100,
       min_apr: 200,
       min_duration: 6,
+      garbage_addr: credential.from_verification_key("garbage_addr"),
     },
   }
 }
@@ -75,13 +74,14 @@ fn get_datum(self: Output) -> Data {
 }
 
 fn get_lovelace(self: Output) {
-  self.value |> value.quantity_of(ada_policy_id, ada_asset_name)
+  self.value |> value.quantity_of(value.ada_policy_id, value.ada_asset_name)
 }
 
 fn add_lovelace(self: Output, amt: Int) {
   Output {
     ..self,
-    value: self.value |> value.add(ada_policy_id, ada_asset_name, amt),
+    value: self.value
+      |> value.add(value.ada_policy_id, value.ada_asset_name, amt),
   }
 }
 
@@ -160,8 +160,8 @@ fn build_lender_input(index: Int) {
   Input {
     output_reference: OutputReference(TransactionId("lender_tx"), index),
     output: Output {
-      address: from_verification_key(lender_pk)
-        |> with_delegation_key(lender_st),
+      address: credential.from_verification_key(lender_pk)
+        |> credential.with_delegation_key(lender_st),
       value: value.from_lovelace(10_000 * ada),
       datum: NoDatum,
       reference_script: None,
@@ -199,8 +199,8 @@ fn build_request_input(
   Input {
     output_reference: OutputReference(TransactionId("borrower_tx"), 0),
     output: Output {
-      address: from_script(req_skh)
-        |> with_delegation_key(borrower_st),
+      address: credential.from_script(req_skh)
+        |> credential.with_delegation_key(borrower_st),
       value: value.from_lovelace(100 * ada)
         |> value.add(req_pid, borrower, 1),
       datum: InlineDatum(
@@ -252,8 +252,8 @@ fn fulfill_borrow_request(request: Input, lend_amt: LendAmount) {
       |> value.add(nft_pid, token_name, 1)
   let bond_out =
     Output {
-      address: from_script(bond_skh)
-        |> with_delegation_key(borrower_st),
+      address: credential.from_script(bond_skh)
+        |> credential.with_delegation_key(borrower_st),
       value: locked_value,
       datum: InlineDatum(
         BondDatum {
@@ -295,7 +295,7 @@ fn calc_fee(bond: BondDatum, request: RequestDatum) {
 fn build_fee_output(fee: Int) {
   let cfg = build_cfg()
   Output {
-    address: cfg.platform.address,
+    address: cfg.platform.fee_addr,
     value: value.from_lovelace(fee),
     datum: NoDatum,
     reference_script: None,

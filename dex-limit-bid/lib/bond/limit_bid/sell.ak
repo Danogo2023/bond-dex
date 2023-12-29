@@ -95,9 +95,9 @@ pub fn spending(
                       |> option.or_else(
                            credential.from_verification_key(sbid_dt.owner_vk),
                          )
-                  let fee_addr: Address = cfg.exchange.address
+                  let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
-                    list.foldl(
+                    list.foldr(
                       tx.inputs,
                       BizInput {
                         sc_value: 0,
@@ -145,7 +145,7 @@ pub fn spending(
                       },
                     )
                   let biz_output =
-                    list.foldl(
+                    list.foldr(
                       tx.outputs,
                       BizOutput {
                         sc_value: 0,
@@ -306,7 +306,7 @@ fn spending_correct(
   let exchange_fee: Lovelace = exchange_fee_buyer + exchange_fee_seller
   // buyer is exchange addr
   let exchange_fee_for_buyer: Lovelace =
-    if buyer_addr == cfg.exchange.address {
+    if buyer_addr == cfg.exchange.fee_addr {
       exchange_fee
     } else {
       0
@@ -314,7 +314,7 @@ fn spending_correct(
   //
   // seller is exchange addr
   let exchange_fee_for_seller: Lovelace =
-    if list.has(biz_input.seller_addr, cfg.exchange.address) {
+    if list.has(biz_input.seller_addr, cfg.exchange.fee_addr) {
       exchange_fee
     } else {
       0

@@ -7,10 +7,8 @@ use aiken/transaction.{
   InlineDatum, Input, Output, OutputReference, ScriptPurpose, Spend, Transaction,
   TransactionId,
 }
-use aiken/transaction/credential.{
-  Address, Inline, VerificationKeyCredential, from_script, with_delegation_key,
-}
-use aiken/transaction/value.{PolicyId, ada_asset_name, ada_policy_id}
+use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
+use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondDatum, PlatformConfig} as bond_issue_types
 use borrow_position/pay_interest
 use issue_bond/types.{BondPayInterest}
@@ -34,7 +32,8 @@ fn get_bond_datum(self: Output) {
 fn build_bond_output(datum: BondDatum, stake: ByteArray) {
   let locked_value = 199999
   Output {
-    address: from_script(bond_skh) |> with_delegation_key(stake),
+    address: credential.from_script(bond_skh)
+      |> credential.with_delegation_key(stake),
     value: value.from_lovelace(locked_value)
       |> value.add(nft_pid, datum.token_name, 1),
     datum: InlineDatum(datum),
@@ -46,13 +45,14 @@ fn build_cfg() {
   PlatformConfig {
     bond_face_value: 100_000_000,
     fee: 500,
-    address: from_script("collector_addr"),
+    fee_addr: credential.from_verification_key("fee_addr"),
     tx_ttl: 3 * 60,
     min_buffer: 6,
     prepaid_plus: 3,
     min_requested: 100,
     min_apr: 200,
     min_duration: 6,
+    garbage_addr: credential.from_verification_key("garbage_addr"),
   }
 }
 
@@ -74,7 +74,7 @@ fn set_payment_skh(self: Output, cred: ByteArray) {
     ..self,
     address: Address {
       ..self.address,
-      payment_credential: from_script(cred).payment_credential,
+      payment_credential: credential.from_script(cred).payment_credential,
     },
   }
 }
@@ -160,8 +160,8 @@ fn validate(output_modifier: fn(Output) -> Output) {
                    let interest_per_epoch = value.lovelace_of(datum.epo_rewards)
                    out
                      |> add_asset(
-                          ada_policy_id,
-                          ada_asset_name,
+                          value.ada_policy_id,
+                          value.ada_asset_name,
                           interest_per_epoch,
                         )
                  }
@@ -188,8 +188,8 @@ test succ_when_paying_interest_for_2_epoch() {
     fn(obond) {
       obond
         |> add_asset(
-             ada_policy_id,
-             ada_asset_name,
+             value.ada_policy_id,
+             value.ada_asset_name,
              value.lovelace_of(get_bond_datum(obond).epo_rewards),
            )
     },
@@ -203,8 +203,8 @@ test succ_when_paying_all_interest() {
       let interest_per_epoch = value.lovelace_of(datum.epo_rewards)
       obond
         |> add_asset(
-             ada_policy_id,
-             ada_asset_name,
+             value.ada_policy_id,
+             value.ada_asset_name,
              interest_per_epoch * ( datum.duration - 1 ),
            )
     },
@@ -215,7 +215,7 @@ test fail_when_paying_interest_for_lower_than_1_epoch() {
   !validate(
     fn(obond) {
       obond
-        |> add_asset(ada_policy_id, ada_asset_name, -1)
+        |> add_asset(value.ada_policy_id, value.ada_asset_name, -1)
     },
   )
 }
@@ -258,7 +258,7 @@ test fail_when_setting_incorrect_epo_rewards_ada() {
                BondDatum {
                  ..datum,
                  epo_rewards: datum.epo_rewards
-                   |> value.add(ada_policy_id, ada_asset_name, -1),
+                   |> value.add(value.ada_policy_id, value.ada_asset_name, -1),
                }
              },
            )
@@ -412,7 +412,7 @@ test fail_when_setting_lower_ada() {
   !validate(
     fn(obond) {
       obond
-        |> add_asset(ada_policy_id, ada_asset_name, -1)
+        |> add_asset(value.ada_policy_id, value.ada_asset_name, -1)
     },
   )
 }
@@ -423,7 +423,8 @@ test fail_when_steal_nft() fail {
       Output {
         ..obond,
         value: value.from_lovelace(
-          obond.value |> value.quantity_of(ada_policy_id, ada_asset_name),
+          obond.value
+            |> value.quantity_of(value.ada_policy_id, value.ada_asset_name),
         ),
       }
     },

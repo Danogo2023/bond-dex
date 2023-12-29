@@ -78,7 +78,7 @@ pub fn redeem_with_fee_valid(
   let mint_value = value.from_minted_value(tx.mint)
   let bond_redeem_amt =
     when
-      list.foldl(
+      list.foldr(
         tx.outputs,
         (None, 0),
         fn(o, z) {
@@ -91,7 +91,7 @@ pub fn redeem_with_fee_valid(
             } else {
               fail @"only 1 bond output is allowed"
             }
-          } else if o.address == cfg.platform.address {
+          } else if o.address == cfg.platform.fee_addr {
             if (z.2nd == 0)? {
               (z.1st, value.lovelace_of(o.value))
             } else {

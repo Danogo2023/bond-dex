@@ -61,7 +61,7 @@ pub fn redeem_with_fee_valid(
   nft_pid: PolicyId,
 ) -> Bool {
   let ofee =
-    list.foldl(
+    list.foldr(
       tx.outputs,
       0,
       fn(o, z) {
@@ -70,7 +70,7 @@ pub fn redeem_with_fee_valid(
           value.quantity_of(o.value, nft_pid, sbond_dt.token_name) == 1,
         } {
           fail @"bond output not is allowed"
-        } else if o.address == cfg.platform.address {
+        } else if o.address == cfg.platform.fee_addr {
           if (z == 0)? {
             value.lovelace_of(o.value)
           } else {

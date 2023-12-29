@@ -145,7 +145,7 @@ pub fn get_bond_outputs(
               z.2nd,
             )
         }
-      } else if o.address == cfg.platform.address {
+      } else if o.address == cfg.platform.fee_addr {
         if (z.2nd == None)? {
           (z.1st, Some(o))
         } else {

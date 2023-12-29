@@ -1,10 +1,10 @@
 // Bid Making
 use aiken/transaction.{InlineDatum, NoDatum, ScriptContext, Spend}
-use aiken/transaction/credential.{from_script}
+use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/making_bid/sell
 use bond/types.{DanogoBond}
-use bond/utils.{get_price_of_bond}
+use bond/utils as bond_utils
 use bond/v2/fixture.{
   calc_escrow_full_info, gen_ask_making_datum, gen_bid_making_datum, gen_input,
   gen_output, gen_tampered_ask_making_datum, gen_tampered_bid_making_datum,
@@ -15,15 +15,35 @@ use bond/v2/fixture.{
   get_not_bond_policy_id, get_not_escrow_policy_id, get_seller_address,
 }
 
+const owner_stake_key = "owner_stake"
+
+fn get_owner_address() -> Address {
+  let seller_addr = get_buyer_address()
+  if owner_stake_key != "" {
+    seller_addr |> credential.with_delegation_key(owner_stake_key)
+  } else {
+    seller_addr
+  }
+}
+
+fn get_revert_address(k: ByteArray) -> Address {
+  let revert_addr = credential.from_script(k)
+  if owner_stake_key != "" {
+    revert_addr |> credential.with_delegation_key(owner_stake_key)
+  } else {
+    revert_addr
+  }
+}
+
 test succ_full() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
   // sc address that will be used to continue to make ask order
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -48,7 +68,7 @@ test succ_full() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -122,11 +142,11 @@ test succ_full() {
 test succ_partial() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -151,7 +171,7 @@ test succ_partial() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -236,10 +256,10 @@ test succ_partial() {
 test fail_input_epoch_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 480, 390, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -264,7 +284,7 @@ test fail_input_epoch_1() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -344,10 +364,10 @@ test fail_input_epoch_1() {
 test fail_input_epoch_2() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 464, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -372,7 +392,7 @@ test fail_input_epoch_2() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -452,10 +472,10 @@ test fail_input_epoch_2() fail {
 test fail_input_epoch_3() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 462, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -480,7 +500,7 @@ test fail_input_epoch_3() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -560,10 +580,10 @@ test fail_input_epoch_3() fail {
 test fail_input_epoch_4() fail {
   let time_of_tx = 1681095094000 + 25920000000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 462, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -588,7 +608,7 @@ test fail_input_epoch_4() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -668,10 +688,10 @@ test fail_input_epoch_4() fail {
 test fail_input_qty() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 0, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -696,7 +716,7 @@ test fail_input_qty() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -776,11 +796,11 @@ test fail_input_qty() {
 test fail_output_qty() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 1, 500)
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -805,7 +825,7 @@ test fail_output_qty() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -890,10 +910,10 @@ test fail_output_qty() fail {
 test fail_validity_after_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -918,7 +938,7 @@ test fail_validity_after_not_set() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -998,11 +1018,11 @@ test fail_validity_after_not_set() fail {
 test fail_wrong_owner_address() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1027,7 +1047,7 @@ test fail_wrong_owner_address() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1112,10 +1132,10 @@ test fail_wrong_owner_address() fail {
 test fail_escrow_policy_id_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1140,7 +1160,7 @@ test fail_escrow_policy_id_unexpect() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1220,10 +1240,10 @@ test fail_escrow_policy_id_unexpect() fail {
 test fail_escrow_address_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1248,7 +1268,7 @@ test fail_escrow_address_unexpect() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1328,10 +1348,10 @@ test fail_escrow_address_unexpect() fail {
 test fail_escrow_datum_not_found() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1356,7 +1376,7 @@ test fail_escrow_datum_not_found() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1436,10 +1456,10 @@ test fail_escrow_datum_not_found() fail {
 test fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1464,7 +1484,7 @@ test fail_escrow_datum_unexpect() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1544,11 +1564,11 @@ test fail_escrow_datum_unexpect() fail {
 test succ_bond_policy_id_valid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1573,7 +1593,7 @@ test succ_bond_policy_id_valid() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1647,11 +1667,11 @@ test succ_bond_policy_id_valid() {
 test fail_bond_policy_id_invalid() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1676,7 +1696,7 @@ test fail_bond_policy_id_invalid() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1761,11 +1781,11 @@ test fail_bond_policy_id_invalid() fail {
 test fail_fraud_address() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  // let revert_address = from_script(sc_in_datum_1.ask_sc)
+  // let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1790,7 +1810,7 @@ test fail_fraud_address() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1875,12 +1895,12 @@ test fail_fraud_address() {
 test fail_seller_must_not_owner() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   // seller is the owner -> fail
   let seller_address = owner_address
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -1905,7 +1925,7 @@ test fail_seller_must_not_owner() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -1990,11 +2010,11 @@ test fail_seller_must_not_owner() {
 test succ_partial_buy_2() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -2019,7 +2039,7 @@ test succ_partial_buy_2() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -2103,11 +2123,11 @@ test succ_partial_buy_2() {
 test fail_sell_more_lovelace_than_expect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -2132,7 +2152,7 @@ test fail_sell_more_lovelace_than_expect() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -2218,11 +2238,11 @@ test fail_sell_more_lovelace_than_expect() {
 test fail_sell_less_lovelace_than_expect() {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_in_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -2247,7 +2267,7 @@ test fail_sell_less_lovelace_than_expect() {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -2333,11 +2353,11 @@ test fail_sell_less_lovelace_than_expect() {
 test fail_revert_tampered_bid_address_ask_making() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_out_bid_datum_1 = gen_tampered_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -2362,7 +2382,7 @@ test fail_revert_tampered_bid_address_ask_making() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,
@@ -2446,11 +2466,11 @@ test fail_revert_tampered_bid_address_ask_making() fail {
 test fail_revert_tampered_ask_address_sc_out() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()
-  let owner_address = get_buyer_address()
+  let owner_address = get_owner_address()
   let seller_address = get_seller_address()
   let owner_out_bid_datum_1 = gen_ask_making_datum(owner_address, 499)
   let sc_in_datum_1 = gen_bid_making_datum(owner_address, 390, 480, 5, 500)
-  let revert_address = from_script(sc_in_datum_1.ask_sc)
+  let revert_address = get_revert_address(sc_in_datum_1.ask_sc)
   let bond_name_1 = get_bond_id_1()
   // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
   let escrow_bond_amount = 10000
@@ -2475,7 +2495,7 @@ test fail_revert_tampered_ask_address_sc_out() fail {
       time_of_tx,
     )
   let price_of_one_bond =
-    get_price_of_bond(
+    bond_utils.get_price_of_bond(
       escrow_full_info.value_at_maturity,
       escrow_full_info.day_to_maturity,
       sc_in_datum_1.requested_yield,

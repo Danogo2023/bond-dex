@@ -1,4 +1,3 @@
-// use aiken/cbor
 use aiken/dict
 use aiken/list
 use aiken/option
@@ -26,6 +25,7 @@ pub fn spending(
   expect Spend(sreq_out_ref) = ctx.purpose
   let tx = ctx.transaction
   let bond_pk = ScriptCredential(bond_skh)
+  //
   when
     list.filter(
       tx.inputs,
@@ -104,10 +104,6 @@ pub fn get_create_output(
             InlineDatum(d) -> d
             _ -> fail @"only supports InlineDatum for borrow request"
           }
-        // trace @"get_create_output"
-        // trace cbor.diagnostic(sreq_dt)
-        // trace cbor.diagnostic(oreq_dt)
-        // trace @"============="
         if and {
           (z.1st == False)?,
           //
@@ -176,10 +172,6 @@ fn bond_output_valid(
       cfg.platform.tx_ttl,
       cfg.slot.slot_length,
     )
-  // trace @"bond_output_valid"
-  // trace cbor.diagnostic(obond_dt.borrower)
-  // trace cbor.diagnostic(sreq_dt.borrower)
-  // trace @"============="
   and {
     (obond_dt.duration == sreq_dt.duration)?,
     (obond_dt.bond_symbol == bond_pid)?,

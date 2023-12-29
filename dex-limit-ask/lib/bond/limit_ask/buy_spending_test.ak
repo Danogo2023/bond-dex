@@ -4,9 +4,7 @@ use aiken/bytearray
 use aiken/dict
 use aiken/hash.{blake2b_256}
 use aiken/transaction.{DatumHash, InlineDatum, NoDatum, ScriptContext, Spend}
-use aiken/transaction/credential.{
-  from_script, with_delegation_key, with_delegation_script,
-}
+use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/limit_ask/buy
 use bond/types.{DanogoBond}
@@ -22,10 +20,12 @@ use bond/v2/fixture.{
 }
 use common/time.{posix_time_to_relative_epoch}
 
+const owner_stake_key = "owner_stake"
+
 test fail_partial_must_only_one_bond_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -194,7 +194,7 @@ test fail_partial_must_only_one_bond_1() fail {
 test fail_partial_must_only_one_bond_2() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -361,7 +361,7 @@ test fail_partial_must_only_one_bond_2() fail {
 test fail_partial_change_bond_name() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -514,7 +514,7 @@ test fail_partial_change_bond_name() {
 test fail_partial_datum_owner_vk_invalid_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -640,7 +640,8 @@ test fail_partial_datum_owner_vk_invalid_1() fail {
       ),
       DatumHash(payment_datum_hash),
     )
-  let sc_out_datum_1 = gen_ask_limit_datum(from_script(#"010203040506"), 515)
+  let sc_out_datum_1 =
+    gen_ask_limit_datum(credential.from_script(#"010203040506"), 515)
   let sc_out_1 =
     gen_output(
       sc_address,
@@ -675,7 +676,7 @@ test fail_partial_datum_owner_vk_invalid_1() fail {
 test fail_partial_datum_owner_vk_invalid_2() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let buyer_address = get_buyer_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
@@ -836,10 +837,10 @@ test fail_partial_datum_owner_vk_invalid_2() fail {
 test fail_partial_datum_owner_sk_invalid_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 =
     gen_ask_limit_datum(
-      with_delegation_key(owner_address, #"010203040506"),
+      credential.with_delegation_key(owner_address, #"010203040506"),
       515,
     )
   let bond_name_ask_1 = get_bond_id_1()
@@ -968,7 +969,7 @@ test fail_partial_datum_owner_sk_invalid_1() fail {
     )
   let sc_out_datum_1 =
     gen_ask_limit_datum(
-      with_delegation_key(owner_address, #"010203040507"),
+      credential.with_delegation_key(owner_address, #"010203040507"),
       515,
     )
   let sc_out_1 =
@@ -1005,10 +1006,10 @@ test fail_partial_datum_owner_sk_invalid_1() fail {
 test fail_partial_datum_owner_sk_invalid_2() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 =
     gen_ask_limit_datum(
-      with_delegation_key(owner_address, #"010203040506"),
+      credential.with_delegation_key(owner_address, #"010203040506"),
       515,
     )
   let bond_name_ask_1 = get_bond_id_1()
@@ -1137,7 +1138,7 @@ test fail_partial_datum_owner_sk_invalid_2() fail {
     )
   let sc_out_datum_1 =
     gen_ask_limit_datum(
-      with_delegation_script(owner_address, #"010203040506"),
+      credential.with_delegation_script(owner_address, #"010203040506"),
       515,
     )
   let sc_out_1 =
@@ -1174,7 +1175,7 @@ test fail_partial_datum_owner_sk_invalid_2() fail {
 test fail_partial_datum_requested_yield_invalid() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -1335,7 +1336,7 @@ test fail_partial_datum_requested_yield_invalid() fail {
 test fail_partial_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -1495,7 +1496,7 @@ test fail_partial_escrow_datum_unexpect() fail {
 test fail_escrow_policy_id_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -1662,7 +1663,7 @@ test fail_escrow_policy_id_unexpect() fail {
 test fail_escrow_address_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -1829,7 +1830,7 @@ test fail_escrow_address_unexpect() fail {
 test fail_escrow_datum_not_found() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -1989,7 +1990,7 @@ test fail_escrow_datum_not_found() fail {
 test fail_escrow_datum_unexpect() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -2149,7 +2150,7 @@ test fail_escrow_datum_unexpect() fail {
 test fail_escrow_closable() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -2330,7 +2331,7 @@ test fail_escrow_closable() fail {
 test fail_buyer_must_not_owner() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -2491,7 +2492,7 @@ test succ_buyer_is_exchange() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
   let exchange_address = get_exchange_address()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -2650,7 +2651,7 @@ test succ_buyer_is_exchange() {
 test succ_partial() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -2807,10 +2808,19 @@ test succ_partial() {
   )
 }
 
+fn get_owner_address() -> Address {
+  let seller_addr = get_seller_address()
+  if owner_stake_key != "" {
+    seller_addr |> credential.with_delegation_key(owner_stake_key)
+  } else {
+    seller_addr
+  }
+}
+
 test succ_full_1() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -2972,7 +2982,7 @@ test succ_full_2() {
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
   let cfg = get_config_limit_preview()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 7)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -3127,7 +3137,7 @@ test fail_not_buy_any() {
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
   let cfg = get_config_limit_preview()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 7)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -3280,7 +3290,7 @@ test fail_not_buy_any() {
 test fail_partial_validity_end_not_set() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -3440,7 +3450,7 @@ test fail_partial_validity_end_not_set() fail {
 test fail_full_validity_end_not_set_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -3602,7 +3612,7 @@ test fail_full_validity_end_not_set_2() fail {
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
   let cfg = get_config_limit_preview()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 7)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -3755,7 +3765,7 @@ test fail_full_validity_end_not_set_2() fail {
 test fail_partial_validity_end_invalid_aft() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -3915,7 +3925,7 @@ test fail_partial_validity_end_invalid_aft() fail {
 test fail_full_validity_end_invalid_aft_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -4077,7 +4087,7 @@ test fail_full_validity_end_invalid_aft_2() fail {
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
   let cfg = get_config_limit_preview()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 7)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -4230,7 +4240,7 @@ test fail_full_validity_end_invalid_aft_2() fail {
 test fail_partial_validity_end_invalid_pre() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -4390,7 +4400,7 @@ test fail_partial_validity_end_invalid_pre() fail {
 test fail_full_validity_end_invalid_pre_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -4552,7 +4562,7 @@ test fail_full_validity_end_invalid_pre_2() fail {
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
   let cfg = get_config_limit_preview()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 7)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -4705,7 +4715,7 @@ test fail_full_validity_end_invalid_pre_2() fail {
 test succ_bond_policy_id_valid() {
   let time_of_tx = 1681095094000
   let cfg = get_config_limit_mainnet()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 515)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()
@@ -4867,7 +4877,7 @@ test fail_bond_policy_id_invalid() fail {
   let time_of_tx = 1687343990000
   // => current_epoch = 22241
   let cfg = get_config_limit_preview()
-  let owner_address = get_seller_address()
+  let owner_address = get_owner_address()
   let sc_in_datum_1 = gen_ask_limit_datum(owner_address, 7)
   let bond_name_ask_1 = get_bond_id_1()
   let bond_name_ask_2 = get_bond_id_2()

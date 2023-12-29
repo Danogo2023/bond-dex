@@ -87,9 +87,9 @@ pub fn spending(
                            },
                          )
                       |> option.or_else(credential.from_script(sask_dt.bid_sc))
-                  let fee_addr: Address = cfg.exchange.address
+                  let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
-                    list.foldl(
+                    list.foldr(
                       tx.inputs,
                       BizInput { sc_value: 0, sc_bond_qty: 0 },
                       fn(i, z) {
@@ -133,7 +133,7 @@ pub fn spending(
                       },
                     )
                   let biz_output =
-                    list.foldl(
+                    list.foldr(
                       tx.outputs,
                       BizOutput {
                         sc_value: 0,
@@ -334,7 +334,7 @@ fn spending_correct(
   // SC chuyển bond ==> seller nhận tiền
   // buyer chuyển tiền nhận bond
   let (seller_receive_lovelace, exchange_receive_lovelace) =
-    if seller_addr == cfg.exchange.address {
+    if seller_addr == cfg.exchange.fee_addr {
       (seller_receive_lovelace_tmp + exchange_receive_lovelace_tmp, 0)
     } else {
       (seller_receive_lovelace_tmp, exchange_receive_lovelace_tmp)

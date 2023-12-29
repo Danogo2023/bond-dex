@@ -48,7 +48,7 @@ pub fn minting_without_fee(
   } {
     let req_pk = ScriptCredential(req_skh)
     when
-      list.foldl(
+      list.foldr(
         tx.inputs,
         (None, None),
         fn(i, z) {
@@ -135,7 +135,7 @@ pub fn minting_with_fee(
 ) -> Bool {
   let req_pk = ScriptCredential(req_skh)
   let prepaid_ireqs =
-    list.foldl(
+    list.foldr(
       tx.inputs,
       dict.new(),
       fn(i, z) {
@@ -164,7 +164,7 @@ pub fn minting_with_fee(
   let bond_pk = ScriptCredential(bond_skh)
   let mint_value = value.from_minted_value(tx.mint) |> value.tokens(bond_pid)
   let (dist_names, total_fee, ofee) =
-    list.foldl(
+    list.foldr(
       tx.outputs,
       ([], 0, 0),
       fn(o, z) {
@@ -189,7 +189,7 @@ pub fn minting_with_fee(
           } else {
             fail
           }
-        } else if o.address == cfg.platform.address {
+        } else if o.address == cfg.platform.fee_addr {
           if (z.3rd == 0)? {
             (z.1st, z.2nd, value.lovelace_of(o.value))
           } else {

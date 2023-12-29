@@ -8,11 +8,8 @@ use aiken/transaction.{
   InlineDatum, Input, Mint, NoDatum, Output, OutputReference, ScriptPurpose,
   Spend, Transaction, TransactionId,
 }
-use aiken/transaction/credential.{
-  Address, Inline, VerificationKeyCredential, from_script, from_verification_key,
-  with_delegation_key,
-}
-use aiken/transaction/value.{PolicyId, ada_asset_name, ada_policy_id}
+use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
+use aiken/transaction/value.{PolicyId}
 use bond_issue/types.{BondDatum,
   BondIssueConfig, PlatformConfig} as bond_issue_types
 use borrow_position/bond_nft
@@ -55,13 +52,14 @@ fn build_cfg() {
     platform: PlatformConfig {
       bond_face_value: 100 * ada,
       fee: 500,
-      address: from_script("collector_addr"),
+      fee_addr: credential.from_verification_key("fee_addr"),
       tx_ttl: 1 * 60,
       min_buffer: 6,
       prepaid_plus: 3,
       min_requested: 100,
       min_apr: 200,
       min_duration: 6,
+      garbage_addr: credential.from_verification_key("garbage_addr"),
     },
   }
 }
@@ -71,7 +69,8 @@ fn build_bond_output(datum: BondDatum) {
   let interest = 60 * epo_rewards
   let locked_value = principal_of(datum.bond_amount) + interest
   Output {
-    address: from_script(bond_skh) |> with_delegation_key("borrower_stake"),
+    address: credential.from_script(bond_skh)
+      |> credential.with_delegation_key("borrower_stake"),
     value: value.from_lovelace(locked_value)
       |> value.add(nft_pid, datum.token_name, 1),
     datum: InlineDatum(datum),
@@ -134,21 +133,21 @@ fn resolve_sbond(self: Output, lender_in: Input, redeem_type: RedeemType) {
   let redeem_amt = resolve_redeem_amount(redeem_type, datum)
   let remain_bond_amount = datum.bond_amount - redeem_amt
   let locked_amt =
-    self.value |> value.quantity_of(ada_policy_id, ada_asset_name)
+    self.value |> value.quantity_of(value.ada_policy_id, value.ada_asset_name)
   let total_interest = locked_amt - principal_of(datum.bond_amount)
   let redeem_interest = total_interest * redeem_amt / datum.bond_amount
   let fee_amt = redeem_interest * datum.fee / cfg.basis.base
   let lender_received_amt = principal_of(redeem_amt) + redeem_interest - fee_amt
   let fee_out =
     Output {
-      address: cfg.platform.address,
+      address: cfg.platform.fee_addr,
       value: value.from_lovelace(fee_amt),
       datum: NoDatum,
       reference_script: None,
     }
   let lender_out =
     lender_in.output
-      |> add_asset(ada_policy_id, ada_asset_name, lender_received_amt)
+      |> add_asset(value.ada_policy_id, value.ada_asset_name, lender_received_amt)
       |> add_asset(datum.bond_symbol, datum.token_name, -redeem_amt)
   if remain_bond_amount == 0 {
     [lender_out, fee_out]
@@ -157,8 +156,8 @@ fn resolve_sbond(self: Output, lender_in: Input, redeem_type: RedeemType) {
       self
         |> set_bond_amount(remain_bond_amount)
         |> add_asset(
-             ada_policy_id,
-             ada_asset_name,
+             value.ada_policy_id,
+             value.ada_asset_name,
              -(lender_received_amt + fee_amt),
            )
     [lender_out, fee_out, bond_out]
@@ -167,8 +166,8 @@ fn resolve_sbond(self: Output, lender_in: Input, redeem_type: RedeemType) {
 
 fn build_lender_output(lovelace: Int, bond_token_qty: Int) {
   Output {
-    address: from_verification_key("lender_public_key")
-      |> with_delegation_key("lender_delegation_key"),
+    address: credential.from_verification_key("lender_public_key")
+      |> credential.with_delegation_key("lender_delegation_key"),
     value: value.from_lovelace(lovelace)
       |> value.add(bond_pid, bond_token_name, bond_token_qty),
     datum: NoDatum,
@@ -478,7 +477,11 @@ test fail_when_setting_lower_epo_rewards() fail {
                           BondDatum {
                             ..datum,
                             epo_rewards: datum.epo_rewards
-                              |> value.add(ada_policy_id, ada_asset_name, -1),
+                              |> value.add(
+                                   value.ada_policy_id,
+                                   value.ada_asset_name,
+                                   -1,
+                                 ),
                           }
                         },
                       ),
@@ -515,7 +518,11 @@ test fail_when_setting_higher_epo_rewards() fail {
                           BondDatum {
                             ..datum,
                             epo_rewards: datum.epo_rewards
-                              |> value.add(ada_policy_id, ada_asset_name, 1),
+                              |> value.add(
+                                   value.ada_policy_id,
+                                   value.ada_asset_name,
+                                   1,
+                                 ),
                           }
                         },
                       ),
@@ -1097,8 +1104,10 @@ test fail_when_paying_lower_fee() fail {
              Transaction {
                ..t,
                outputs: [
-                 lender_out |> add_asset(ada_policy_id, ada_asset_name, 1),
-                 fee_out |> add_asset(ada_policy_id, ada_asset_name, -1),
+                 lender_out
+                   |> add_asset(value.ada_policy_id, value.ada_asset_name, 1),
+                 fee_out
+                   |> add_asset(value.ada_policy_id, value.ada_asset_name, -1),
                ],
              }
            },
@@ -1126,8 +1135,8 @@ test fail_when_doesnt_pay_fee() fail {
                outputs: [
                  lender_out
                    |> add_asset(
-                        ada_policy_id,
-                        ada_asset_name,
+                        value.ada_policy_id,
+                        value.ada_asset_name,
                         value.lovelace_of(fee_out.value),
                       ),
                ],
@@ -1158,7 +1167,9 @@ test fail_when_doesnt_pay_fee_for_protocol() fail {
                  lender_out,
                  Output {
                    ..fee_out,
-                   address: from_verification_key("lender_public_key"),
+                   address: credential.from_verification_key(
+                     "lender_public_key",
+                   ),
                  },
                ],
              }
