@@ -77,7 +77,7 @@ pub fn redeem_valid(
   sbond_interest_paid: Int,
 ) -> Bool {
   when
-    list.foldl(
+    list.foldr(
       tx.outputs,
       (None, 0),
       fn(o, z) {
@@ -90,7 +90,7 @@ pub fn redeem_valid(
           } else {
             fail @"only 1 bond output is allowed"
           }
-        } else if o.address == cfg.platform.address {
+        } else if o.address == cfg.platform.fee_addr {
           if (z.2nd == 0)? {
             (z.1st, value.lovelace_of(o.value))
           } else {

@@ -4,11 +4,8 @@ use aiken/transaction.{
   Datum, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
   TransactionId, placeholder,
 }
-use aiken/transaction/credential.{
-  Address, Inline, VerificationKeyCredential, from_verification_key,
-  with_delegation_key,
-}
-use aiken/transaction/value.{AssetName, PolicyId, ada_asset_name, ada_policy_id}
+use aiken/transaction/credential.{Address, Inline, VerificationKeyCredential}
+use aiken/transaction/value.{AssetName, PolicyId}
 use bond_issue/types.{BondIssueConfig, PlatformConfig, RequestDatum}
 use borrow_request/borrower_nft
 use borrow_request/request_nft
@@ -260,13 +257,14 @@ fn build_cfg() {
     platform: PlatformConfig {
       bond_face_value: 100_000_000,
       fee: 500,
-      address: credential.from_script("collector_addr"),
+      fee_addr: credential.from_verification_key("fee_addr"),
       tx_ttl: 3 * 60,
       min_buffer: 6,
       prepaid_plus: 3,
       min_requested: 100,
       min_apr: 200,
       min_duration: 6,
+      garbage_addr: credential.from_verification_key("garbage_addr"),
     },
   }
 }
@@ -449,8 +447,8 @@ test succ_on_large_inputs_and_outputs() {
                ),
                output: Output {
                  value: value.from_lovelace(100 * ada),
-                 address: from_verification_key(borrower_public_key)
-                   |> with_delegation_key(borrower_stake_key),
+                 address: credential.from_verification_key(borrower_public_key)
+                   |> credential.with_delegation_key(borrower_stake_key),
                  datum: NoDatum,
                  reference_script: None,
                },
@@ -1093,7 +1091,7 @@ test fail_when_setting_deposit_ada_lower_than_expected() fail {
     Transaction {
       ..t,
       outputs: [
-        request_out |> add_asset(ada_policy_id, ada_asset_name, -1),
+        request_out |> add_asset(value.ada_policy_id, value.ada_asset_name, -1),
         borrower_out,
       ],
     }

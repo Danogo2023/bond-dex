@@ -98,9 +98,9 @@ pub fn spending(
                            },
                          )
                       |> option.or_else(credential.from_script(sbid_dt.ask_sc))
-                  let fee_addr: Address = cfg.exchange.address
+                  let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
-                    list.foldl(
+                    list.foldr(
                       tx.inputs,
                       BizInput {
                         sc_value: 0,
@@ -148,7 +148,7 @@ pub fn spending(
                       },
                     )
                   let biz_output =
-                    list.foldl(
+                    list.foldr(
                       tx.outputs,
                       BizOutput {
                         sc_value: 0,
@@ -343,7 +343,7 @@ fn spending_correct(
   let sc_bond_qty_remain: Int = sbid_dt.quantity - biz_output.buyer_bond_qty
   // buyer is exchange addr
   let exchange_fee_for_buyer: Lovelace =
-    if buyer_addr == cfg.exchange.address {
+    if buyer_addr == cfg.exchange.fee_addr {
       exchange_fee
     } else {
       0
@@ -351,7 +351,7 @@ fn spending_correct(
   //
   // seller is exchange addr
   let exchange_fee_for_seller: Lovelace =
-    if list.has(biz_input.seller_addr, cfg.exchange.address) {
+    if list.has(biz_input.seller_addr, cfg.exchange.fee_addr) {
       exchange_fee
     } else {
       0

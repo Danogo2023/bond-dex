@@ -34,7 +34,7 @@ fn build_input(
 }
 
 test succ_bond_create() {
-  let fee_addr = credential.from_script("collector_addr")
+  let fee_addr = credential.from_verification_key("fee_addr")
   let cfg =
     BondIssueConfig {
       slot: get_slot_config_network_preview(),
@@ -43,13 +43,14 @@ test succ_bond_create() {
       platform: PlatformConfig {
         bond_face_value: 100_000_000,
         fee: 500,
-        address: fee_addr,
+        fee_addr,
         tx_ttl: 6 * 60,
         min_buffer: 6,
         prepaid_plus: 3,
         min_requested: 100,
         min_apr: 200,
         min_duration: 6,
+        garbage_addr: credential.from_verification_key("garbage_addr"),
       },
     }
   let owner_addr = credential.from_verification_key("owner")

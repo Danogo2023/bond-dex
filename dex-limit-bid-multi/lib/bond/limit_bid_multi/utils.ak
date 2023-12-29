@@ -1,18 +1,88 @@
 // Bid Limit Multi
+use aiken/bytearray
+use aiken/cbor
 use aiken/dict.{Dict}
 use aiken/list
 use aiken/string
 use aiken/time.{PosixTime} as aiken_time
-use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum, Output}
+use aiken/transaction.{
+  DatumHash, InlineDatum, Input, NoDatum, Output, Transaction,
+}
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value
-use bond/types.{BondType,
-  EscrowConfig, EscrowDatum, EscrowInfo, PlatformConfig} as bond_types
-use bond/utils.{get_day_to_maturity} as bond_utils
+use bond/types.{
+  BondConfigLimit, BondType, EscrowConfig, EscrowDatum, EscrowInfo,
+  PlatformConfig,
+} as bond_types
+use bond/utils.{get_day_to_maturity, get_garbage_collector_value} as bond_utils
 use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
 use common/time.{Basis, EpochTime} as common_time
 use common/types.{AssetUnit, Datums, Error, Lovelace, OK, Result}
-use common/util.{find_while}
+use common/util.{data_valid, find_while}
+
+fn check_data_valid(dt: String) -> Bool {
+  let l1 =
+    [["', 122([]), "], ["', 121([_ h'", "']), "]]
+  let l2 =
+    ["_ 121([]), 122([])", "_ 122([]), 121([])", "_ 121([])", "_ 122([])", ""]
+  find_while(
+    l1,
+    False,
+    fn(i1, z1) {
+      let c1 =
+        find_while(
+          l2,
+          z1,
+          fn(i2, _) {
+            let c2 =
+              data_valid(
+                bytearray.from_string(dt),
+                "121([_ h'",
+                list.concat(
+                  i1,
+                  [
+                    ", ",
+                    ", ",
+                    ", ",
+                    ", [" |> bytearray.concat(i2) |> bytearray.concat("]"),
+                  ],
+                ),
+                "])",
+              )
+            (c2, c2)
+          },
+        )
+      (c1, c1)
+    },
+  )
+}
+
+pub fn garbage_collector(d: Data, tx: Transaction, cfg: BondConfigLimit) -> Bool {
+  let dt = cbor.diagnostic(d)
+  let bid_limit_valid =
+    if dt == @"121([])" {
+      False
+    } else {
+      check_data_valid(dt)
+    }
+  if bid_limit_valid {
+    fail @"its datum valid"
+  } else {
+    when
+      list.find(tx.outputs, fn(o) { o.address == cfg.exchange.garbage_addr })
+    is {
+      Some(o) ->
+        when get_garbage_collector_value(tx) is {
+          OK((val, assets)) -> and {
+              (value.lovelace_of(o.value) >= val)?,
+              (value.without_lovelace(o.value) == assets)?,
+            }
+          Error(e) -> fail e
+        }
+      _ -> fail @"not found garbage address output"
+    }
+  }
+}
 
 pub type EscrowRef =
   Dict<AssetUnit, EscrowInfo>

@@ -51,7 +51,7 @@ pub fn minting(
   if (dict.size(mint_bond_nfts) == dict.size(mint_bond_nfts_valid))? {
     let req_pk = ScriptCredential(req_skh)
     let req_inputs_valid =
-      list.foldl(
+      list.foldr(
         tx.inputs,
         dict.new(),
         fn(i, z) {
@@ -98,7 +98,7 @@ pub fn minting(
       )
     let bond_pk = ScriptCredential(bond_skh)
     let bond_outputs_valid =
-      list.foldl(
+      list.foldr(
         tx.outputs,
         dict.new(),
         fn(o, z) {
