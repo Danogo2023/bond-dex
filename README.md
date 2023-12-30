@@ -33,7 +33,7 @@ aiken check
 To run only tests matching the string `bond/***_test`, do:
 
 ```sh
-aiken check -m bond/ask_limit_test
+aiken check -m bond/ask_limit/buy_spending_test
 ```
 
 ## Resources
