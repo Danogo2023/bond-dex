@@ -1,11 +1,11 @@
-name = "danogo2023/bonds/dex-limit-bid"
+name = "danogo2023/bond-dex/limit-bid"
 version = "1.0.3"
 license = "Apache-2.0"
 description = "Danogo Bond Exchanges: Bid Limit Optim Bond"
 
 [repository]
-user = "danogo2023/bonds"
-project = "dex-limit-bid"
+user = "danogo2023/bond-dex"
+project = "limit-bid"
 platform = "github"
 
 [[dependencies]]
