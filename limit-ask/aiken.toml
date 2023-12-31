@@ -1,11 +1,11 @@
-name = "danogo2023/bonds/dex-limit-ask"
+name = "danogo2023/bond-dex/limit-ask"
 version = "1.0.3"
 license = "Apache-2.0"
 description = "Danogo Bond Exchanges: Ask Limit Optim Bond"
 
 [repository]
-user = "danogo2023/bonds"
-project = "dex-limit-ask"
+user = "danogo2023/bond-dex"
+project = "limit-ask"
 platform = "github"
 
 [[dependencies]]

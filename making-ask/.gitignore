@@ -8,3 +8,5 @@ docs/
 bin/
 plutus.json
 aiken.lock
+deno.json
+deno.lock
