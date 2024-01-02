@@ -11,8 +11,7 @@ use aiken/transaction.{
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value
 use bond/types.{
-  BondConfigMaking, BondType, EscrowConfig, EscrowDatum, EscrowInfo,
-  PlatformConfig,
+  BondConfigMaking, EscrowConfig, EscrowDatum, EscrowInfo, PlatformConfig,
 } as bond_types
 use bond/utils.{get_day_to_maturity, get_garbage_collector_value} as bond_utils
 use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
@@ -78,7 +77,6 @@ pub fn head_escrow_ref(
   escrow_cfg: EscrowConfig,
   tx_ref_inputs: List<Input>,
   tx_datums: Datums,
-  bond_types: List<BondType>,
   tx_time: PosixTime,
   epo_curr: EpochTime,
 ) -> Result<EscrowRef, String> {
@@ -86,7 +84,6 @@ pub fn head_escrow_ref(
     escrow_cfg,
     tx_ref_inputs,
     tx_datums,
-    bond_types,
     fn(escrow_ref, bond_unit, escrow_dt, escrow_input) {
       find_escrow_ref_finalize(
         platform_cfg,
@@ -106,7 +103,6 @@ fn find_escrow_ref_with(
   escrow_cfg: EscrowConfig,
   tx_ref_inputs: List<Input>,
   tx_datums: Datums,
-  bond_types: List<BondType>,
   with: fn(EscrowRef, AssetUnit, EscrowDatum, Input) ->
     (Bool, Result<EscrowRef, String>),
 ) -> Result<EscrowRef, String> {
@@ -117,83 +113,79 @@ fn find_escrow_ref_with(
       when i.output.address.payment_credential is {
         ScriptCredential(k) ->
           when dict.get(escrow_cfg, k) is {
-            Some((escrow_nft_pid, bond_type)) ->
-              if list.has(bond_types, bond_type) {
-                when
-                  value.tokens(i.output.value, escrow_nft_pid) |> dict.to_list
-                is {
-                  [(n, q)] ->
-                    if q == 1 {
-                      expect OK(escrow_ref) = z
-                      let data =
-                        when i.output.datum is {
-                          NoDatum -> None
-                          DatumHash(h) -> dict.get(tx_datums, h)
-                          InlineDatum(d) -> Some(d)
-                        }
-                      when data is {
-                        Some(dt) -> {
-                          expect escrow_dt: EscrowDatum = dt
-                          if n == escrow_dt.token_name {
-                            with(
-                              escrow_ref,
-                              to_unit_3(
-                                escrow_dt.bond_symbol,
-                                @".",
-                                escrow_dt.token_name,
-                              ),
-                              escrow_dt,
-                              i,
-                            )
-                          } else {
-                            (
-                              True,
-                              Error(
-                                bconcat_1(
-                                  bconcat_1(
-                                    @"escrow policy id ",
-                                    escrow_nft_pid,
-                                    @" asset name invalid (expected: ",
-                                  ),
-                                  escrow_dt.token_name,
-                                  bconcat_1(@", actual: ", n, @")"),
-                                ),
-                              ),
-                            )
-                          }
-                        }
-                        _ -> (True, Error(@"Escrow datum can't be None"))
+            Some((escrow_nft_pid, _)) ->
+              when
+                value.tokens(i.output.value, escrow_nft_pid) |> dict.to_list
+              is {
+                [(n, q)] ->
+                  if q == 1 {
+                    expect OK(escrow_ref) = z
+                    let data =
+                      when i.output.datum is {
+                        NoDatum -> None
+                        DatumHash(h) -> dict.get(tx_datums, h)
+                        InlineDatum(d) -> Some(d)
                       }
-                    } else {
-                      (
-                        True,
-                        Error(
-                          bconcat_3(
-                            @"escrow asset ",
-                            to_unit_3(escrow_nft_pid, @".", n),
-                            bconcat_3(
-                              @" qty invalid (expected: 1, actual: ",
-                              string.from_int(q),
-                              @")",
+                    when data is {
+                      Some(dt) -> {
+                        expect escrow_dt: EscrowDatum = dt
+                        if n == escrow_dt.token_name {
+                          with(
+                            escrow_ref,
+                            to_unit_3(
+                              escrow_dt.bond_symbol,
+                              @".",
+                              escrow_dt.token_name,
                             ),
-                          ),
-                        ),
-                      )
+                            escrow_dt,
+                            i,
+                          )
+                        } else {
+                          (
+                            True,
+                            Error(
+                              bconcat_1(
+                                bconcat_1(
+                                  @"escrow policy id ",
+                                  escrow_nft_pid,
+                                  @" asset name invalid (expected: ",
+                                ),
+                                escrow_dt.token_name,
+                                bconcat_1(@", actual: ", n, @")"),
+                              ),
+                            ),
+                          )
+                        }
+                      }
+                      _ -> (True, Error(@"Escrow datum can't be None"))
                     }
-                  _ ->
+                  } else {
                     (
                       True,
                       Error(
-                        bconcat_1(
-                          @"escrow policy id ",
-                          escrow_nft_pid,
-                          @" asset invalid",
+                        bconcat_3(
+                          @"escrow asset ",
+                          to_unit_3(escrow_nft_pid, @".", n),
+                          bconcat_3(
+                            @" qty invalid (expected: 1, actual: ",
+                            string.from_int(q),
+                            @")",
+                          ),
                         ),
                       ),
                     )
-                }
-              } else {
-                (False, z)
+                  }
+                _ ->
+                  (
+                    True,
+                    Error(
+                      bconcat_1(
+                        @"escrow policy id ",
+                        escrow_nft_pid,
+                        @" asset invalid",
+                      ),
+                    ),
+                  )
               }
             _ -> (False, z)
           }
