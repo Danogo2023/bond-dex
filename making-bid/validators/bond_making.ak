@@ -3,12 +3,11 @@ use aiken/transaction.{ScriptContext}
 use bond/making_bid/sell
 use bond/making_bid/utils
 use bond/types.{
-  BidMaking, BondConfigMaking, BondType, GarbageCollector, Sell, TradeAction,
-  Update,
+  BidMaking, BondConfigMaking, GarbageCollector, Sell, TradeAction, Update,
 }
 use common/util.{must_be_signed_by_key} as common_utils
 
-validator(cfg: BondConfigMaking, bond_type: BondType) {
+validator(cfg: BondConfigMaking) {
   fn bid(d: Data, ac: TradeAction, ctx: ScriptContext) -> Bool {
     let tx = ctx.transaction
     if ac == GarbageCollector {
@@ -17,7 +16,7 @@ validator(cfg: BondConfigMaking, bond_type: BondType) {
       expect sdt: BidMaking = d
       when ac is {
         Update -> must_be_signed_by_key(tx.extra_signatories, sdt.owner_vk)?
-        Sell -> sell.spending(ctx, cfg, sdt, bond_type)
+        Sell -> sell.spending(ctx, cfg, sdt)
         _ -> False
       }
     }
