@@ -7,7 +7,6 @@ use aiken/transaction.{DatumHash, InlineDatum, NoDatum, ScriptContext, Spend}
 use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/limit_ask/buy
-use bond/types.{DanogoBond}
 use bond/utils.{get_price_of_bond}
 use bond/v2/fixture.{
   calc_escrow_full_info, gen_ask_limit_datum, gen_input, gen_output,
@@ -187,7 +186,6 @@ test fail_partial_must_only_one_bond_1() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -354,7 +352,6 @@ test fail_partial_must_only_one_bond_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -507,7 +504,6 @@ test fail_partial_change_bond_name() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -669,7 +665,6 @@ test fail_partial_datum_owner_vk_invalid_1() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -830,7 +825,6 @@ test fail_partial_datum_owner_vk_invalid_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -999,7 +993,6 @@ test fail_partial_datum_owner_sk_invalid_1() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1168,7 +1161,6 @@ test fail_partial_datum_owner_sk_invalid_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1329,7 +1321,6 @@ test fail_partial_datum_requested_yield_invalid() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1489,7 +1480,6 @@ test fail_partial_escrow_datum_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1656,7 +1646,6 @@ test fail_escrow_policy_id_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1823,7 +1812,6 @@ test fail_escrow_address_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1983,7 +1971,6 @@ test fail_escrow_datum_not_found() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -2143,7 +2130,6 @@ test fail_escrow_datum_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -2324,7 +2310,6 @@ test fail_escrow_closable() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -2484,7 +2469,6 @@ test fail_buyer_must_not_owner() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -2644,7 +2628,6 @@ test succ_buyer_is_exchange() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -2804,7 +2787,6 @@ test succ_partial() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -2973,7 +2955,6 @@ test succ_full_1() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -3128,7 +3109,6 @@ test succ_full_2() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -3283,7 +3263,6 @@ test fail_not_buy_any() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -3443,7 +3422,6 @@ test fail_partial_validity_end_not_set() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -3603,7 +3581,6 @@ test fail_full_validity_end_not_set_1() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -3758,7 +3735,6 @@ test fail_full_validity_end_not_set_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -3918,7 +3894,6 @@ test fail_partial_validity_end_invalid_aft() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -4078,7 +4053,6 @@ test fail_full_validity_end_invalid_aft_1() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -4233,7 +4207,6 @@ test fail_full_validity_end_invalid_aft_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -4393,7 +4366,6 @@ test fail_partial_validity_end_invalid_pre() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -4553,7 +4525,6 @@ test fail_full_validity_end_invalid_pre_1() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -4708,7 +4679,6 @@ test fail_full_validity_end_invalid_pre_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -4868,7 +4838,6 @@ test succ_bond_policy_id_valid() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -5027,6 +4996,5 @@ test fail_bond_policy_id_invalid() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }

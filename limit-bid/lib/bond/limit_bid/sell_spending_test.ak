@@ -2,7 +2,6 @@
 use aiken/transaction.{InlineDatum, NoDatum, ScriptContext, Spend}
 use aiken/transaction/value
 use bond/limit_bid/sell
-use bond/types.{DanogoBond}
 use bond/utils.{get_price_of_bond}
 use bond/v2/fixture.{
   calc_escrow_full_info, gen_bid_limit_datum, gen_input, gen_output,
@@ -112,7 +111,6 @@ test succ_full() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -214,7 +212,6 @@ test succ_partial() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -316,7 +313,6 @@ test fail_input_epoch_1() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -418,7 +414,6 @@ test fail_input_epoch_2() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
   // let current_epoch =
   //   posix_time_to_relative_epoch(
@@ -533,7 +528,6 @@ test fail_input_epoch_3() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -635,7 +629,6 @@ test fail_input_epoch_4() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
   // let current_epoch =
   //   posix_time_to_relative_epoch(
@@ -747,7 +740,6 @@ test fail_input_qty() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -842,7 +834,6 @@ test fail_output_qty() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -944,7 +935,6 @@ test fail_validity_after_not_set() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1047,7 +1037,6 @@ test fail_owner_address_format() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1149,7 +1138,6 @@ test fail_escrow_policy_id_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1251,7 +1239,6 @@ test fail_escrow_address_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1353,7 +1340,6 @@ test fail_escrow_datum_not_found() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1455,7 +1441,6 @@ test fail_escrow_datum_unexpect() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1558,7 +1543,6 @@ test succ_bond_policy_id_valid() {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
 
@@ -1660,6 +1644,5 @@ test fail_bond_policy_id_invalid() fail {
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
     sc_in_datum_1,
-    DanogoBond,
   )
 }
