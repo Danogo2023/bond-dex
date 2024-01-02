@@ -8,7 +8,7 @@ use aiken/transaction/credential.{Address}
 use aiken/transaction/value
 use bond/constraint.{ask_limit_valid, yield_valid}
 use bond/limit_ask/utils.{head_escrow_ref}
-use bond/types.{AskLimit, BondConfigLimit, BondType, EscrowInfo}
+use bond/types.{AskLimit, BondConfigLimit, EscrowInfo}
 use bond/utils.{get_price_of_bond} as bond_utils
 use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
@@ -31,7 +31,6 @@ pub fn spending(
   ctx: ScriptContext,
   cfg: BondConfigLimit,
   sask_dt: AskLimit,
-  bond_type: BondType,
 ) -> Bool {
   let tx: Transaction = ctx.transaction
   when
@@ -53,7 +52,6 @@ pub fn spending(
             cfg.escrow,
             tx.reference_inputs,
             tx.datums,
-            [bond_type],
             tx_time_valid,
             epo_curr,
           )
