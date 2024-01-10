@@ -1,0 +1,149 @@
+<mxfile host="65bd71144e">
+    <diagram id="NrLGPHyMQpCCdDm0QkeN" name="Page-1">
+        <mxGraphModel dx="1130" dy="673" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="46" style="edgeStyle=none;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;" parent="1" source="3" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="310" y="130"/>
+                            <mxPoint x="310" y="260"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="3" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;User UTxO&lt;/b&gt;&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold; white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 1 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="90" width="250" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" style="edgeStyle=segmentEdgeStyle;shape=connector;curved=0;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=default;endArrow=classic;startSize=8;endSize=8;" parent="1" source="5" target="7" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="540" y="260"/>
+                            <mxPoint x="540" y="260"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="5" value="Ask Limit Update" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" parent="1" vertex="1">
+                    <mxGeometry x="350" y="230" width="125" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;Ask Limit UTxO&lt;br&gt;&lt;/b&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;address:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment: Ask Limit Script Credential&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake: user SPO pubkey Credential&lt;br&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;datum:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment_key:&amp;nbsp;04b058fbc736588695...&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake_key:&amp;nbsp;41fa931b257f64696f831...&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;requested_yield: 500&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 2 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="170" width="250" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="47" style="edgeStyle=none;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="26" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="310" y="410"/>
+                            <mxPoint x="310" y="260"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="26" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;Ask Limit UTxO&lt;br&gt;&lt;/b&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;address:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment: Ask Limit Script Credential&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake: user SPO pubkey Credential&lt;br&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;datum:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment_key:&amp;nbsp;04b058fbc736588695...&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake_key:&amp;nbsp;41fa931b257f64696f831...&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;requested_yield: 600&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 1 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="320" width="250" height="180" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="SM3fCKX_ZDp2p318QDgM" name="Page-2">
+        <mxGraphModel dx="1130" dy="673" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;" parent="1" source="w_RAkPDGyL5ZJyS2BxT_-2" target="w_RAkPDGyL5ZJyS2BxT_-4" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="310" y="290"/>
+                            <mxPoint x="310" y="420"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-2" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;User UTxO&lt;/b&gt;&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold; white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="250" width="250" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-3" style="edgeStyle=segmentEdgeStyle;shape=connector;curved=0;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=default;endArrow=classic;startSize=8;endSize=8;" parent="1" source="w_RAkPDGyL5ZJyS2BxT_-4" target="w_RAkPDGyL5ZJyS2BxT_-6" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="510" y="420"/>
+                            <mxPoint x="510" y="570"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-4" value="Ask Limit Update" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" parent="1" vertex="1">
+                    <mxGeometry x="350" y="390" width="125" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-5" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;User UTxO&lt;/b&gt;&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 1 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="250" width="250" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-6" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;Ask Limit UTxO&lt;br&gt;&lt;/b&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;address:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment: Ask Limit Script Credential&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake: user SPO pubkey Credential&lt;br&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;datum:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment_key:&amp;nbsp;04b058fbc736588695...&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake_key:&amp;nbsp;41fa931b257f64696f831...&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;requested_yield: 500&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 1 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="480" width="250" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-7" value="" style="edgeStyle=segmentEdgeStyle;endArrow=classic;html=1;curved=0;rounded=0;endSize=8;startSize=8;strokeColor=default;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="w_RAkPDGyL5ZJyS2BxT_-4" target="w_RAkPDGyL5ZJyS2BxT_-5" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="410" y="270" as="sourcePoint"/>
+                        <mxPoint x="460" y="220" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="510" y="420"/>
+                            <mxPoint x="510" y="290"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-8" style="edgeStyle=none;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;" parent="1" source="w_RAkPDGyL5ZJyS2BxT_-9" target="w_RAkPDGyL5ZJyS2BxT_-4" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="310" y="580"/>
+                            <mxPoint x="310" y="420"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w_RAkPDGyL5ZJyS2BxT_-9" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;Ask Limit UTxO&lt;br&gt;&lt;/b&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;address:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment: Ask Limit Script Credential&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake: user SPO pubkey Credential&lt;br&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;datum:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment_key:&amp;nbsp;04b058fbc736588695...&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake_key:&amp;nbsp;41fa931b257f64696f831...&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;requested_yield: 600&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 2 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="480" width="250" height="180" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="Cyfi65KCVvV4HE0ctflp" name="Page-3">
+        <mxGraphModel dx="1130" dy="-427" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-1" style="edgeStyle=none;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;" parent="1" source="LmThE_vNdY6_AEX4C1x3-2" target="LmThE_vNdY6_AEX4C1x3-3" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="320" y="1300"/>
+                            <mxPoint x="320" y="1430"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-2" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;User UTxO&lt;/b&gt;&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold; white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="1260" width="250" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-3" value="Ask Limit Update" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="1400" width="125" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-4" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;User UTxO&lt;/b&gt;&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 4 ADA&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 2 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="570" y="1390" width="250" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-5" value="" style="edgeStyle=segmentEdgeStyle;endArrow=classic;html=1;curved=0;rounded=0;endSize=8;startSize=8;strokeColor=default;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="LmThE_vNdY6_AEX4C1x3-3" target="LmThE_vNdY6_AEX4C1x3-4" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="420" y="1280" as="sourcePoint"/>
+                        <mxPoint x="470" y="1230" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="540" y="1430"/>
+                            <mxPoint x="540" y="1430"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-6" style="edgeStyle=none;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;" parent="1" source="LmThE_vNdY6_AEX4C1x3-7" target="LmThE_vNdY6_AEX4C1x3-3" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="320" y="1590"/>
+                            <mxPoint x="320" y="1430"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="LmThE_vNdY6_AEX4C1x3-7" value="&amp;nbsp; &amp;nbsp;&lt;b&gt;Ask Limit UTxO&lt;br&gt;&lt;/b&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;address:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment: Ask Limit Script Credential&lt;br&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake: user SPO pubkey Credential&lt;br&gt;&amp;nbsp; &amp;nbsp;&lt;b&gt;datum:&lt;br&gt;&lt;/b&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;payment_key:&amp;nbsp;04b058fbc736588695...&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;stake_key:&amp;nbsp;41fa931b257f64696f831...&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;requested_yield: 600&lt;br&gt;&lt;b&gt;&amp;nbsp; &amp;nbsp;assets:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-weight: bold;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;coin: 2 ADA&lt;br&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;token: 2 bond token" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="1490" width="250" height="180" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
