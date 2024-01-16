@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - 2024-01-30
+## [1.0.0] - 2024-01-30
 
 This is the first documented and supported implementation. It contains some main points:
 
@@ -15,7 +15,7 @@ This is the first documented and supported implementation. It contains some main
 
 - bond/limit_bid: Add `Sell`, `Utils`
 - validators: 
-  Add `bond_limit.bid` with `Update`, `Sell`, `GarbageCollector` redeemer
+  Add `bond_limit.bid_multi` with `Update`, `Sell` redeemer
 
 All future Changelog entries will reference this base
 

@@ -13,7 +13,7 @@ This is the first documented and supported implementation. It contains some main
 
 ### Added
 
-- bond: Add `limit_ask`, `limit_bid`, `limit_bid_multi`, `making_ask`, `making_bid`
+- bond: Add `limit_ask`, `limit_bid`, `making_ask`, `making_bid`
 - docs: Add 
 
 All future Changelog entries will reference this base

@@ -15,7 +15,7 @@ This is the first documented and supported implementation. It contains some main
 
 - bond/limit_ask: Add `Buy`, `Utils`
 - validators: 
-  Add `bond_limit.ask` with `Update`, `Buy`, `GarbageCollector` redeemer
+  Add `bond_limit.ask` with `Update`, `Buy` redeemer
 
 All future Changelog entries will reference this base
 
