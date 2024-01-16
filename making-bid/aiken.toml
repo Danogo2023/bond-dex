@@ -1,5 +1,5 @@
 name = "danogo2023/bond-dex/making-bid"
-version = "2.0.0"
+version = "2.0.1"
 license = "Apache-2.0"
 description = "Danogo Bond Exchanges: Bid Making Optim Bond"
 
@@ -15,5 +15,5 @@ source = "github"
 
 [[dependencies]]
 name = "danogo2023/daken"
-version = "v1.0.2"
+version = "v1.0.3"
 source = "github"

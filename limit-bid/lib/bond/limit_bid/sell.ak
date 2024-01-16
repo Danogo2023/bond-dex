@@ -6,9 +6,9 @@ use aiken/option
 use aiken/transaction.{InlineDatum, Output, ScriptContext, Spend, Transaction}
 use aiken/transaction/credential.{Address, PaymentCredential}
 use aiken/transaction/value
-use bond/constraint.{bid_limit_valid, epoch_valid, yield_valid}
+use bond/constraint.{bid_limit_multi_valid, epoch_valid, yield_valid}
 use bond/limit_bid/utils.{head_escrow_ref}
-use bond/types.{BidLimit, BondConfigLimit, EscrowInfo}
+use bond/types.{BidLimitMulti, BondConfigLimit, EscrowInfo}
 use bond/utils.{get_price_of_bond} as bond_utils
 use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
@@ -34,7 +34,7 @@ pub type BizOutput {
 pub fn spending(
   ctx: ScriptContext,
   cfg: BondConfigLimit,
-  sbid_dt: BidLimit,
+  sbid_dt: BidLimitMulti,
 ) -> Bool {
   let tx = ctx.transaction
   when
@@ -59,6 +59,7 @@ pub fn spending(
             cfg.escrow,
             tx.reference_inputs,
             tx.datums,
+            sbid_dt.bond_types,
             tx_time_valid,
             epo_curr,
           )
@@ -160,7 +161,7 @@ pub fn spending(
                           oaddr.payment_credential == sbid_addr.payment_credential
                         if is_obid_order {
                           if (z.sc_value == 0)? {
-                            expect obid_dt: BidLimit =
+                            expect obid_dt: BidLimitMulti =
                               when o.datum is {
                                 InlineDatum(d) -> d
                                 _ ->
@@ -176,8 +177,7 @@ pub fn spending(
                                 obid_dt.to_epoch,
                                 obid_dt.quantity,
                               ),
-                              bid_limit_valid(obid_dt, sbid_dt),
-                              (obid_dt.quantity > 0)?,
+                              bid_limit_multi_valid(obid_dt, sbid_dt),
                               (obid_dt.quantity < sbid_dt.quantity)?,
                             } {
                               BizOutput {
@@ -272,7 +272,7 @@ fn spending_correct(
   tx: Transaction,
   cfg: BondConfigLimit,
   escrow_info: EscrowInfo,
-  sbid_dt: BidLimit,
+  sbid_dt: BidLimitMulti,
   biz_input: BizInput,
   biz_output: BizOutput,
   buyer_addr: Address,
