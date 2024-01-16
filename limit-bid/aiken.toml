@@ -1,7 +1,7 @@
 name = "danogo2023/bond-dex/limit-bid"
-version = "2.0.0"
+version = "2.0.1"
 license = "Apache-2.0"
-description = "Danogo Bond Exchanges: Bid Limit Optim Bond"
+description = "Danogo Bond Exchanges: Bid Limit Optim & Danogo Bond"
 
 [repository]
 user = "danogo2023/bond-dex"
@@ -15,5 +15,5 @@ source = "github"
 
 [[dependencies]]
 name = "danogo2023/daken"
-version = "v1.0.2"
+version = "v1.0.3"
 source = "github"

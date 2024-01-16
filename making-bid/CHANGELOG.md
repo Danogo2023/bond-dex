@@ -15,7 +15,7 @@ This is the first documented and supported implementation. It contains some main
 
 - bond/bond_making: Add `Sell`, `Utils`
 - validators: 
-  Add `bond_making.bid` with `Update`, `Sell`, `GarbageCollector` redeemer
+  Add `bond_making.bid` with `Update`, `Sell` redeemer
 
 All future Changelog entries will reference this base
 
