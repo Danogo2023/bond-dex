@@ -3,16 +3,13 @@ use aiken/dict.{Dict}
 use aiken/list
 use aiken/string
 use aiken/time.{PosixTime} as aiken_time
-use aiken/transaction.{
-  DatumHash, InlineDatum, Input, NoDatum, Output,
-}
+use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum, Output}
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value
-use bond/types.{
-  BondType, EscrowConfig, EscrowDatum, EscrowInfo,
-  PlatformConfig,
-} as bond_types
+use bond/types.{BondType,
+  EscrowConfig, EscrowDatum, EscrowInfo, PlatformConfig} as bond_types
 use bond/utils.{get_day_to_maturity} as bond_utils
+use common/pvalue
 use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
 use common/time.{Basis, EpochTime} as common_time
 use common/types.{AssetUnit, Datums, Error, Lovelace, OK, Result}
@@ -162,7 +159,8 @@ fn find_escrow_ref_finalize(
   break: Bool,
 ) -> (Bool, Result<EscrowRef, String>) {
   // Tong tien lai moi epoch Borrower phai tra
-  let escrow_epo_rewards = value.lovelace_of(escrow_dt.epo_rewards)
+  let escrow_epo_rewards =
+    value.lovelace_of(escrow_dt.epo_rewards |> pvalue.to_value)
   if and {
     (escrow_dt.bond_amount > 0)?,
     (escrow_epo_rewards > 0)?,
