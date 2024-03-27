@@ -17,14 +17,6 @@ use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, Lovelace, OK} as common_types
 use common/util.{get_payment_key} as common_utils
 
-pub type TradeAction {
-  Update
-  Buy
-  Sell
-  Upgrade
-  GarbageCollector
-}
-
 pub type BizInput {
   sc_value: Lovelace,
   seller_value: Int,
