@@ -1,10 +1,7 @@
 // Bid Making
 use aiken/transaction.{ScriptContext}
-use bond/making_bid/sell
-use bond/types.{
-  BidMaking, BondConfigMakingRaw, Sell, TradeAction, Update,
-  bond_config_making_from_raw,
-}
+use bond/making_bid/sell.{Sell, TradeAction, Update}
+use bond/types.{BidMaking, BondConfigMakingRaw, bond_config_making_from_raw}
 use common/util.{must_be_signed_by_key} as common_utils
 
 validator(cfg: BondConfigMakingRaw) {
