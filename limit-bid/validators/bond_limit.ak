@@ -1,10 +1,7 @@
 // Bid Limit Multi
 use aiken/transaction.{ScriptContext}
-use bond/limit_bid/sell
-use bond/types.{
-  BidLimitMulti, BondConfigLimitRaw, Sell, TradeAction, Update,
-  bond_config_limit_from_raw,
-}
+use bond/limit_bid/sell.{Sell, TradeAction, Update}
+use bond/types.{BidLimitMulti, BondConfigLimitRaw, bond_config_limit_from_raw}
 use common/util.{must_be_signed_by_key} as common_utils
 
 validator(cfg: BondConfigLimitRaw) {
