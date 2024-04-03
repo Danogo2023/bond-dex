@@ -1,200 +1,16 @@
 // Bid Limit Multi
 use aiken/dict.{Dict}
 use aiken/list
-use aiken/string
 use aiken/time.{PosixTime} as aiken_time
-use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum, Output}
-use aiken/transaction/credential.{Address, ScriptCredential}
-use aiken/transaction/value
-use bond/types.{BondType,
-  EscrowConfig, EscrowDatum, EscrowInfo, PlatformConfig} as bond_types
+use aiken/transaction/value.{Value}
+use bond/types.{EscrowDatum, EscrowInfo, PlatformConfig} as bond_types
 use bond/utils.{get_day_to_maturity} as bond_utils
-use common/pvalue
-use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
+use common/string.{bconcat_3} as common_string
 use common/time.{Basis, EpochTime} as common_time
-use common/types.{AssetUnit, Datums, Error, Lovelace, OK, Result}
-use common/util.{find_while}
+use common/types.{AssetUnit, Error, Lovelace, OK, Result}
 
 pub type EscrowRef =
   Dict<AssetUnit, EscrowInfo>
-
-pub fn head_escrow_ref(
-  platform_cfg: PlatformConfig,
-  escrow_cfg: EscrowConfig,
-  tx_ref_inputs: List<Input>,
-  tx_datums: Datums,
-  bond_types: List<BondType>,
-  tx_time: PosixTime,
-  epo_curr: EpochTime,
-) -> Result<EscrowRef, String> {
-  find_escrow_ref_with(
-    escrow_cfg,
-    tx_ref_inputs,
-    tx_datums,
-    bond_types,
-    fn(escrow_ref, bond_unit, escrow_dt, escrow_input) {
-      find_escrow_ref_finalize(
-        platform_cfg,
-        escrow_ref,
-        bond_unit,
-        escrow_dt,
-        escrow_input,
-        tx_time,
-        epo_curr,
-        True,
-      )
-    },
-  )
-}
-
-fn find_escrow_ref_with(
-  escrow_cfg: EscrowConfig,
-  tx_ref_inputs: List<Input>,
-  tx_datums: Datums,
-  bond_types: List<BondType>,
-  with: fn(EscrowRef, AssetUnit, EscrowDatum, Input) ->
-    (Bool, Result<EscrowRef, String>),
-) -> Result<EscrowRef, String> {
-  find_while(
-    tx_ref_inputs,
-    OK(dict.new()),
-    fn(i, z) {
-      when i.output.address.payment_credential is {
-        ScriptCredential(k) ->
-          when dict.get(escrow_cfg, k) is {
-            Some((escrow_nft_pid, bond_type)) ->
-              if list.has(bond_types, bond_type) {
-                when
-                  value.tokens(i.output.value, escrow_nft_pid) |> dict.to_list
-                is {
-                  [(n, q)] ->
-                    if q == 1 {
-                      expect OK(escrow_ref) = z
-                      let data =
-                        when i.output.datum is {
-                          NoDatum -> None
-                          DatumHash(h) -> dict.get(tx_datums, h)
-                          InlineDatum(d) -> Some(d)
-                        }
-                      when data is {
-                        Some(dt) -> {
-                          expect escrow_dt: EscrowDatum = dt
-                          if n == escrow_dt.token_name {
-                            with(
-                              escrow_ref,
-                              to_unit_3(
-                                escrow_dt.bond_symbol,
-                                @".",
-                                escrow_dt.token_name,
-                              ),
-                              escrow_dt,
-                              i,
-                            )
-                          } else {
-                            (
-                              True,
-                              Error(
-                                bconcat_1(
-                                  bconcat_1(
-                                    @"escrow policy id ",
-                                    escrow_nft_pid,
-                                    @" asset name invalid (expected: ",
-                                  ),
-                                  escrow_dt.token_name,
-                                  bconcat_1(@", actual: ", n, @")"),
-                                ),
-                              ),
-                            )
-                          }
-                        }
-                        _ -> (True, Error(@"Escrow datum can't be None"))
-                      }
-                    } else {
-                      (
-                        True,
-                        Error(
-                          bconcat_3(
-                            @"escrow asset ",
-                            to_unit_3(escrow_nft_pid, @".", n),
-                            bconcat_3(
-                              @" qty invalid (expected: 1, actual: ",
-                              string.from_int(q),
-                              @")",
-                            ),
-                          ),
-                        ),
-                      )
-                    }
-                  _ ->
-                    (
-                      True,
-                      Error(
-                        bconcat_1(
-                          @"escrow policy id ",
-                          escrow_nft_pid,
-                          @" asset invalid",
-                        ),
-                      ),
-                    )
-                }
-              } else {
-                (False, z)
-              }
-            _ -> (False, z)
-          }
-        _ -> (False, z)
-      }
-    },
-  )
-}
-
-fn find_escrow_ref_finalize(
-  platform_cfg: PlatformConfig,
-  escrow_ref: EscrowRef,
-  bond_unit: AssetUnit,
-  escrow_dt: EscrowDatum,
-  escrow_input: Input,
-  tx_time: PosixTime,
-  epo_curr: EpochTime,
-  break: Bool,
-) -> (Bool, Result<EscrowRef, String>) {
-  // Tong tien lai moi epoch Borrower phai tra
-  let escrow_epo_rewards =
-    value.lovelace_of(escrow_dt.epo_rewards |> pvalue.to_value)
-  if and {
-    (escrow_dt.bond_amount > 0)?,
-    (escrow_epo_rewards > 0)?,
-  } {
-    let escrow_bal: Lovelace = value.lovelace_of(escrow_input.output.value)
-    when
-      get_escrow_info(
-        platform_cfg,
-        bond_unit,
-        escrow_bal,
-        escrow_dt,
-        escrow_epo_rewards,
-        tx_time,
-        epo_curr,
-      )
-    is {
-      OK(escrow_info) ->
-        (
-          break,
-          OK(
-            dict.insert(
-              escrow_ref,
-              bond_unit,
-              escrow_info,
-              common_string.compare,
-            ),
-          ),
-        )
-      Error(s) -> (True, Error(s))
-    }
-  } else {
-    (True, Error(bconcat_3(@"bond ", bond_unit, @" datum invalid")))
-  }
-}
 
 pub fn get_escrow_info(
   platform_cfg: PlatformConfig,
@@ -275,4 +91,16 @@ pub fn get_escrow_info(
   } else {
     Error(bconcat_3(@"bond ", bond_unit, @" missing interest"))
   }
+}
+
+/// Prove that the target value is contained inside another value. Each token
+/// inside the target must exist inside the total value. The quantity of each
+/// token must be at least the target amount or greater.
+///
+/// ```aiken
+/// values.contains(payment_value, output_value)
+/// ```
+pub fn contains(target: Value, total: Value) -> Bool {
+  let flat = target |> value.negate |> value.merge(total) |> value.flatten
+  list.all(flat, fn(v) { v.3rd > 0 })
 }
