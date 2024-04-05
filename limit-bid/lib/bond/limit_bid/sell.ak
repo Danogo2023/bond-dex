@@ -119,7 +119,7 @@ pub fn constraint(
             } else if i.output.address.payment_credential == owner_vkc {
               fail @"buyer input is not allowed"
             } else if i.output.address.payment_credential == sbid.output.address.payment_credential {
-              expect idt: BidLimitMulti = data.input_datum(sbid)
+              expect idt: BidLimitMulti = data.input_datum(i)
               if owner_vkc == VerificationKeyCredential(idt.owner_vk) {
                 InputDt {
                   sum_bid_lovelace_by_owner: z.sum_bid_lovelace_by_owner + value.lovelace_of(
@@ -192,12 +192,12 @@ fn sum_redeemer_dt(
           if
           in.output.address.payment_credential == sbid.output.address.payment_credential{
           
+            expect idt: BidLimitMulti = data.input_datum(in)
             expect r: TradeAction = v
             when r is {
-              Sell { exchange_fee, seller_receive, offers, cont_idx } -> {
-                expect idt: BidLimitMulti = data.input_datum(in)
-                let (bond_by_owner, sum_seller_receive) =
-                  if idt.owner_vk == sbid_dt.owner_vk {
+              Sell { exchange_fee, seller_receive, offers, cont_idx } ->
+                if idt.owner_vk == sbid_dt.owner_vk {
+                  let (bond_by_owner, sum_seller_receive) =
                     (
                       list.foldl(
                         offers,
@@ -206,36 +206,34 @@ fn sum_redeemer_dt(
                       ),
                       z.sum_seller_receive + seller_receive,
                     )
-                  } else {
-                    (z.bond_by_owner, z.sum_seller_receive)
+                  when cont_idx is {
+                    Some(i) ->
+                      when dict.get(z.cont_idx_set, i) is {
+                        Some(_) -> fail @"duplicate cont idx"
+                        _ ->
+                          RedeemerDt {
+                            sum_exchange_fee: exchange_fee + z.sum_exchange_fee,
+                            bond_by_owner,
+                            cont_idx_set: dict.insert(
+                              z.cont_idx_set,
+                              i,
+                              True,
+                              int.compare,
+                            ),
+                            sum_seller_receive,
+                          }
+                      }
+                    _ ->
+                      RedeemerDt {
+                        ..z,
+                        sum_exchange_fee: exchange_fee + z.sum_exchange_fee,
+                        bond_by_owner: bond_by_owner,
+                        sum_seller_receive: sum_seller_receive,
+                      }
                   }
-                when cont_idx is {
-                  Some(i) ->
-                    when dict.get(z.cont_idx_set, i) is {
-                      Some(_) -> fail @"duplicate cont idx"
-                      _ ->
-                        RedeemerDt {
-                          sum_exchange_fee: exchange_fee + z.sum_exchange_fee,
-                          bond_by_owner,
-                          cont_idx_set: dict.insert(
-                            z.cont_idx_set,
-                            i,
-                            True,
-                            int.compare,
-                          ),
-                          sum_seller_receive,
-                        }
-                    }
-                  _ ->
-                    RedeemerDt {
-                      ..z,
-                      sum_exchange_fee: exchange_fee + z.sum_exchange_fee,
-                      bond_by_owner: bond_by_owner,
-                      sum_seller_receive: sum_seller_receive,
-                    }
+                } else {
+                  z
                 }
-              }
-
               _ -> z
             }
           } else {
@@ -284,18 +282,18 @@ fn sum_output_dt(
           buyer_lovelace: z.buyer_lovelace + value.lovelace_of(o.value),
         }
       } else if o.address == sbid.output.address {
-        let r =
-          when cont_idx is {
-            Some(i) ->
-              if i == idx {
-                OutputDt { ..z, cont_bid: Some(o) }
-              } else {
-                z
-              }
-            _ -> z
-          }
         expect odt: BidLimitMulti = data.output_datum(o)
         if sbid_owner_vkc == VerificationKeyCredential(odt.owner_vk) {
+          let r =
+            when cont_idx is {
+              Some(i) ->
+                if i == idx {
+                  OutputDt { ..z, cont_bid: Some(o) }
+                } else {
+                  z
+                }
+              _ -> z
+            }
           OutputDt {
             ..r,
             sum_bid_lovelace_by_owner: r.sum_bid_lovelace_by_owner + value.lovelace_of(
@@ -303,7 +301,7 @@ fn sum_output_dt(
             ),
           }
         } else {
-          r
+          z
         }
       } else {
         when o.address.payment_credential is {
