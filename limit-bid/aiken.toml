@@ -17,3 +17,8 @@ source = "github"
 name = "danogo2023/daken"
 version = "v1.1.0"
 source = "github"
+
+[[dependencies]]
+name = "t0anh/aiken-stringify"
+version = "main"
+source = "github"
