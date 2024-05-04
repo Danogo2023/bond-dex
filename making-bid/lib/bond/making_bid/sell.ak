@@ -88,13 +88,13 @@ pub fn spending(
                   let buyer_addr: Address =
                     sbid_dt.owner_sk
                       |> option.and_then(
-                           fn(s) {
-                             Some(
-                               credential.from_script(sbid_dt.ask_sc)
-                                 |> credential.with_delegation_key(s),
-                             )
-                           },
-                         )
+                          fn(s) {
+                            Some(
+                              credential.from_script(sbid_dt.ask_sc)
+                                |> credential.with_delegation_key(s),
+                            )
+                          },
+                        )
                       |> option.or_else(credential.from_script(sbid_dt.ask_sc))
                   let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
@@ -110,9 +110,9 @@ pub fn spending(
                       fn(i, z) {
                         let ivalue = value.lovelace_of(i.output.value)
                         let iaddr = i.output.address
-                        let is_ibid_order =
-                          iaddr.payment_credential == sbid_addr.payment_credential
-                        if is_ibid_order {
+                        if
+                        iaddr.payment_credential == sbid_addr.payment_credential{
+                        
                           if z.sc_value == 0 {
                             BizInput { ..z, sc_value: ivalue }
                           } else {
@@ -160,10 +160,13 @@ pub fn spending(
                       fn(o, z) {
                         let ovalue = value.lovelace_of(o.value)
                         let oaddr = o.address
-                        let is_obid_order =
-                          oaddr.payment_credential == sbid_addr.payment_credential
-                        if is_obid_order {
-                          if (z.sc_value == 0)? {
+                        if
+                        oaddr.payment_credential == sbid_addr.payment_credential{
+                        
+                          if and {
+                            (z.sc_value == 0)?,
+                            (oaddr.stake_credential == sbid_addr.stake_credential)?,
+                          } {
                             expect obid_dt: BidMaking =
                               when o.datum is {
                                 InlineDatum(d) -> d

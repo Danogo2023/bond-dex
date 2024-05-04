@@ -458,6 +458,153 @@ test succ_full() {
   )
 }
 
+test fail_partial_when_wrong_stake_key_output() fail {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_making_mainnet()
+  let owner_address = get_seller_address()
+  let sc_in_datum_1 = gen_ask_making_datum(owner_address, 515)
+  let revert_address = from_script(sc_in_datum_1.bid_sc)
+  let bond_name_ask_1 = get_bond_id_1()
+  let bond_name_ask_2 = get_bond_id_2()
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_ask_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
+  let escrow_full_info =
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.value_at_maturity,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.platform.basis.base,
+    )
+  //
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_ask_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let sc_in_bond_qty = 5
+  let sc_in_lovelace = 2068800
+  let sc_address = get_ask_sc_address()
+  let sc_in_1 =
+    gen_input(
+      sc_address |> with_delegation_key("stake key"),
+      sc_in_lovelace,
+      Some(
+        value.from_asset(get_bond_policy_id(), bond_name_ask_1, sc_in_bond_qty),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let buyer_fee_ada = 3000000000
+  let buyer_address = get_buyer_address()
+  let buyer_in_1 =
+    gen_input(
+      buyer_address,
+      buyer_fee_ada,
+      Some(value.from_asset(get_bond_policy_id(), bond_name_ask_2, 3)),
+      NoDatum,
+    )
+  //
+  let buyer_qty = 2
+  let received_at_maturity = escrow_full_info.value_at_maturity * buyer_qty
+  let received_with_yield = price_of_one_bond * buyer_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let exchange_fee_seller =
+    received_diff * cfg.exchange.maker_fee / cfg.platform.basis.base
+  let exchange_fee_buyer =
+    received_diff * cfg.exchange.taker_fee / cfg.platform.basis.base
+  //
+  let sc_remaining_qty = sc_in_bond_qty - buyer_qty
+  let min_ada_to_exchange =
+    when sc_remaining_qty is {
+      0 -> sc_in_lovelace
+      _ -> 0
+    }
+  let exchange_received = exchange_fee_buyer + exchange_fee_seller
+
+  let exchange_address = get_exchange_address()
+  let exchange_out_1 =
+    gen_output(exchange_address, exchange_received, None, NoDatum)
+  let owner_received =
+    received_with_yield - exchange_fee_seller + min_ada_to_exchange
+  let owner_out_bid_datum_1 =
+    gen_bid_making_datum(owner_address, 463, 463, buyer_qty, 516)
+  let owner_out_1 =
+    gen_output(
+      revert_address,
+      owner_received,
+      None,
+      InlineDatum(owner_out_bid_datum_1),
+    )
+  let buyer_received =
+    buyer_fee_ada + sc_in_lovelace - exchange_received - owner_received
+  let buyer_out_1 =
+    gen_output(
+      buyer_address,
+      buyer_received,
+      Some(
+        value.add(
+          value.from_asset(get_bond_policy_id(), bond_name_ask_2, buyer_qty),
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          3,
+        ),
+      ),
+      NoDatum,
+    )
+  let sc_out_1 =
+    gen_output(
+      sc_address |> with_delegation_key("fake stake key"),
+      sc_in_lovelace - min_ada_to_exchange,
+      Some(
+        value.from_asset(
+          get_bond_policy_id(),
+          bond_name_ask_1,
+          sc_remaining_qty,
+        ),
+      ),
+      InlineDatum(sc_in_datum_1),
+    )
+  let tx =
+    fixture.tx(
+      [sc_in_1, buyer_in_1],
+      [refer_in_1],
+      [exchange_out_1, owner_out_1, buyer_out_1, sc_out_1],
+      Some([get_seller_address_hash()]),
+      None,
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    )
+  !buy.spending(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    sc_in_datum_1,
+  )
+}
+
 test fail_partial_must_only_one_bond_1() fail {
   let time_of_tx = 1681095094000
   let cfg = get_config_making_mainnet()

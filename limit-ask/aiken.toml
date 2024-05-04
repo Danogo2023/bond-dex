@@ -1,5 +1,5 @@
 name = "danogo2023/bond-dex/limit-ask"
-version = "2.0.1"
+version = "3.0.0"
 license = "Apache-2.0"
 description = "Danogo Bond Exchanges: Ask Limit Optim Bond"
 

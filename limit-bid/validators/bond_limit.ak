@@ -1,25 +1,37 @@
+use aiken/transaction.{ScriptContext, WithdrawFrom}
+use bond/limit_bid/withdraw
 // Bid Limit Multi
-use aiken/transaction.{ScriptContext}
 use bond/limit_bid/sell
-use bond/limit_bid/types.{Sell, TradeAction, Update} as ctypes
-use bond/types.{BidLimitMulti, BondConfigLimitRaw, bond_config_limit_from_raw}
+use bond/limit_bid/types.{Sell,
+  SellMulti, TradeAction, Update, WithdrawAction} as ctypes
+use bond/types.{BidLimitMulti}
+use bond/types.{BondConfigLimitRaw, bond_config_limit_from_raw} as bond_types
+use common/types.{ScriptKeyHash} as common_types
 use common/util.{must_be_signed_by_key} as common_utils
 
-validator(cfg: BondConfigLimitRaw) {
+validator(multi_bid_sell_skh: ScriptKeyHash) {
   fn bid_multi(sdt: BidLimitMulti, ac: TradeAction, ctx: ScriptContext) -> Bool {
     when ac is {
       Update ->
         must_be_signed_by_key(ctx.transaction.extra_signatories, sdt.owner_vk)?
-      Sell { exchange_fee, seller_receive, offers, cont_idx } ->
-        sell.constraint(
+      Sell { .. } -> sell.constraint(ctx, multi_bid_sell_skh)
+      _ -> False
+    }
+  }
+}
+
+validator(cfg: BondConfigLimitRaw, script_blacklist: List<ScriptKeyHash>) {
+  fn withdraw(redeemer: WithdrawAction, ctx: ScriptContext) -> Bool {
+    when ctx.purpose is {
+      WithdrawFrom { .. } -> {
+        let SellMulti(bid_skh) = redeemer
+        withdraw.constraint(
           ctx,
           bond_config_limit_from_raw(cfg),
-          sdt,
-          exchange_fee,
-          seller_receive,
-          offers,
-          cont_idx,
+          bid_skh,
+          script_blacklist,
         )
+      }
       _ -> False
     }
   }

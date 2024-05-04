@@ -9,28 +9,34 @@ use aiken/transaction.{
   ScriptPurpose, Spend, Transaction, TransactionId,
 }
 use aiken/transaction/credential.{
-  from_script, from_verification_key, with_delegation_key,
+  Address, from_script, from_verification_key, with_delegation_key,
 }
 use aiken/transaction/value
-use bond/limit_bid/sell
 use bond/limit_bid/types.{Sell} as dtypes
+use bond/limit_bid/withdraw
 use bond/types.{
   BidLimitMulti, BondConfigLimit, DanogoBond, ExchangeConfigLimit, OptimBond,
 }
 use bond/utils.{get_price_of_bond}
 use bond/v2/fixture.{
   calc_escrow_full_info, gen_bid_limit_multi_datum, gen_input, gen_output,
-  get_bid_sc_address, get_bond_id_1, get_bond_policy_id, get_buyer_address,
-  get_buyer_address_hash, get_config_limit_mainnet, get_config_limit_preview,
-  get_escrow_address, get_escrow_address_unexpect, get_escrow_datum,
-  get_escrow_policy_id, get_exchange_address, get_input_escrow,
-  get_not_bond_policy_id, get_not_escrow_policy_id, get_seller_address,
+  get_bond_id_1, get_bond_policy_id, get_buyer_address, get_buyer_address_hash,
+  get_config_limit_mainnet, get_config_limit_preview, get_escrow_address,
+  get_escrow_address_unexpect, get_escrow_datum, get_escrow_policy_id,
+  get_exchange_address, get_input_escrow, get_not_bond_policy_id,
+  get_not_escrow_policy_id, get_seller_address,
 }
 use bond_issue/types.{BondDatum, RequestDatum} as bond_issue_types
 use common/pvalue
 use common/time.{slot_to_begin_posix_time}
 
 const min_ada = 2_000_000
+
+const bid_skh = "bid_1"
+
+pub fn get_bid_sc_address() -> Address {
+  from_script(bid_skh)
+}
 
 fn script_purpose_compare(a: ScriptPurpose, b: ScriptPurpose) {
   bytearray.compare(
@@ -150,14 +156,11 @@ test succ_full() {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    None,
+    bid_skh,
+    [],
   )
 }
 
@@ -284,14 +287,11 @@ test succ_partial() {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -419,14 +419,11 @@ test fail_input_epoch_1() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -554,14 +551,11 @@ test fail_input_epoch_2() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -689,14 +683,11 @@ test fail_input_epoch_3() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -824,14 +815,11 @@ test fail_input_epoch_4() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -959,14 +947,11 @@ test fail_input_qty() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1094,14 +1079,11 @@ test fail_output_qty() {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1229,14 +1211,11 @@ test fail_validity_after_not_set() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1364,14 +1343,11 @@ test fail_escrow_policy_id_unexpect() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1499,14 +1475,11 @@ test fail_escrow_address_unexpect() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1634,14 +1607,11 @@ test fail_escrow_datum_not_found() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1769,14 +1739,11 @@ test fail_escrow_datum_unexpect() fail {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -1892,14 +1859,11 @@ test succ_bond_policy_id_valid() {
         script_purpose_compare,
       ),
     }
-  sell.constraint(
+  withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    None,
+    bid_skh,
+    [],
   )
 }
 
@@ -1948,7 +1912,7 @@ test fail_bond_policy_id_invalid() {
       cfg.platform.basis.base,
     )
   //  
-  let bond_sell_qty = 5
+  let bond_sell_qty = 4
   let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
   let received_with_yield = price_of_one_bond * bond_sell_qty
   let received_diff = received_at_maturity - received_with_yield
@@ -2027,14 +1991,11 @@ test fail_bond_policy_id_invalid() {
         script_purpose_compare,
       ),
     }
-  !sell.constraint(
+  !withdraw.constraint(
     ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
     cfg,
-    sc_in_datum_1,
-    exchange_out_lovelace,
-    seller_receive,
-    [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
-    Some(3),
+    bid_skh,
+    [],
   )
 }
 
@@ -2063,17 +2024,19 @@ test succ_spend_multiple_bids_different_owners() {
           ),
     }
   let t = transaction.placeholder()
+  let bid_out_ref =
+    OutputReference(
+      TransactionId(
+        #"3767ab13fe42e26895de6ccb4392bee165c1f219b611a2a1b53c7509dd294bdb",
+      ),
+      0,
+    )
   let tx =
     Transaction {
       ..t,
       inputs: [
         Input {
-          output_reference: OutputReference(
-            TransactionId(
-              #"3767ab13fe42e26895de6ccb4392bee165c1f219b611a2a1b53c7509dd294bdb",
-            ),
-            0,
-          ),
+          output_reference: bid_out_ref,
           output: Output {
             value: value.from_lovelace(107_377_022),
             address: from_script(
@@ -2418,76 +2381,10 @@ test succ_spend_multiple_bids_different_owners() {
       ),
     }
 
-  and {
-    sell.constraint(
-      ScriptContext {
-        purpose: Spend(
-          OutputReference(
-            TransactionId(
-              #"3767ab13fe42e26895de6ccb4392bee165c1f219b611a2a1b53c7509dd294bdb",
-            ),
-            0,
-          ),
-        ),
-        transaction: tx,
-      },
-      cfg,
-      BidLimitMulti {
-        owner_vk: #"e53e7dcbec658da2c0f729f7e225ee81797e00f59496fc38cf67e14a",
-        owner_sk: Some(
-          #"1eda16e062501fc351d3e4e53d9435283f83f7effddb9d29b6d696ab",
-        ),
-        from_epoch: 36062,
-        to_epoch: 36126,
-        quantity: 1,
-        requested_yield: 533,
-        bond_types: [DanogoBond, OptimBond],
-      },
-      exchange_fee: 28730,
-      seller_receive: 100370962,
-      offers: [
-        (
-          #"84e7fdfa7c0c5a5b25338435868a1413c2b8bf2315dcf9989991b9c4",
-          #"effba5f04b6a2decaac47011e123a444dcce40532ffa6b953f461c35a60fdf30",
-          1,
-        ),
-      ],
-      cont_idx: None,
-    ),
-    sell.constraint(
-      ScriptContext {
-        purpose: Spend(
-          OutputReference(
-            TransactionId(
-              #"85548771a5861c5ff55eb880a38667fbe2f5d8dac03b63bce31d4fa9f6520e72",
-            ),
-            0,
-          ),
-        ),
-        transaction: tx,
-      },
-      cfg,
-      BidLimitMulti {
-        owner_vk: #"f05c5cf98d1aed3a20cf4f60260d6b96d10922a2c3f0356277aa9550",
-        owner_sk: Some(
-          #"27cd6c01b37340fc2b3f9ce59bd825e4a0713d841d0294213bf1958e",
-        ),
-        from_epoch: 36079,
-        to_epoch: 36126,
-        quantity: 10,
-        requested_yield: 500,
-        bond_types: [DanogoBond, OptimBond],
-      },
-      exchange_fee: 269762,
-      seller_receive: 1004596119,
-      offers: [
-        (
-          #"84e7fdfa7c0c5a5b25338435868a1413c2b8bf2315dcf9989991b9c4",
-          #"dc287c96cb4425252ce946cbf4df030a8d9823fded15bc86514ad99108223d7b",
-          10,
-        ),
-      ],
-      cont_idx: None,
-    ),
-  }
+  withdraw.constraint(
+    ScriptContext { transaction: tx, purpose: Spend(bid_out_ref) },
+    cfg,
+    #"aa1a6ce68c5b672cddff867598db3a199233fbd24e70711c882c23ea",
+    [],
+  )
 }

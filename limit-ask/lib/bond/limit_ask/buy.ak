@@ -70,18 +70,16 @@ pub fn spending(
                   let seller_addr: Address =
                     sask_dt.owner_sk
                       |> option.and_then(
-                           fn(s) {
-                             Some(
-                               credential.from_verification_key(
-                                 sask_dt.owner_vk,
-                               )
-                                 |> credential.with_delegation_key(s),
-                             )
-                           },
-                         )
+                          fn(s) {
+                            Some(
+                              credential.from_verification_key(sask_dt.owner_vk)
+                                |> credential.with_delegation_key(s),
+                            )
+                          },
+                        )
                       |> option.or_else(
-                           credential.from_verification_key(sask_dt.owner_vk),
-                         )
+                          credential.from_verification_key(sask_dt.owner_vk),
+                        )
                   let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
                     list.foldr(
@@ -95,10 +93,9 @@ pub fn spending(
                             escrow_info.bond_symbol,
                             escrow_info.token_name,
                           )
-                        let iaddr = i.output.address
-                        let is_iask_order =
-                          iaddr.payment_credential == sask_addr.payment_credential
-                        if is_iask_order {
+                        if
+                        i.output.address.payment_credential == sask_addr.payment_credential{
+                        
                           if z.sc_bond_qty == 0 {
                             let sc_bond_names =
                               dict.keys(
@@ -146,10 +143,13 @@ pub fn spending(
                             escrow_info.token_name,
                           )
                         let oaddr = o.address
-                        let is_oask_order =
-                          oaddr.payment_credential == sask_addr.payment_credential
-                        if is_oask_order {
-                          if (z.sc_bond_qty == 0)? {
+                        if
+                        o.address.payment_credential == sask_addr.payment_credential{
+                        
+                          if and {
+                            (z.sc_bond_qty == 0)?,
+                            (o.address.stake_credential == sask_addr.stake_credential)?,
+                          } {
                             let sc_bond_names =
                               dict.keys(
                                 value.tokens(o.value, escrow_info.bond_symbol),
