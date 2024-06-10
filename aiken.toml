@@ -1,0 +1,24 @@
+name = "danogo2023/bond-dex"
+version = "3.0.1"
+license = "Apache-2.0"
+description = "Danogo Bond Exchanges"
+
+[repository]
+user = "danogo2023"
+project = "bond-dex"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "1.7.0"
+source = "github"
+
+[[dependencies]]
+name = "danogo2023/daken"
+version = "v1.1.0"
+source = "github"
+
+[[dependencies]]
+name = "t0anh/aiken-stringify"
+version = "v1.0.0"
+source = "github"

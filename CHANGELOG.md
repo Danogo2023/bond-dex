@@ -13,8 +13,25 @@ This is the first documented and supported implementation. It contains some main
 
 ### Added
 
-- bond: Add `limit_ask`, `limit_bid`, `making_ask`, `making_bid`
-- docs: Add 
+#### 1. Limit Ask
+- bond/limit_ask: Add `Buy`, `Utils`
+- validators: 
+  Add `limit_ask.ak` with `Update`, `Buy` redeemer
+
+#### 2. Limit Bid
+- bond/limit_bid: Add `Sell`, `Utils`
+- validators: 
+  Add `limit_bid.ak` with `Update`, `Sell` redeemer
+
+#### 3. Making Ask
+- bond/making_ask: Add `Buy`, `Utils`
+- validators: 
+  Add `making_ask.ak` with `Update`, `Buy` redeemer
+
+#### 4. Making Bid
+- bond/making_bid: Add `Sell`, `Utils`
+- validators: 
+  Add `making_bid.ak` with `Update`, `Sell` redeemer
 
 All future Changelog entries will reference this base
 
