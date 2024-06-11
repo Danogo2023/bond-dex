@@ -5,7 +5,7 @@ use aiken/list
 use aiken/option
 use aiken/transaction.{InlineDatum, ScriptContext, Spend, Transaction}
 use aiken/transaction/credential.{Address, PaymentCredential}
-use aiken/transaction/value
+use aiken/transaction/value.{Value, ada_asset_name, ada_policy_id}
 use bond/common/constraint.{
   ask_making_valid, bid_making_valid, epoch_valid, yield_valid,
 }
@@ -18,18 +18,12 @@ use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
 use common/types.{Error, Lovelace, OK, ScriptKeyHash} as common_types
 use common/util.{get_payment_key} as common_utils
 
-pub type BizInput {
-  sc_value: Lovelace,
-  sc_bond_qty: Int,
-}
-
 pub type BizOutput {
-  sc_value: Lovelace,
-  sc_bond_qty: Int,
-  seller_value: Lovelace,
-  seller_bond_qty: Int,
-  fee_value: Lovelace,
-  buyer_pk: List<PaymentCredential>,
+  oask_value: Value,
+  rbid_value: Value,
+  rbid_qty: Int,
+  fee_lovelace: Lovelace,
+  buyer_payment_creds: List<PaymentCredential>,
 }
 
 pub fn spending(
@@ -66,6 +60,12 @@ pub fn spending(
             when escrow_ref |> dict.to_list is {
               [(bond_unit, escrow_info)] ->
                 if (escrow_info.end_epoch >= epo_curr)? {
+                  let EscrowInfo { bond_symbol, token_name, .. } = escrow_info
+                  let bond_quantity_of =
+                    fn(v: Value) {
+                      value.quantity_of(v, bond_symbol, token_name)
+                    }
+
                   expect Spend(sask_out_ref) = ctx.purpose
                   expect Some(sask) =
                     list.find(
@@ -76,7 +76,7 @@ pub fn spending(
                   let sask_pk: ByteArray = get_payment_key(sask_addr)
                   let owner_addr: Address =
                     credential.from_verification_key(sask_dt.owner_vk)
-                  let seller_addr: Address =
+                  let rbid_addr: Address =
                     sask_dt.owner_sk
                       |> option.and_then(
                           fn(s) {
@@ -88,23 +88,17 @@ pub fn spending(
                         )
                       |> option.or_else(credential.from_script(sask_dt.bid_sc))
                   let fee_addr: Address = cfg.exchange.fee_addr
-                  let biz_input =
+                  let sask_value =
                     list.foldr(
                       tx.inputs,
-                      BizInput { sc_value: 0, sc_bond_qty: 0 },
-                      fn(i, z) {
-                        let ivalue = value.lovelace_of(i.output.value)
-                        let ibond_qty =
-                          value.quantity_of(
-                            i.output.value,
-                            escrow_info.bond_symbol,
-                            escrow_info.token_name,
-                          )
+                      value.zero(),
+                      fn(i, v) {
+                        let ibond_qty = bond_quantity_of(i.output.value)
                         let iaddr = i.output.address
                         if
                         iaddr.payment_credential == sask_addr.payment_credential{
                         
-                          if z.sc_bond_qty == 0 {
+                          if v == value.zero() {
                             let sc_bond_names =
                               dict.keys(
                                 value.tokens(
@@ -114,10 +108,7 @@ pub fn spending(
                               )
                             if list.at(sc_bond_names, 1) == None {
                               if (ibond_qty > 0)? {
-                                BizInput {
-                                  sc_value: ivalue,
-                                  sc_bond_qty: ibond_qty,
-                                }
+                                i.output.value
                               } else {
                                 fail @"not found bond matching in ask order"
                               }
@@ -130,7 +121,7 @@ pub fn spending(
                         } else {
                           when is_deprecated_sm_input(i, script_blacklist) is {
                             True -> fail @"do not allow spend deprecated ask"
-                            False -> z
+                            False -> v
                           }
                         }
                       },
@@ -139,27 +130,19 @@ pub fn spending(
                     list.foldr(
                       tx.outputs,
                       BizOutput {
-                        sc_value: 0,
-                        sc_bond_qty: 0,
-                        seller_value: 0,
-                        seller_bond_qty: 0,
-                        fee_value: 0,
-                        buyer_pk: [],
+                        oask_value: value.zero(),
+                        rbid_value: value.zero(),
+                        fee_lovelace: 0,
+                        rbid_qty: 0,
+                        buyer_payment_creds: [],
                       },
                       fn(o, z) {
-                        let ovalue = value.lovelace_of(o.value)
-                        let obond_qty =
-                          value.quantity_of(
-                            o.value,
-                            escrow_info.bond_symbol,
-                            escrow_info.token_name,
-                          )
                         let oaddr = o.address
                         if
                         oaddr.payment_credential == sask_addr.payment_credential{
                         
                           if and {
-                            (z.sc_bond_qty == 0)?,
+                            (bond_quantity_of(z.oask_value) == 0)?,
                             (oaddr.stake_credential == sask_addr.stake_credential)?,
                           } {
                             let sc_bond_names =
@@ -180,11 +163,7 @@ pub fn spending(
                                 )?,
                                 ask_making_valid(oask_dt, sask_dt)?,
                               } {
-                                BizOutput {
-                                  ..z,
-                                  sc_value: ovalue,
-                                  sc_bond_qty: obond_qty,
-                                }
+                                BizOutput { ..z, oask_value: o.value }
                               } else {
                                 fail @"ask order output invalid datum"
                               }
@@ -194,8 +173,8 @@ pub fn spending(
                           } else {
                             fail @"must only one ask order output allowed"
                           }
-                        } else if oaddr == seller_addr {
-                          if (z.seller_value == 0)? {
+                        } else if oaddr == rbid_addr {
+                          if (value.lovelace_of(z.rbid_value) == 0)? {
                             expect obid_dt: BidMaking =
                               when o.datum is {
                                 InlineDatum(d) -> d
@@ -227,8 +206,8 @@ pub fn spending(
                             } {
                               BizOutput {
                                 ..z,
-                                seller_value: ovalue,
-                                seller_bond_qty: obid_dt.quantity,
+                                rbid_value: o.value,
+                                rbid_qty: obid_dt.quantity,
                               }
                             } else {
                               fail @"bid order output invalid datum"
@@ -237,17 +216,18 @@ pub fn spending(
                             fail @"must only one owner output for ask order allowed"
                           }
                         } else if oaddr == fee_addr {
-                          // if (z.fee_value == 0)? {
-                          // } else {
-                          //   fail @"must only one fee output for ask order allowed"
-                          // }
-                          BizOutput { ..z, fee_value: z.fee_value + ovalue }
+                          BizOutput {
+                            ..z,
+                            fee_lovelace: z.fee_lovelace + value.lovelace_of(
+                              o.value,
+                            ),
+                          }
                         } else {
                           BizOutput {
                             ..z,
-                            buyer_pk: [
+                            buyer_payment_creds: [
                               o.address.payment_credential,
-                              ..z.buyer_pk
+                              ..z.buyer_payment_creds
                             ],
                           }
                         }
@@ -259,22 +239,24 @@ pub fn spending(
                   // buy partial ==> biz_output.sc_bond_qty > 0
                   let buyer_is_not_owner =
                     !list.has(
-                      biz_output.buyer_pk,
+                      biz_output.buyer_payment_creds,
                       owner_addr.payment_credential,
                     )
                   and {
                     buyer_is_not_owner?,
-                    (biz_input.sc_bond_qty > 0)?,
-                    (biz_output.sc_bond_qty >= 0)?,
-                    (biz_output.sc_bond_qty < biz_input.sc_bond_qty)?,
-                    (biz_output.seller_value > 0)?,
+                    (bond_quantity_of(sask_value) > 0)?,
+                    (bond_quantity_of(biz_output.oask_value) >= 0)?,
+                    (bond_quantity_of(biz_output.oask_value) < bond_quantity_of(
+                      sask_value,
+                    ))?,
+                    (value.lovelace_of(biz_output.rbid_value) > 0)?,
                     spending_correct(
                       cfg,
                       escrow_info,
                       sask_dt,
-                      biz_input,
+                      sask_value,
                       biz_output,
-                      seller_addr,
+                      bond_quantity_of,
                     ),
                   }
                 } else {
@@ -298,19 +280,15 @@ fn spending_correct(
   cfg: BondConfigMaking,
   escrow_info: EscrowInfo,
   sask_dt: AskMaking,
-  biz_input: BizInput,
+  sask_value: Value,
   biz_output: BizOutput,
-  seller_addr: Address,
+  bond_quantity_of: fn(Value) -> Int,
 ) -> Bool {
-  let matching_bond_qty: Int = biz_input.sc_bond_qty - biz_output.sc_bond_qty
-  // let (min_ada_to_sm, min_ada_to_exchange) =
-  //   if matching_bond_qty == biz_input.sc_bond_qty {
-  //     // buy all
-  //     (0, biz_input.sc_value)
-  //   } else {
-  //     // buy partial
-  //     (biz_input.sc_value, 0)
-  //   }
+  let BizOutput { oask_value, rbid_value, rbid_qty, fee_lovelace, .. } =
+    biz_output
+  let sask_bond_qty = bond_quantity_of(sask_value)
+  let oask_bond_qty = bond_quantity_of(oask_value)
+  let matching_bond_qty = sask_bond_qty - oask_bond_qty
   // Tong tien lender nhan duoc cuoi chu ky dao han bao gom ca goc va lai tuong ung vs so bond ma buyer mua
   let received_at_maturity: Lovelace =
     escrow_info.value_at_maturity * matching_bond_qty
@@ -331,25 +309,32 @@ fn spending_correct(
   let exchange_fee_buyer: Lovelace =
     received_diff * cfg.exchange.taker_fee / cfg.platform.basis.base
   //
-  let exchange_receive_lovelace_tmp: Lovelace =
-    exchange_fee_buyer + exchange_fee_seller
-  //
-  let seller_receive_lovelace_tmp: Lovelace =
-    received_with_yield - exchange_fee_seller
-  //
   // SC chuyển bond ==> seller nhận tiền
   // buyer chuyển tiền nhận bond
-  let (seller_receive_lovelace, exchange_receive_lovelace) =
-    if seller_addr == cfg.exchange.fee_addr {
-      (seller_receive_lovelace_tmp + exchange_receive_lovelace_tmp, 0)
-    } else {
-      (seller_receive_lovelace_tmp, exchange_receive_lovelace_tmp)
-    }
+  let (exchange_lovelace_after_fee, expected_fee_lovelace) =
+    (
+      received_with_yield - exchange_fee_seller,
+      exchange_fee_buyer + exchange_fee_seller,
+    )
+
   and {
+    // Must exchange bond tokens
     (matching_bond_qty > 0)?,
-    (biz_output.sc_bond_qty >= biz_input.sc_bond_qty - matching_bond_qty)?,
-    (biz_output.fee_value >= exchange_receive_lovelace)?,
-    (biz_output.sc_value + biz_output.seller_value == biz_input.sc_value + seller_receive_lovelace)?,
-    (biz_output.seller_bond_qty <= matching_bond_qty)?,
+    // Must withdraw expected amount of bond tokens from spending ask 
+    (oask_bond_qty >= sask_bond_qty - matching_bond_qty)?,
+    // Must pay correct exchange fee
+    (fee_lovelace >= expected_fee_lovelace)?,
+    // Must remain correct assets, no unbound value
+    (value.merge(oask_value, rbid_value) == (
+      sask_value
+        |> value.add(
+            escrow_info.bond_symbol,
+            escrow_info.token_name,
+            -matching_bond_qty,
+          )
+        |> value.add(ada_policy_id, ada_asset_name, exchange_lovelace_after_fee)
+    ))?,
+    // Must not bid more than sale
+    (rbid_qty <= matching_bond_qty)?,
   }
 }
