@@ -2,9 +2,8 @@
 use aiken/bytearray
 use aiken/dict
 use aiken/list
-use aiken/option
 use aiken/transaction.{InlineDatum, ScriptContext, Spend, Transaction}
-use aiken/transaction/credential.{Address}
+use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value.{Value}
 use bond/common/constraint.{ask_limit_valid, yield_valid}
 use bond/common/types.{AskLimit, BondConfigLimit, EscrowInfo}
@@ -71,19 +70,13 @@ pub fn spending(
                       fn(i) { i.output_reference == sask_out_ref },
                     )
                   let sask_addr: Address = sask.output.address
-                  let seller_addr: Address =
-                    sask_dt.owner_sk
-                      |> option.and_then(
-                          fn(s) {
-                            Some(
-                              credential.from_verification_key(sask_dt.owner_vk)
-                                |> credential.with_delegation_key(s),
-                            )
-                          },
-                        )
-                      |> option.or_else(
-                          credential.from_verification_key(sask_dt.owner_vk),
-                        )
+                  let seller_addr =
+                    Address {
+                      payment_credential: VerificationKeyCredential(
+                        sask_dt.owner_vk,
+                      ),
+                      stake_credential: sask_addr.stake_credential,
+                    }
                   let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
                     list.foldr(
