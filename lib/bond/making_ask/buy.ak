@@ -2,9 +2,10 @@
 use aiken/bytearray
 use aiken/dict
 use aiken/list
-use aiken/option
 use aiken/transaction.{InlineDatum, ScriptContext, Spend, Transaction}
-use aiken/transaction/credential.{Address, PaymentCredential}
+use aiken/transaction/credential.{
+  Address, PaymentCredential, ScriptCredential, VerificationKeyCredential,
+}
 use aiken/transaction/value.{Value, ada_asset_name, ada_policy_id}
 use bond/common/constraint.{
   ask_making_valid, bid_making_valid, epoch_valid, yield_valid,
@@ -74,19 +75,11 @@ pub fn spending(
                     )
                   let sask_addr: Address = sask.output.address
                   let sask_pk: ByteArray = get_payment_key(sask_addr)
-                  let owner_addr: Address =
-                    credential.from_verification_key(sask_dt.owner_vk)
-                  let rbid_addr: Address =
-                    sask_dt.owner_sk
-                      |> option.and_then(
-                          fn(s) {
-                            Some(
-                              credential.from_script(sask_dt.bid_sc)
-                                |> credential.with_delegation_key(s),
-                            )
-                          },
-                        )
-                      |> option.or_else(credential.from_script(sask_dt.bid_sc))
+                  let rbid_addr =
+                    Address {
+                      payment_credential: ScriptCredential(sask_dt.bid_sc),
+                      stake_credential: sask_addr.stake_credential,
+                    }
                   let fee_addr: Address = cfg.exchange.fee_addr
                   let sask_value =
                     list.foldr(
@@ -240,7 +233,7 @@ pub fn spending(
                   let buyer_is_not_owner =
                     !list.has(
                       biz_output.buyer_payment_creds,
-                      owner_addr.payment_credential,
+                      VerificationKeyCredential(sask_dt.owner_vk),
                     )
                   and {
                     buyer_is_not_owner?,
