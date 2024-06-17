@@ -2,9 +2,10 @@
 use aiken/bytearray
 use aiken/dict
 use aiken/list
-use aiken/option
 use aiken/transaction.{InlineDatum, Output, ScriptContext, Spend, Transaction}
-use aiken/transaction/credential.{Address, PaymentCredential}
+use aiken/transaction/credential.{
+  Address, PaymentCredential, ScriptCredential, VerificationKeyCredential,
+}
 use aiken/transaction/value.{Value, ada_asset_name, ada_policy_id}
 use bond/common/constraint.{
   ask_making_valid, bid_making_valid, epoch_valid, yield_valid,
@@ -88,19 +89,11 @@ pub fn spending(
                     )
                   let sbid_addr: Address = sbid.output.address
                   let sbid_pk: ByteArray = get_payment_key(sbid_addr)
-                  let owner_addr: Address =
-                    credential.from_verification_key(sbid_dt.owner_vk)
-                  let rask_addr: Address =
-                    sbid_dt.owner_sk
-                      |> option.and_then(
-                          fn(s) {
-                            Some(
-                              credential.from_script(sbid_dt.ask_sc)
-                                |> credential.with_delegation_key(s),
-                            )
-                          },
-                        )
-                      |> option.or_else(credential.from_script(sbid_dt.ask_sc))
+                  let rask_addr =
+                    Address {
+                      payment_credential: ScriptCredential(sbid_dt.ask_sc),
+                      stake_credential: sbid_addr.stake_credential,
+                    }
                   let fee_addr: Address = cfg.exchange.fee_addr
                   let biz_input =
                     list.foldr(
@@ -271,11 +264,11 @@ pub fn spending(
                   let seller_is_not_owner = and {
                       !list.has(
                         biz_input.seller_payment_creds,
-                        owner_addr.payment_credential,
+                        VerificationKeyCredential(sbid_dt.owner_vk),
                       ),
                       !list.has(
                         biz_output.seller_payment_creds,
-                        owner_addr.payment_credential,
+                        VerificationKeyCredential(sbid_dt.owner_vk),
                       ),
                     }
                   and {
