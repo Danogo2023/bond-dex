@@ -1,3 +1,4 @@
+use aiken/cbor
 use aiken/dict
 use aiken/list
 use aiken/string
@@ -6,8 +7,8 @@ use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum}
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value.{Value}
 use bond/common/types.{
-  Absolute, EpochType, EscrowConfig, EscrowDatum, EscrowInfo, EscrowRef,
-  PlatformConfig, RelativeToCurrentEpoch,
+  Absolute, AddressId, EpochType, EscrowConfig, EscrowDatum, EscrowInfo,
+  EscrowRef, PlatformConfig, RelativeToCurrentEpoch,
 } as bond_types
 use common/pvalue
 use common/string.{bconcat_1, bconcat_3, to_unit_3} as common_string
@@ -340,4 +341,8 @@ pub fn is_deprecated_sm_input(
       }
     _ -> False
   }
+}
+
+pub fn get_address_id(a: Address) -> AddressId {
+  cbor.serialise(a)
 }

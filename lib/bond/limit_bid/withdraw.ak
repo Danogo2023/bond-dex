@@ -16,21 +16,21 @@ use aiken/transaction/value.{
 }
 use bond/common/constraint.{bid_limit_multi_valid, epoch_valid, yield_valid}
 use bond/common/types.{
-  BidLimitMulti, BondConfigLimit, EscrowDatum, EscrowInfo, ExchangeConfigLimit,
-  PlatformConfig,
+  AddressId, BidLimitMulti, BondConfigLimit, EscrowDatum, EscrowInfo,
+  ExchangeConfigLimit, PlatformConfig,
 }
 use bond/common/utils.{
-  get_escrow_info, get_price_of_bond, is_deprecated_sm_input,
+  get_address_id, get_escrow_info, get_price_of_bond, is_deprecated_sm_input,
 } as butils
-use bond/limit_bid/types.{EscrowBond, Sell, TradeAction} as dtypes
+use bond/limit_bid/types.{BidValue,
+  BuyerValue, EscrowBond, Sell, TradeAction} as dtypes
 use common/data
 use common/pvalue
 use common/string.{bconcat_3, to_unit_3}
 use common/time.{EpochTime,
   posix_time_to_relative_epoch, tx_validity_valid} as ctime
-use common/types.{
-  AssetUnit, Error, Lovelace, OK, PublicKeyHash, Result, ScriptKeyHash,
-} as ctypes
+use common/types.{AssetUnit,
+  Error, Lovelace, OK, Result, ScriptKeyHash} as ctypes
 
 pub fn constraint(
   ctx: ScriptContext,
@@ -60,7 +60,7 @@ pub fn constraint(
   } = calc_output_data(tx, cfg, tx_time_valid, epo_curr, bid_cred)
   let InputData {
     sum_exchange_fee: expected_exchange_fee,
-    all_buyer_vkeys,
+    all_buyer_addr,
     data_by_owner: idata_by_owner,
     ..
   } =
@@ -80,13 +80,14 @@ pub fn constraint(
     (expected_exchange_fee <= sum_exchange_fee)?,
     // Each buyer must receive expected assets
     list.foldr(
-      all_buyer_vkeys,
+      all_buyer_addr,
       True,
-      fn(buyer_vk, valid) {
+      fn(buyer_addr, valid) {
+        let buyer_id = get_address_id(buyer_addr)
         let (exchange_tokens, ibid_assets) =
-          must_get_buyer_data(buyer_vk, idata_by_owner)
+          must_get_buyer_data(buyer_id, idata_by_owner)
         let (obuyer_assets, obid_assets) =
-          must_get_buyer_data(buyer_vk, odata_by_owner)
+          must_get_buyer_data(buyer_id, odata_by_owner)
         let obuyer_lovelace = value.lovelace_of(obuyer_assets)
         expect and {
             // The buyer must own exactly expected assets
@@ -97,9 +98,7 @@ pub fn constraint(
               expected_own_assets == actual_own_assets
             }?,
             // If buyer is protocol, they must receive both min lovelace and exchange fee
-            if
-            VerificationKeyCredential(buyer_vk) == fee_addr.payment_credential{
-            
+            if buyer_addr.payment_credential == fee_addr.payment_credential {
               (min_lovelace + expected_exchange_fee <= obuyer_lovelace)?
             } else {
               (min_lovelace <= obuyer_lovelace)?
@@ -114,15 +113,15 @@ pub fn constraint(
 type InputData {
   sum_exchange_fee: Lovelace,
   // (exchange_tokens, bid_assets) 
-  data_by_owner: Dict<PublicKeyHash, (Value, Value)>,
+  data_by_owner: Dict<AddressId, (BuyerValue, BidValue)>,
   cont_idx_set: List<Int>,
-  all_buyer_vkeys: List<PublicKeyHash>,
+  all_buyer_addr: List<Address>,
 }
 
 type OutputData {
   sum_exchange_fee: Lovelace,
   // (owner_assets, bid_assets)
-  data_by_owner: Dict<PublicKeyHash, (Value, Value)>,
+  data_by_owner: Dict<AddressId, (BuyerValue, BidValue)>,
   escrow_by_unit: Dict<AssetUnit, EscrowBond>,
   bid_by_idx: Dict<Int, (BidLimitMulti, Lovelace, Option<StakeCredential>)>,
 }
@@ -131,11 +130,8 @@ fn merge_pair_assets(_, a: (Value, Value), b: (Value, Value)) {
   Some((value.merge(a.1st, b.1st), value.merge(a.2nd, b.2nd)))
 }
 
-fn must_get_buyer_data(
-  buyer_vk: PublicKeyHash,
-  data: Dict<PublicKeyHash, a>,
-) -> a {
-  when dict.get(data, buyer_vk) is {
+fn must_get_buyer_data(buyer_addr: AddressId, data: Dict<AddressId, a>) -> a {
+  when dict.get(data, buyer_addr) is {
     None -> fail @"data of buyer is invalid"
     Some(v) -> v
   }
@@ -168,7 +164,12 @@ fn calc_output_data(
           ..z,
           data_by_owner: dict.insert_with(
             z.data_by_owner,
-            odt.owner_vk,
+            get_address_id(
+              Address {
+                payment_credential: VerificationKeyCredential(odt.owner_vk),
+                stake_credential: o.address.stake_credential,
+              },
+            ),
             (value.zero(), o.value),
             merge_pair_assets,
             bytearray.compare,
@@ -206,12 +207,12 @@ fn calc_output_data(
               }
               _ -> z
             }
-          VerificationKeyCredential(k) ->
+          VerificationKeyCredential(_) ->
             OutputData {
               ..z,
               data_by_owner: dict.insert_with(
                 z.data_by_owner,
-                k,
+                get_address_id(o.address),
                 (o.value, value.zero()),
                 merge_pair_assets,
                 bytearray.compare,
@@ -341,7 +342,7 @@ fn calc_input_data(
       sum_exchange_fee: 0,
       data_by_owner: dict.new(),
       cont_idx_set: [],
-      all_buyer_vkeys: [],
+      all_buyer_addr: [],
     },
     fn(i, z) {
       if i.output.address == cfg.exchange.fee_addr {
@@ -367,15 +368,21 @@ fn calc_input_data(
               )
             is {
               OK(bond_by_owner) -> {
-                let owner_vk = ibid_dt.owner_vk
+                let owner_addr =
+                  Address {
+                    payment_credential: VerificationKeyCredential(
+                      ibid_dt.owner_vk,
+                    ),
+                    stake_credential: i.output.address.stake_credential,
+                  }
                 let r =
                   InputData {
                     ..z,
                     sum_exchange_fee: z.sum_exchange_fee + exchange_fee,
-                    all_buyer_vkeys: [owner_vk, ..z.all_buyer_vkeys],
+                    all_buyer_addr: [owner_addr, ..z.all_buyer_addr],
                     data_by_owner: dict.insert_with(
                       z.data_by_owner,
-                      owner_vk,
+                      get_address_id(owner_addr),
                       (
                         bond_by_owner,
                         i.output.value

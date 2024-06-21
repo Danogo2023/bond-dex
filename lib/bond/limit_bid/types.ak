@@ -1,4 +1,4 @@
-use aiken/transaction/value.{AssetName, PolicyId}
+use aiken/transaction/value.{AssetName, PolicyId, Value}
 use bond/common/types.{BondType, EscrowInfo}
 use common/types.{Lovelace, ScriptKeyHash} as common_types
 
@@ -21,3 +21,9 @@ pub type WithdrawAction {
 
 pub type EscrowBond =
   (BondType, EscrowInfo)
+
+pub type BidValue =
+  Value
+
+pub type BuyerValue =
+  Value

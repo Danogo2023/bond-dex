@@ -175,3 +175,6 @@ pub type TradeAction {
   Upgrade
   GarbageCollector
 }
+
+pub type AddressId =
+  ByteArray
