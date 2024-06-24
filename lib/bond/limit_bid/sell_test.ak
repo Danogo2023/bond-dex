@@ -5,7 +5,7 @@ use aiken/dict
 use aiken/interval.{entirely_between}
 use aiken/string
 use aiken/transaction.{
-  InlineDatum, Input, NoDatum, Output, OutputReference, ScriptContext,
+  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, ScriptContext,
   ScriptPurpose, Spend, Transaction, TransactionId,
 }
 use aiken/transaction/credential.{
@@ -2854,6 +2854,254 @@ test fail_when_buyer_stake_key_is_wrong() fail {
       owner_out_lovelace,
       Some(asset_sell),
       NoDatum,
+    )
+  let txn =
+    fixture.tx(
+      [sc_in_1, seller_in_1],
+      [refer_in_1],
+      [exchange_out_1, seller_out_1, owner_out_1],
+      Some([get_buyer_address_hash()]),
+      None,
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    )
+  let seller_receive = received_with_yield - exchange_fee_seller
+  let tx =
+    Transaction {
+      ..txn,
+      redeemers: dict.insert(
+        txn.redeemers,
+        Spend(sc_in_1.output_reference),
+        Sell {
+          exchange_fee: exchange_out_lovelace,
+          seller_receive,
+          offers: [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
+          cont_idx: None,
+        },
+        script_purpose_compare,
+      ),
+    }
+  withdraw.constraint(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    bid_skh,
+    [],
+  )
+}
+
+test fail_unsafe_fee_datum() fail {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_limit_mainnet()
+  let owner_address = get_buyer_address()
+  let seller_address = get_seller_address()
+  let sc_in_datum_1 =
+    gen_bid_limit_multi_datum(
+      owner_address,
+      390,
+      480,
+      5,
+      500,
+      [DanogoBond, OptimBond],
+    )
+  let bond_name_1 = get_bond_id_1()
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
+  let escrow_full_info =
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.value_at_maturity,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.platform.basis.base,
+    )
+  //  
+  let bond_sell_qty = 5
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
+  let received_with_yield = price_of_one_bond * bond_sell_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let exchange_fee_seller =
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
+  let exchange_fee_buyer =
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
+  //
+  let owner_out_lovelace = min_ada
+  let sc_address = get_bid_sc_address()
+  let sc_in_lovelace =
+    received_with_yield + exchange_fee_buyer + owner_out_lovelace
+  let sc_in_1 =
+    gen_input(sc_address, sc_in_lovelace, None, InlineDatum(sc_in_datum_1))
+  let seller_in_lovelace = 1310316
+  let asset_sell =
+    value.from_asset(get_bond_policy_id(), bond_name_1, bond_sell_qty)
+  let seller_in_1 =
+    gen_input(seller_address, seller_in_lovelace, Some(asset_sell), NoDatum)
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let exchange_address = get_exchange_address()
+  let exchange_out_lovelace = exchange_fee_buyer + exchange_fee_seller
+  let exchange_out_1 =
+    gen_output(
+      exchange_address,
+      exchange_out_lovelace,
+      None,
+      DatumHash("arbitrary_digest"),
+    )
+  let seller_out_lovelace =
+    seller_in_lovelace + received_with_yield - exchange_fee_seller
+  let seller_out_1 =
+    gen_output(seller_address, seller_out_lovelace, None, NoDatum)
+  let owner_out_1 =
+    gen_output(owner_address, owner_out_lovelace, Some(asset_sell), NoDatum)
+  let txn =
+    fixture.tx(
+      [sc_in_1, seller_in_1],
+      [refer_in_1],
+      [exchange_out_1, seller_out_1, owner_out_1],
+      Some([get_buyer_address_hash()]),
+      None,
+      Some(time_of_tx),
+      Some(time_of_tx + 3 * 60 * 1000),
+    )
+  let seller_receive = received_with_yield - exchange_fee_seller
+  let tx =
+    Transaction {
+      ..txn,
+      redeemers: dict.insert(
+        txn.redeemers,
+        Spend(sc_in_1.output_reference),
+        Sell {
+          exchange_fee: exchange_out_lovelace,
+          seller_receive,
+          offers: [(get_bond_policy_id(), bond_name_1, bond_sell_qty)],
+          cont_idx: None,
+        },
+        script_purpose_compare,
+      ),
+    }
+  withdraw.constraint(
+    ScriptContext { transaction: tx, purpose: Spend(sc_in_1.output_reference) },
+    cfg,
+    bid_skh,
+    [],
+  )
+}
+
+test fail_unsafe_payout_datum() fail {
+  let time_of_tx = 1681095094000
+  let cfg = get_config_limit_mainnet()
+  let owner_address = get_buyer_address()
+  let seller_address = get_seller_address()
+  let sc_in_datum_1 =
+    gen_bid_limit_multi_datum(
+      owner_address,
+      390,
+      480,
+      5,
+      500,
+      [DanogoBond, OptimBond],
+    )
+  let bond_name_1 = get_bond_id_1()
+  // get_escrow_datum(asset_name: AssetName, bond_amount: Int, epo_rewards: Int, duration: Int, start: Int)
+  let escrow_bond_amount = 10000
+  let escrow_epo_rewards = 753424657
+  let escrow_duration = 72
+  let escrow_datum =
+    get_escrow_datum(
+      bond_name_1,
+      escrow_bond_amount,
+      escrow_epo_rewards,
+      escrow_duration,
+      63,
+    )
+  // => epoch_start = 22190 epoch_end = 22244
+  let escrow_lovelace =
+    escrow_bond_amount * 100_000_000 + escrow_epo_rewards * escrow_duration
+  let escrow_full_info =
+    calc_escrow_full_info(
+      cfg.platform,
+      escrow_lovelace,
+      escrow_datum,
+      time_of_tx,
+    )
+  let price_of_one_bond =
+    get_price_of_bond(
+      escrow_full_info.value_at_maturity,
+      escrow_full_info.day_to_maturity,
+      sc_in_datum_1.requested_yield,
+      cfg.platform.basis.base,
+    )
+  //  
+  let bond_sell_qty = 5
+  let received_at_maturity = escrow_full_info.value_at_maturity * bond_sell_qty
+  let received_with_yield = price_of_one_bond * bond_sell_qty
+  let received_diff = received_at_maturity - received_with_yield
+  let exchange_fee_seller =
+    received_diff * cfg.exchange.seller_fee / cfg.platform.basis.base
+  let exchange_fee_buyer =
+    received_diff * cfg.exchange.buyer_fee / cfg.platform.basis.base
+  //
+  let owner_out_lovelace = min_ada
+  let sc_address = get_bid_sc_address()
+  let sc_in_lovelace =
+    received_with_yield + exchange_fee_buyer + owner_out_lovelace
+  let sc_in_1 =
+    gen_input(sc_address, sc_in_lovelace, None, InlineDatum(sc_in_datum_1))
+  let seller_in_lovelace = 1310316
+  let asset_sell =
+    value.from_asset(get_bond_policy_id(), bond_name_1, bond_sell_qty)
+  let seller_in_1 =
+    gen_input(seller_address, seller_in_lovelace, Some(asset_sell), NoDatum)
+  let refer_in_1 =
+    get_input_escrow(
+      get_escrow_address(),
+      get_escrow_policy_id(),
+      bond_name_1,
+      1,
+      escrow_lovelace,
+      InlineDatum(escrow_datum),
+    )
+  //
+  let exchange_address = get_exchange_address()
+  let exchange_out_lovelace = exchange_fee_buyer + exchange_fee_seller
+  let exchange_out_1 =
+    gen_output(exchange_address, exchange_out_lovelace, None, NoDatum)
+  let seller_out_lovelace =
+    seller_in_lovelace + received_with_yield - exchange_fee_seller
+  let seller_out_1 =
+    gen_output(seller_address, seller_out_lovelace, None, NoDatum)
+  let owner_out_1 =
+    gen_output(
+      owner_address,
+      owner_out_lovelace,
+      Some(asset_sell),
+      DatumHash("arbitrary_digest"),
     )
   let txn =
     fixture.tx(

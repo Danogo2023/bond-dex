@@ -20,7 +20,8 @@ use bond/common/types.{
   ExchangeConfigLimit, PlatformConfig,
 }
 use bond/common/utils.{
-  get_address_id, get_escrow_info, get_price_of_bond, is_deprecated_sm_input,
+  get_address_id, get_escrow_info, get_price_of_bond, has_safe_datum,
+  is_deprecated_sm_input,
 } as butils
 use bond/limit_bid/types.{BidValue,
   BuyerValue, EscrowBond, Sell, TradeAction} as dtypes
@@ -154,6 +155,7 @@ fn calc_output_data(
     },
     fn(idx, o, z) {
       if o.address == cfg.exchange.fee_addr {
+        expect has_safe_datum(o)
         OutputData {
           ..z,
           sum_exchange_fee: z.sum_exchange_fee + value.lovelace_of(o.value),
@@ -207,7 +209,8 @@ fn calc_output_data(
               }
               _ -> z
             }
-          VerificationKeyCredential(_) ->
+          VerificationKeyCredential(_) -> {
+            expect has_safe_datum(o)
             OutputData {
               ..z,
               data_by_owner: dict.insert_with(
@@ -218,6 +221,7 @@ fn calc_output_data(
                 bytearray.compare,
               ),
             }
+          }
         }
       }
     },

@@ -12,7 +12,7 @@ use bond/common/constraint.{
 }
 use bond/common/types.{AskMaking, BidMaking, BondConfigMaking, EscrowInfo}
 use bond/common/utils.{
-  get_price_of_bond, head_escrow_ref, is_deprecated_sm_input,
+  get_price_of_bond, has_safe_datum, head_escrow_ref, is_deprecated_sm_input,
 } as bond_utils
 use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
@@ -238,6 +238,7 @@ pub fn spending(
                               fail @"must only one owner output for bid order allowed"
                             }
                           } else if oaddr == fee_addr {
+                            expect has_safe_datum(o)
                             if (z.fee_lovelace == 0)? {
                               BizOutput {
                                 ..z,

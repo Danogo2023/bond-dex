@@ -8,7 +8,7 @@ use aiken/transaction/value.{Value}
 use bond/common/constraint.{ask_limit_valid, yield_valid}
 use bond/common/types.{AskLimit, BondConfigLimit, EscrowInfo}
 use bond/common/utils.{
-  get_price_of_bond, head_escrow_ref, is_deprecated_sm_input,
+  get_price_of_bond, has_safe_datum, head_escrow_ref, is_deprecated_sm_input,
 } as bond_utils
 use common/string.{bconcat_3} as common_string
 use common/time.{EpochTime, posix_time_to_relative_epoch, tx_validity_valid}
@@ -192,6 +192,7 @@ pub fn spending(
                             fail @"must only one ask order output allowed"
                           }
                         } else if oaddr == seller_addr {
+                          expect has_safe_datum(o)
                           if (z.seller_value == 0)? {
                             BizOutput {
                               ..z,
@@ -202,10 +203,7 @@ pub fn spending(
                             fail @"must only one owner output for ask order allowed"
                           }
                         } else if oaddr == fee_addr {
-                          // if (z.fee_value == 0)? {
-                          // } else {
-                          //   fail @"must only one fee output for ask order allowed"
-                          // }
+                          expect has_safe_datum(o)
                           BizOutput { ..z, fee_value: z.fee_value + ovalue }
                         } else {
                           z

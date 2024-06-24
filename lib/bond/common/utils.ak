@@ -3,7 +3,7 @@ use aiken/dict
 use aiken/list
 use aiken/string
 use aiken/time.{PosixTime} as aiken_time
-use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum}
+use aiken/transaction.{DatumHash, InlineDatum, Input, NoDatum, Output}
 use aiken/transaction/credential.{Address, ScriptCredential}
 use aiken/transaction/value.{Value}
 use bond/common/types.{
@@ -345,4 +345,16 @@ pub fn is_deprecated_sm_input(
 
 pub fn get_address_id(a: Address) -> AddressId {
   cbor.serialise(a)
+}
+
+/// Checks if this output has a safe datum
+///
+/// The datum of this output must be determined (inline) or unset.
+/// If it's an arbitrary hash digest, the digest might be invalid,
+/// hence we treat it as an unsafe datum
+pub fn has_safe_datum(this: Output) {
+  when this.datum is {
+    DatumHash(_) -> False
+    _ -> True
+  }
 }
